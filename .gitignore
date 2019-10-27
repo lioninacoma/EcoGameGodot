@@ -1,0 +1,8 @@
+*.obj
+*.dll
+*.exp
+*.ilk
+*.lib
+*.pdb
+godot-cpp/
+.import/
