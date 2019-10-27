@@ -77,9 +77,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\Frederick\source\repos\EcoGame\godot-cpp\godot_headers;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\include\gen;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\include\core;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Frederick\source\repos\EcoGame\godot-cpp\bin;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\Users\Frederick\source\repos\EcoGame\godot-cpp\src;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\src\gen;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\src\core;C:\Users\Frederick\source\repos\EcoGame\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(SolutionDir)\godot-cpp\godot_headers;$(SolutionDir)\godot-cpp\include\gen;$(SolutionDir)\godot-cpp\include\core;$(SolutionDir)\godot-cpp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(SolutionDir)\godot-cpp\src;$(SolutionDir)\godot-cpp\src\gen;$(SolutionDir)\godot-cpp\src\core;$(SolutionDir)\src;$(SourcePath)</SourcePath>
     <OutDir>$(SolutionDir)\ecogame\bin\$(Platform)</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
