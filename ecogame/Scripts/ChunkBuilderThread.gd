@@ -2,7 +2,7 @@ class ChunkBuilderThread:
 	extends Node
 	
 	onready var EcoGame = get_tree().get_root().get_node("EcoGame")
-	onready var gcb = preload("res://bin/ecogame.gdns").new()
+	var gcb = load("res://bin/ecogame.gdns").new()
 	
 	var _thread
 	var _offset
@@ -81,14 +81,7 @@ class ChunkBuilderThread:
 			i += 6
 			j += 4
 		
-		var mat = SpatialMaterial.new()
-		var texture = ImageTexture.new()
-		var image = Image.new()
-		image.load("res://Images/terrain32.png")
-		texture.create_from_image(image)
-		mat.albedo_texture = texture
-		
-		st.set_material(mat)
+		st.set_material(WorldVariables.terrainMaterial)
 		
 		for v in vertices.size():
 			st.add_uv(uvs[v])
@@ -98,13 +91,23 @@ class ChunkBuilderThread:
 		st.commit(mesh)
 		meshInstance.mesh = mesh
 		
+#		var collisionShape = CollisionShape.new();
+#		var staticBody = StaticBody.new()
+#		var polygonShape = ConvexPolygonShape.new()
+#		polygonShape.set_points(mesh.get_faces())
+#		collisionShape.set_shape(polygonShape)
+#		meshInstance.add_child(staticBody)
+#		staticBody.add_child(collisionShape)
+#		meshInstance.create_convex_collision()
+		meshInstance.create_trimesh_collision()
+		
 		self._finished = true
 		call_deferred("_generate_done")
 		return meshInstance
 	
 	func _generate_done():
-		var meshInstance = self._thread.wait_to_finish()
+		var staticBody = self._thread.wait_to_finish()
 		mutex.lock()
-		EcoGame.add_child(meshInstance)
+		EcoGame.add_child(staticBody)
 		EcoGame.build_thread_ready(self)
 		mutex.unlock()

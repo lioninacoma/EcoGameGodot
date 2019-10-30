@@ -21,8 +21,9 @@ using namespace std;
 #define TOP    4
 #define BOTTOM 5
 
-#define TEXTURE_SCALE 1.0 / 64.0
+#define TEXTURE_SCALE 1.0 / 1.0
 #define TEXTURE_ATLAS_LEN 3
+#define TEXTURE_MODE 1
 
 namespace godot {
 

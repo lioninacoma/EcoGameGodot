@@ -5,10 +5,11 @@ onready var fpsLabel = get_node('FPSLabel')
 
 # build thread variables
 onready var buildStack = []
-onready var maxAmountBuildJobs = 8
+onready var maxAmountBuildJobs = 4
 onready var amountBuildJobs = 0
 
 func _ready():
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	_build_world()
 
 func _build_world():
@@ -21,7 +22,7 @@ func _build_world():
 func _process(delta):
 	fpsLabel.set_text(str(Engine.get_frames_per_second()))
 	
-	for i in 8:
+	for i in 2:
 		if buildStack.size() > 0 && amountBuildJobs < maxAmountBuildJobs:
 #			print(amountBuildJobs)
 			amountBuildJobs += 1

@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/terrain32.png-db801f19c829b56b16c8bc0508fe56e2.stex"
+path="res://.import/icon.png-5d9aeb34e4fe76b4f9b5e813feff67e9.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/terrain32.png"
-dest_files=[ "res://.import/terrain32.png-db801f19c829b56b16c8bc0508fe56e2.stex" ]
+source_file="res://assets/maujoe.camera_control/icon.png"
+dest_files=[ "res://.import/icon.png-5d9aeb34e4fe76b4f9b5e813feff67e9.stex" ]
 
 [params]
 
@@ -20,7 +20,7 @@ compress/hdr_mode=0
 compress/bptc_ldr=0
 compress/normal_map=0
 flags/repeat=0
-flags/filter=false
+flags/filter=true
 flags/mipmaps=false
 flags/anisotropic=false
 flags/srgb=2
