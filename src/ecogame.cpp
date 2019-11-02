@@ -218,16 +218,16 @@ void EcoGame::createTop(PoolIntArray offset, int bl[], int tl[], int tr[], int b
 	Array vD;
 
 	if (TEXTURE_MODE == 0) {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], u, v2);
-		vB = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], u2, v2);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], u2, v);
-		vD = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], u, v);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(u, v2));
+		vB = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(u2, v2));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(u2, v));
+		vD = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(u, v));
 	}
 	else {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], 0, h);
-		vB = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], w, h);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], w, 0);
-		vD = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], 0, 0);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(0, h));
+		vB = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(w, h));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(w, 0));
+		vD = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(0, 0));
 	}
 
 	vertices.append(vA);
@@ -255,16 +255,16 @@ void EcoGame::createBottom(PoolIntArray offset, int bl[], int tl[], int tr[], in
 	Array vD;
 
 	if (TEXTURE_MODE == 0) {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], u, v2);
-		vB = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], u2, v2);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], u2, v);
-		vD = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], u, v);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(u, v2));
+		vB = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(u2, v2));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(u2, v));
+		vD = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(u, v));
 	}
 	else {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], 0, h);
-		vB = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], w, h);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], w, 0);
-		vD = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], 0, 0);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(0, h));
+		vB = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(w, h));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(w, 0));
+		vD = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(0, 0));
 	}
 
 	vertices.append(vA);
@@ -292,16 +292,16 @@ void EcoGame::createLeft(PoolIntArray offset, int bl[], int tl[], int tr[], int 
 	Array vD;
 
 	if (TEXTURE_MODE == 0) {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], u, v2);
-		vB = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], u2, v2);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], u2, v);
-		vD = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], u, v);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(u, v2));
+		vB = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(u2, v2));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(u2, v));
+		vD = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(u, v));
 	}
 	else {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], 0, h);
-		vB = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], w, h);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], w, 0);
-		vD = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], 0, 0);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(0, h));
+		vB = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(w, h));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(w, 0));
+		vD = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(0, 0));
 	}
 
 	vertices.append(vA);
@@ -329,16 +329,16 @@ void EcoGame::createRight(PoolIntArray offset, int bl[], int tl[], int tr[], int
 	Array vD;
 
 	if (TEXTURE_MODE == 0) {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], u, v2);
-		vB = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], u2, v2);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], u2, v);
-		vD = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], u, v);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(u, v2));
+		vB = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(u2, v2));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(u2, v));
+		vD = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(u, v));
 	}
 	else {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], 0, h);
-		vB = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], w, h);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], w, 0);
-		vD = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], 0, 0);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(0, h));
+		vB = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(w, h));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(w, 0));
+		vD = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(0, 0));
 	}
 
 	vertices.append(vA);
@@ -366,16 +366,16 @@ void EcoGame::createFront(PoolIntArray offset, int bl[], int tl[], int tr[], int
 	Array vD;
 
 	if (TEXTURE_MODE == 0) {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], u, v2);
-		vB = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], u2, v2);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], u2, v);
-		vD = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], u, v);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(u, v2));
+		vB = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(u2, v2));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(u2, v));
+		vD = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(u, v));
 	}
 	else {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], 0, h);
-		vB = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], w, h);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], w, 0);
-		vD = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], 0, 0);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(0, h));
+		vB = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(w, h));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(w, 0));
+		vD = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(0, 0));
 	}
 
 	vertices.append(vA);
@@ -403,16 +403,16 @@ void EcoGame::createBack(PoolIntArray offset, int bl[], int tl[], int tr[], int 
 	Array vD;
 
 	if (TEXTURE_MODE == 0) {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], u, v2);
-		vB = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], u2, v2);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], u2, v);
-		vD = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], u, v);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(u, v2));
+		vB = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(u2, v2));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(u2, v));
+		vD = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(u, v));
 	}
 	else {
-		vA = Array::make(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2], 0, h);
-		vB = Array::make(offsetX + br[0], offsetY + br[1], offsetZ + br[2], w, h);
-		vC = Array::make(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2], w, 0);
-		vD = Array::make(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2], 0, 0);
+		vA = Array::make(Vector3(offsetX + bl[0], offsetY + bl[1], offsetZ + bl[2]), Vector2(0, h));
+		vB = Array::make(Vector3(offsetX + br[0], offsetY + br[1], offsetZ + br[2]), Vector2(w, h));
+		vC = Array::make(Vector3(offsetX + tr[0], offsetY + tr[1], offsetZ + tr[2]), Vector2(w, 0));
+		vD = Array::make(Vector3(offsetX + tl[0], offsetY + tl[1], offsetZ + tl[2]), Vector2(0, 0));
 	}
 
 	vertices.append(vA);

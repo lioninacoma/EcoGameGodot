@@ -1,7 +1,8 @@
-[gd_scene load_steps=12 format=2]
+[gd_scene load_steps=13 format=2]
 
 [ext_resource path="res://Scripts/EcoGame.gd" type="Script" id=1]
-[ext_resource path="res://Player.gd" type="Script" id=2]
+[ext_resource path="res://Scripts/Player.gd" type="Script" id=2]
+[ext_resource path="res://Images/crosshair.png" type="Texture" id=3]
 
 [sub_resource type="ProceduralSky" id=1]
 
@@ -10,21 +11,21 @@ background_mode = 2
 background_sky = SubResource( 1 )
 ssao_enabled = true
 
-[sub_resource type="SphereMesh" id=6]
+[sub_resource type="SphereMesh" id=3]
 
-[sub_resource type="SphereShape" id=7]
+[sub_resource type="SphereShape" id=4]
+
+[sub_resource type="CubeMesh" id=5]
+
+[sub_resource type="BoxShape" id=6]
+
+[sub_resource type="CapsuleShape" id=7]
+radius = 0.403117
+height = 0.922621
 
 [sub_resource type="CubeMesh" id=8]
 
 [sub_resource type="BoxShape" id=9]
-
-[sub_resource type="CapsuleShape" id=10]
-radius = 0.512704
-height = 1.19516
-
-[sub_resource type="CubeMesh" id=11]
-
-[sub_resource type="BoxShape" id=12]
 
 [node name="EcoGame" type="Spatial"]
 script = ExtResource( 1 )
@@ -40,52 +41,72 @@ directional_shadow_normal_bias = 0.6
 directional_shadow_bias_split_scale = 0.3
 directional_shadow_max_distance = 300.0
 
-[node name="FPSLabel" type="Label" parent="."]
-margin_right = 40.0
-margin_bottom = 14.0
-
-[node name="RigidBody" type="RigidBody" parent="."]
+[node name="Ball" type="RigidBody" parent="."]
+editor/display_folded = true
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 550, 10 )
 
-[node name="Sphere" type="MeshInstance" parent="RigidBody"]
-mesh = SubResource( 6 )
+[node name="MeshInstance" type="MeshInstance" parent="Ball"]
+mesh = SubResource( 3 )
 material/0 = null
 
-[node name="CollisionShape" type="CollisionShape" parent="RigidBody"]
-shape = SubResource( 7 )
+[node name="CollisionShape" type="CollisionShape" parent="Ball"]
+shape = SubResource( 4 )
 
-[node name="StaticBody" type="StaticBody" parent="."]
+[node name="Box" type="StaticBody" parent="."]
+editor/display_folded = true
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 4.29119, 1.05643, -1.06591 )
-visible = false
 
-[node name="Box" type="MeshInstance" parent="StaticBody"]
-mesh = SubResource( 8 )
+[node name="MeshInstance" type="MeshInstance" parent="Box"]
+mesh = SubResource( 5 )
 material/0 = null
 
-[node name="CollisionShape" type="CollisionShape" parent="StaticBody"]
-shape = SubResource( 9 )
+[node name="CollisionShape" type="CollisionShape" parent="Box"]
+shape = SubResource( 6 )
 
 [node name="Player" type="KinematicBody" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, 10 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, -5 )
 script = ExtResource( 2 )
 
 [node name="Capsule" type="CollisionShape" parent="Player"]
 transform = Transform( 1, 0, 0, 0, -4.37114e-008, 1, 0, -1, -4.37114e-008, 0, 1.92498, 0 )
-shape = SubResource( 10 )
+shape = SubResource( 7 )
 
 [node name="Head" type="Spatial" parent="Player"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.62671, 0 )
 
 [node name="Camera" type="Camera" parent="Player/Head"]
-fov = 45.0
 far = 800.0
 
 [node name="Floor" type="MeshInstance" parent="."]
-transform = Transform( 400, 0, 0, 0, 0.54, 0, 0, 0, 400, 400, -0.5, 400 )
-mesh = SubResource( 11 )
+editor/display_folded = true
+transform = Transform( 400, 0, 0, 0, 0.54, 0, 0, 0, 400, 390, -0.5, 390 )
+mesh = SubResource( 8 )
 material/0 = null
 
 [node name="StaticBody" type="StaticBody" parent="Floor"]
 
 [node name="CollisionShape" type="CollisionShape" parent="Floor/StaticBody"]
-shape = SubResource( 12 )
+shape = SubResource( 9 )
+
+[node name="FPSLabel" type="Label" parent="."]
+margin_right = 40.0
+margin_bottom = 14.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+alignment = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+margin_left = 504.0
+margin_right = 520.0
+margin_bottom = 600.0
+alignment = 1
+
+[node name="Crosshair" type="TextureRect" parent="HBoxContainer/VBoxContainer"]
+margin_top = 292.0
+margin_right = 16.0
+margin_bottom = 308.0
+size_flags_horizontal = 4
+texture = ExtResource( 3 )
+stretch_mode = 1

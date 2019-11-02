@@ -21,9 +21,9 @@ config/icon="res://icon.png"
 
 [autoload]
 
-WorldVariables="*res://WorldVariables.gd"
-Noise="*res://Noise.gd"
-Helper="*res://Helper.gd"
+WorldVariables="*res://Scripts/Globals/WorldVariables.gd"
+Noise="*res://Scripts/Globals/Noise.gd"
+Intersection="*res://Scripts/Globals/Intersection.gd"
 
 [input]
 
