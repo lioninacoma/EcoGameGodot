@@ -19,7 +19,8 @@ func get_amount_active() -> int:
 	return self._amountActive
 
 func build_chunk(chunk : Chunk) -> void:
-	_threadPool.submit_task(funcref(self, "_build"), [chunk])
+	_threadPool.submit_task(self, "_build", [chunk])
+#	_build([chunk])
 	_amountActive += 1
 
 func _build(userdata) -> void:
@@ -38,13 +39,14 @@ func _build(userdata) -> void:
 	
 	# if not update, build voxels
 	if !volume:
-		volume = eco.buildVolume()
+#		volume = chunk.build_volume()
+		volume = eco.buildVolume(chunk.get_offset(), WorldVariables.NOISE_SEED)
 		chunk.set_volume(volume)
 	
 	var collFaces = PoolVector3Array()
 	
 	var startTimeBV = OS.get_ticks_msec()
-	var vertices = eco.buildVertices(volume, chunk.get_offset())
+	var vertices = eco.buildVertices(chunk.get_offset(), volume)
 	
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	

@@ -57,8 +57,8 @@ func _input(event : InputEvent) -> void:
 				vx % WorldVariables.CHUNK_SIZE_X,
 				vy % WorldVariables.CHUNK_SIZE_Y,
 				vz % WorldVariables.CHUNK_SIZE_Z, 0)
-			var cx = offset[0] / WorldVariables.CHUNK_SIZE_X
-			var cz = offset[2] / WorldVariables.CHUNK_SIZE_Z
+			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
+			var cz = int(offset.y) / WorldVariables.CHUNK_SIZE_Z
 			var index = flatten_index(cx, cz)
 			buildStack.push_front(index)
 			print("Voxel(%s, %s, %s) removed!"%[vx,vy,vz])
@@ -103,7 +103,7 @@ func initialize_chunks_nearby() -> void:
 			if chunks[index]: 
 				continue
 			
-			var offset = [x * WorldVariables.CHUNK_SIZE_X, 0, z * WorldVariables.CHUNK_SIZE_Z]
+			var offset = Vector3(x * WorldVariables.CHUNK_SIZE_X, 0, z * WorldVariables.CHUNK_SIZE_Z)
 			var chunk = Chunk.new(offset)
 			add_child(chunk)
 			chunks[index] = chunk

@@ -24,9 +24,9 @@ func shut_down():
 	for thread in _threads:
 		thread.wait_to_finish()
 
-func submit_task(task : FuncRef, userdata : Array) -> void:
+func submit_task(ctx, fnc : String, userdata : Array) -> void:
 	_mutex.lock()
-	_taskQueue.push_back([task, userdata])
+	_taskQueue.push_back([funcref(ctx, fnc), userdata])
 	_mutex.unlock()
 	_semaphore.post()
 

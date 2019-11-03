@@ -6,12 +6,12 @@ onready var WorldVariables = get_node("/root/WorldVariables")
 onready var Intersection = get_node("/root/Intersection")
 onready var Noise = get_node("/root/Noise")
 
-var _offset : Array
+var _offset : Vector3
 var _volume : PoolByteArray
 var _meshInstance : MeshInstance
 var _intersectRef : FuncRef
 
-func _init(offset : Array) -> void:
+func _init(offset : Vector3) -> void:
 	self._offset = offset
 	self._intersectRef = funcref(self, "_intersection")
 
@@ -36,7 +36,7 @@ func get_volume() -> PoolByteArray:
 func get_mesh_instance() -> MeshInstance:
 	return self._meshInstance
 
-func get_offset() -> Array:
+func get_offset() -> Vector3:
 	return self._offset
 
 func get_voxel_v(vec : Vector3) -> int:
@@ -104,27 +104,22 @@ func redistribution(x : float, r : float) -> float:
 	return 1.0 / d
 
 func build_volume() -> PoolByteArray:
-#	var startTime = OS.get_ticks_msec()
 	_volume = PoolByteArray()
 	_volume.resize(WorldVariables.CHUNK_SIZE_X * WorldVariables.CHUNK_SIZE_Y * WorldVariables.CHUNK_SIZE_Z)
-	
-#	for i in range(_volume.size()):
-#		_volume[i] = 0
 	
 	for i in _volume.size():
 		_volume[i] = 1
 	
+#	for i in _volume.size():
+#		_volume[i] = 0
+#
 #	for z in WorldVariables.CHUNK_SIZE_Z:
 #		for x in WorldVariables.CHUNK_SIZE_X:
-##			var y = get_voxel_noise_y(x, z)
-##			for i in y:
-##				var c = get_voxel_noise_chance(x, i, z)
-###				c = redistribution(c, 2.0)
-###				var t = float(i) / float(y)
-##				var t = 0.5
-###				set_voxel(x, i, z, 1 if c > t else 0)
-##				set_voxel(x, i, z, 1)
-#			set_voxel_column(x, WorldVariables.CHUNK_SIZE_Y, z, 1)
-#	print("Chunk processing in %s ms!" % [(OS.get_ticks_msec() - startTime)])
+#			var y = get_voxel_noise_y(x, z)
+#			for i in y:
+#				var c = get_voxel_noise_chance(x, i, z)
+#				var t = 0.5
+#				set_voxel(x, i, z, 1)
+	
 	return _volume
 	

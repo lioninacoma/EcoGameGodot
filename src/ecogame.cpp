@@ -8,11 +8,11 @@ void EcoGame::_register_methods() {
 }
 
 EcoGame::EcoGame() {
+	EcoGame::noise = OpenSimplexNoise::_new();
+	EcoGame::noise->set_octaves(4);
+	EcoGame::noise->set_period(60.0);
+	EcoGame::noise->set_persistence(0.5);
 
-}
-
-EcoGame::EcoGame(int seed) {
-	EcoGame::seed = seed;
 	/* Array quads = getQuads();
 	size_t size = quads.size();
 	String sizeStr = String("{0} quads").format(Array::make(size));
@@ -38,31 +38,63 @@ int EcoGame::flattenIndex(int x, int y, int z) {
 	return x + dims[0] * (y + dims[1] * z);
 }
 
-unsigned char EcoGame::getType(int x, int y, int z) {
+unsigned char EcoGame::getType(PoolByteArray volume, int x, int y, int z) {
 	int index = flattenIndex(x, y, z);
 	if (index >= 0 && index < BUFFER_SIZE)
 		return volume[index];
 	return 0;
 }
 
-PoolByteArray EcoGame::buildVolume() {
-	PoolByteArray volume;
-	volume.resize(BUFFER_SIZE);
-	for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 1);
+int EcoGame::getVoxelNoiseY(Vector3 offset, int x, int z) {
+	Vector2 noise2DV = Vector2(x + offset.x, z + offset.z) * 0.25;
+	float y = noise->get_noise_2dv(noise2DV) / 2.0 + 0.5;
+	y *= CHUNK_SIZE_Y;
+	return (int) y;
+}
+
+float EcoGame::getVoxelNoiseChance(Vector3 offset, int x, int y, int z) {
+	Vector3 noise3DV = Vector3(x + offset.x, y + offset.y, z + offset.z) * 1.5;
+	return noise->get_noise_3dv(noise3DV) / 2.0 + 0.5;
+}
+
+PoolByteArray EcoGame::setVoxel(PoolByteArray volume, int x, int y, int z, char v) {
+	if (x < 0 || x >= CHUNK_SIZE_X) return volume;
+	if (y < 0 || y >= CHUNK_SIZE_Y) return volume;
+	if (z < 0 || z >= CHUNK_SIZE_Z) return volume;
+	volume.set(flattenIndex(x, y, z), v);
 	return volume;
 }
 
-Array EcoGame::buildVertices(PoolByteArray volume, PoolIntArray offset) {
-	EcoGame::volume = volume;
+PoolByteArray EcoGame::buildVolume(Vector3 offset, int seed) {
+	EcoGame::noise->set_seed(seed);
+
+	PoolByteArray volume;
+	volume.resize(BUFFER_SIZE);
+	for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 0);
+
+	for (int z = 0; z < CHUNK_SIZE_Z; z++) {
+		for (int x = 0; x < CHUNK_SIZE_X; x++) {
+			int y = getVoxelNoiseY(offset, x, z);
+			//Godot::print(String("y: {0}").format(Array::make(y)));
+			for (int i = 0; i < y; i++) {
+				float c = getVoxelNoiseChance(offset, x, i, z);
+				//Godot::print(String("c: {0}").format(Array::make(c)));
+				float t = 0.5;
+				volume = setVoxel(volume, x, i, z, 1);
+			}
+		}
+	}
+
+	//for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 1);
+	return volume;
+}
+
+Array EcoGame::buildVertices(Vector3 offset, PoolByteArray volume) {
 	Array vertices;
 	int i, j, k, l, w, h, u, v, n, side = 0, vOffset = 0;
 
 	/*String str = String("quad{{0}, {1}, {2}} 123").format(Array::make(offset[0], offset[1], offset[2]));
 	Godot::print(str);*/
-	
-	dims[0] = CHUNK_SIZE_X;
-	dims[1] = CHUNK_SIZE_Y;
-	dims[2] = CHUNK_SIZE_Z;
 
 	int x[3];
 	int q[3];
@@ -100,8 +132,8 @@ Array EcoGame::buildVertices(PoolByteArray volume, PoolIntArray offset) {
 				n = 0;
 				for (x[v] = 0; x[v] < dims[v]; x[v]++) {
 					for (x[u] = 0; x[u] < dims[u]; x[u]++) {
-						int v0 = (0 <= x[d]) ? getType(x[0], x[1], x[2]) : -1;
-						int v1 = (x[d] < dims[d]-1) ? getType(x[0]+q[0], x[1]+q[1], x[2]+q[2]) : -1;
+						int v0 = (0 <= x[d]) ? getType(volume, x[0], x[1], x[2]) : -1;
+						int v1 = (x[d] < dims[d]-1) ? getType(volume, x[0]+q[0], x[1]+q[1], x[2]+q[2]) : -1;
 						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? v1 : v0;
 					}
 				}
@@ -195,7 +227,7 @@ float EcoGame::getV(int type) {
 	return (float)floor(type / TEXTURE_ATLAS_LEN) / (float)TEXTURE_ATLAS_LEN;
 }
 
-void EcoGame::quad(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], Array vertices, int side, int type) {
+void EcoGame::quad(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int side, int type) {
 	if (side == TOP) {
 		createTop(offset, bl, tl, tr, br, vertices, type);
 	} else if (side == BOTTOM) {
@@ -211,7 +243,7 @@ void EcoGame::quad(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], 
 	}
 }
 
-void EcoGame::createTop(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
+void EcoGame::createTop(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
 	float w = TEXTURE_SCALE * abs(bl[2] - tl[2]);
 	float h = TEXTURE_SCALE * abs(bl[0] - br[0]);
 
@@ -221,9 +253,9 @@ void EcoGame::createTop(PoolIntArray offset, int bl[], int tl[], int tr[], int b
 	float u2 = u + w;
 	float v2 = v + h;
 
-	int offsetX = offset[0];
-	int offsetY = offset[1];
-	int offsetZ = offset[2];
+	int offsetX = offset.x;
+	int offsetY = offset.y;
+	int offsetZ = offset.z;
 
 	Array vA;
 	Array vB;
@@ -249,7 +281,7 @@ void EcoGame::createTop(PoolIntArray offset, int bl[], int tl[], int tr[], int b
 	vertices.append(vD);
 }
 
-void EcoGame::createBottom(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
+void EcoGame::createBottom(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
 	float w = TEXTURE_SCALE * abs(bl[0] - br[0]);
 	float h = TEXTURE_SCALE * abs(bl[2] - tl[2]);
 
@@ -258,9 +290,9 @@ void EcoGame::createBottom(PoolIntArray offset, int bl[], int tl[], int tr[], in
 	float u2 = u + w;
 	float v2 = v + h;
 	
-	int offsetX = offset[0];
-	int offsetY = offset[1];
-	int offsetZ = offset[2];
+	int offsetX = offset.x;
+	int offsetY = offset.y;
+	int offsetZ = offset.z;
 
 	Array vA;
 	Array vB;
@@ -286,7 +318,7 @@ void EcoGame::createBottom(PoolIntArray offset, int bl[], int tl[], int tr[], in
 	vertices.append(vD);
 }
 
-void EcoGame::createLeft(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
+void EcoGame::createLeft(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
 	float w = TEXTURE_SCALE * abs(bl[2] - br[2]);
 	float h = TEXTURE_SCALE * abs(bl[1] - tl[1]);
 
@@ -295,9 +327,9 @@ void EcoGame::createLeft(PoolIntArray offset, int bl[], int tl[], int tr[], int 
 	float u2 = u + w;
 	float v2 = v + h;
 
-	int offsetX = offset[0];
-	int offsetY = offset[1];
-	int offsetZ = offset[2];
+	int offsetX = offset.x;
+	int offsetY = offset.y;
+	int offsetZ = offset.z;
 
 	Array vA;
 	Array vB;
@@ -323,7 +355,7 @@ void EcoGame::createLeft(PoolIntArray offset, int bl[], int tl[], int tr[], int 
 	vertices.append(vD);
 }
 
-void EcoGame::createRight(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
+void EcoGame::createRight(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
 	float w = TEXTURE_SCALE * abs(bl[1] - tl[1]);
 	float h = TEXTURE_SCALE * abs(bl[2] - br[2]);
 
@@ -332,9 +364,9 @@ void EcoGame::createRight(PoolIntArray offset, int bl[], int tl[], int tr[], int
 	float u2 = u + w;
 	float v2 = v + h;
 	
-	int offsetX = offset[0];
-	int offsetY = offset[1];
-	int offsetZ = offset[2];
+	int offsetX = offset.x;
+	int offsetY = offset.y;
+	int offsetZ = offset.z;
 
 	Array vA;
 	Array vB;
@@ -360,7 +392,7 @@ void EcoGame::createRight(PoolIntArray offset, int bl[], int tl[], int tr[], int
 	vertices.append(vD);
 }
 
-void EcoGame::createFront(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
+void EcoGame::createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
 	float w = TEXTURE_SCALE * abs(bl[0] - tl[0]);
 	float h = TEXTURE_SCALE * abs(bl[1] - br[1]);
 
@@ -369,9 +401,9 @@ void EcoGame::createFront(PoolIntArray offset, int bl[], int tl[], int tr[], int
 	float u2 = u + w;
 	float v2 = v + h;
 	
-	int offsetX = offset[0];
-	int offsetY = offset[1];
-	int offsetZ = offset[2];
+	int offsetX = offset.x;
+	int offsetY = offset.y;
+	int offsetZ = offset.z;
 
 	Array vA;
 	Array vB;
@@ -397,7 +429,7 @@ void EcoGame::createFront(PoolIntArray offset, int bl[], int tl[], int tr[], int
 	vertices.append(vD);
 }
 
-void EcoGame::createBack(PoolIntArray offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
+void EcoGame::createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type) {
 	float w = TEXTURE_SCALE * abs(bl[1] - br[1]);
 	float h = TEXTURE_SCALE * abs(bl[0] - tl[0]);
 
@@ -406,9 +438,9 @@ void EcoGame::createBack(PoolIntArray offset, int bl[], int tl[], int tr[], int 
 	float u2 = u + w;
 	float v2 = v + h;
 	
-	int offsetX = offset[0];
-	int offsetY = offset[1];
-	int offsetZ = offset[2];
+	int offsetX = offset.x;
+	int offsetY = offset.y;
+	int offsetZ = offset.z;
 
 	Array vA;
 	Array vB;
