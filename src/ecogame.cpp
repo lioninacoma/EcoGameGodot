@@ -4,9 +4,15 @@ using namespace godot;
 
 void EcoGame::_register_methods() {
 	register_method("buildVertices", &EcoGame::buildVertices);
+	register_method("buildVolume", &EcoGame::buildVolume);
 }
 
 EcoGame::EcoGame() {
+
+}
+
+EcoGame::EcoGame(int seed) {
+	EcoGame::seed = seed;
 	/* Array quads = getQuads();
 	size_t size = quads.size();
 	String sizeStr = String("{0} quads").format(Array::make(size));
@@ -37,6 +43,13 @@ unsigned char EcoGame::getType(int x, int y, int z) {
 	if (index >= 0 && index < BUFFER_SIZE)
 		return volume[index];
 	return 0;
+}
+
+PoolByteArray EcoGame::buildVolume() {
+	PoolByteArray volume;
+	volume.resize(BUFFER_SIZE);
+	for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 1);
+	return volume;
 }
 
 Array EcoGame::buildVertices(PoolByteArray volume, PoolIntArray offset) {

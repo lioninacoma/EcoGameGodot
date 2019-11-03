@@ -33,6 +33,8 @@ class EcoGame : public Reference {
 private:
 	PoolByteArray volume;
 	int dims[3];
+	int seed;
+
 	int flattenIndex(int x, int y, int z);
 	unsigned char getType(int x, int y, int z);
 	float getU(int type);
@@ -48,11 +50,13 @@ public:
 	static void _register_methods();
 
 	EcoGame();
+	EcoGame(int seed);
 	~EcoGame();
 
 	void _init(); // our initializer called by Godot
 
 	Array buildVertices(PoolByteArray volume, PoolIntArray offset);
+	PoolByteArray buildVolume();
 };
 
 }

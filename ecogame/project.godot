@@ -8,9 +8,38 @@
 
 config_version=4
 
-_global_script_classes=[  ]
+_global_script_classes=[ {
+"base": "Node",
+"class": "Chunk",
+"language": "GDScript",
+"path": "res://Scripts/Chunk.gd"
+}, {
+"base": "Node",
+"class": "ChunkBuilder",
+"language": "GDScript",
+"path": "res://Scripts/ChunkBuilder.gd"
+}, {
+"base": "Spatial",
+"class": "EcoGame",
+"language": "GDScript",
+"path": "res://Scripts/EcoGame.gd"
+}, {
+"base": "Node",
+"class": "ThreadPool",
+"language": "GDScript",
+"path": "res://Scripts/ThreadPool.gd"
+}, {
+"base": "Node",
+"class": "Voxel",
+"language": "GDScript",
+"path": "res://Scripts/Voxel.gd"
+} ]
 _global_script_class_icons={
-
+"Chunk": "",
+"ChunkBuilder": "",
+"EcoGame": "",
+"ThreadPool": "",
+"Voxel": ""
 }
 
 [application]
@@ -21,9 +50,9 @@ config/icon="res://icon.png"
 
 [autoload]
 
-WorldVariables="*res://Scripts/Globals/WorldVariables.gd"
-Noise="*res://Scripts/Globals/Noise.gd"
-Intersection="*res://Scripts/Globals/Intersection.gd"
+Noise="res://Scripts/Globals/Noise.gd"
+WorldVariables="res://Scripts/Globals/WorldVariables.gd"
+Intersection="res://Scripts/Globals/Intersection.gd"
 
 [input]
 

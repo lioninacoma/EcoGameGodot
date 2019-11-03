@@ -1,37 +1,31 @@
 extends Spatial
-
-var ChunkBuilderThread = load("res://Scripts/ChunkBuilderThread.gd")
-var Chunk = load("res://Scripts/Chunk.gd")
+class_name EcoGame
 
 onready var fpsLabel = get_node('FPSLabel')
 
+# globals
+onready var WorldVariables : Node = get_node("/root/WorldVariables")
+onready var Intersection : Node = get_node("/root/Intersection")
+
 # build thread variables
-var chunks = []
-var buildStack = []
-var maxAmountBuildJobs = 4
-var amountBuildJobs = 0
+var chunkBuilder : ChunkBuilder
+var chunks : Array = []
+var buildStack : Array = []
+var buildStackMaxSize : int = 30
+var maxAmountBuildJobs : int = 8
+
+# voxel variables
+onready var intersectRef : FuncRef = funcref(self, "_intersection")
 
 # config
-var mouseModeCaptured = true
+var mouseModeCaptured : bool = true
 
-func _ready():
+func _ready() -> void:
+	chunkBuilder = ChunkBuilder.new()
+	add_child(chunkBuilder)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	initialize_chunks()
 
-func flatten_index(x, z):
-	return x * WorldVariables.WORLD_SIZE + z
-
-func initialize_chunks():
-	# generate world map
-	chunks.resize(WorldVariables.WORLD_SIZE * WorldVariables.WORLD_SIZE)
-	for z in WorldVariables.WORLD_SIZE:
-		for x in WorldVariables.WORLD_SIZE:
-			var offset = [x * WorldVariables.CHUNK_SIZE_X, 0, z * WorldVariables.CHUNK_SIZE_Z]
-			var index = flatten_index(x, z)
-			chunks[index] = Chunk.Chunk.new(offset)
-			buildStack.push_back(index)
-
-func _process(delta):
+func _process(delta : float) -> void:
 	fpsLabel.set_text(str(Engine.get_frames_per_second()))
 	
 	if Input.is_action_just_pressed("ui_cancel"):
@@ -41,28 +35,12 @@ func _process(delta):
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		mouseModeCaptured = !mouseModeCaptured
 	
-	for i in buildStack.size():
-		if amountBuildJobs < maxAmountBuildJobs:
-			var index = buildStack.pop_front()
-			if index < 0 || index >= chunks.size(): continue
-			var chunk = chunks[index]
-			if chunk == null: continue
-			
-			var chunkBuilder = ChunkBuilderThread.ChunkBuilderThread.new(chunk)
-			add_child(chunkBuilder)
-			chunkBuilder.generate_mesh()
-			amountBuildJobs += 1
-			
-			print("%s started!" % [chunkBuilder.get_id()])
-		else:
-			break
+	# initializes chunks in range BUILD_DISTANCE to player
+	initialize_chunks_nearby()
+	# starts ChunkBuilder jobs
+	process_build_stack()
 
-func build_thread_ready(chunkBuilder):
-	amountBuildJobs -= 1
-	remove_child(chunkBuilder)
-	print("%s finished!" % [chunkBuilder.get_id()])
-
-func _input(event):
+func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == 1:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
@@ -85,9 +63,68 @@ func _input(event):
 			buildStack.push_front(index)
 			print("Voxel(%s, %s, %s) removed!"%[vx,vy,vz])
 
-func pick_voxel(from, to):
+func initialize_chunks_nearby() -> void:
+	if buildStack.size() >= buildStackMaxSize:
+		return
+	chunks.resize(WorldVariables.WORLD_SIZE * WorldVariables.WORLD_SIZE)
+	
+	var player = $Player
+	var pos = player.translation
+	
+	var d = WorldVariables.BUILD_DISTANCE + 10
+	var tl = Vector3(pos.x - d, 0, pos.z - d)
+	var br = Vector3(pos.x + d, 0, pos.z + d)
+	tl = to_chunk_coords(tl)
+	br = to_chunk_coords(br)
+	
+	var xS = int(tl.x)
+	xS = max(0, xS)
+	
+	var xE = int(br.x)
+	xE = min(WorldVariables.WORLD_SIZE, xE)
+	
+	var zS = int(tl.z)
+	zS = max(0, zS)
+	
+	var zE = int(br.z)
+	zE = min(WorldVariables.WORLD_SIZE, zE)
+	
+	for z in range(zS, zE):
+		for x in range(xS, xE):
+			if buildStack.size() >= buildStackMaxSize:
+				return
+			var index = flatten_index(x, z)
+			var centerX = x * WorldVariables.CHUNK_SIZE_X + WorldVariables.CHUNK_SIZE_X / 2.0;
+			var centerZ = z * WorldVariables.CHUNK_SIZE_Z + WorldVariables.CHUNK_SIZE_Z / 2.0;
+			
+			if pos.distance_to(Vector3(centerX, pos.y, centerZ)) > WorldVariables.BUILD_DISTANCE:
+				continue
+			
+			if chunks[index]: 
+				continue
+			
+			var offset = [x * WorldVariables.CHUNK_SIZE_X, 0, z * WorldVariables.CHUNK_SIZE_Z]
+			var chunk = Chunk.new(offset)
+			add_child(chunk)
+			chunks[index] = chunk
+			buildStack.push_back(index)
+
+func process_build_stack() -> void:
+	for i in buildStack.size():
+		if chunkBuilder.get_amount_active() < maxAmountBuildJobs:
+			var index = buildStack.pop_front()
+			if index < 0 || index >= chunks.size(): continue
+			var chunk = chunks[index]
+			if chunk == null: continue
+			
+			chunkBuilder.build_chunk(chunk)
+#			print("%s started!" % [chunkBuilder.get_id()])
+		else:
+			break
+
+func pick_voxel(from : Vector3, to : Vector3) -> Voxel:
 	var voxel = null
-	var dist = WorldVariables.MAX_INT
+	var dist = INF
 	var chunks = get_chunks_ray(from, to)
 	var voxels = []
 	
@@ -104,8 +141,7 @@ func pick_voxel(from, to):
 	
 	return voxel
 
-onready var intersectRef = funcref(self, "_intersection")
-func _intersection(x, y, z):
+func _intersection(x : int, y : int, z : int) -> Chunk:
 	var xc = floor(x / WorldVariables.CHUNK_SIZE_X)
 	var zc = floor(z / WorldVariables.CHUNK_SIZE_Z)
 	if xc < 0 || xc >= WorldVariables.WORLD_SIZE: return null
@@ -115,7 +151,23 @@ func _intersection(x, y, z):
 		return chunk;
 	return null
 
-func get_chunks_ray(from, to):
+func get_chunks_ray(from : Vector3, to : Vector3) -> Array:
 	var list = []
 	list = Intersection.segment3DIntersections(from, to, false, intersectRef, list)
 	return list
+
+# ------------------------- HELPER FUNCTIONS -------------------------
+func flatten_index(x : int, z : int) -> int:
+	return x * WorldVariables.WORLD_SIZE + z
+
+func to_chunk_coords(position : Vector3) -> Vector3:
+	var ix = int(position.x)
+	var iy = int(position.y)
+	var iz = int(position.z)
+	var chunkX = ix / WorldVariables.CHUNK_SIZE_X
+	var chunkY = iy / WorldVariables.CHUNK_SIZE_Y
+	var chunkZ = iz / WorldVariables.CHUNK_SIZE_Z
+	position.x = chunkX
+	position.y = chunkY
+	position.z = chunkZ
+	return position

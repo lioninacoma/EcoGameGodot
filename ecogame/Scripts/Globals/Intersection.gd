@@ -1,6 +1,6 @@
 extends Node
 
-func segment3DIntersections(start, end, first, intersection, list):
+func segment3DIntersections(start : Vector3, end : Vector3, first : bool, intersection : FuncRef, list : Array) -> Array:
 	var it = 0
 	var itMax = 32000
 	
