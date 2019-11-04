@@ -5,6 +5,7 @@ using namespace godot;
 void EcoGame::_register_methods() {
 	register_method("buildVertices", &EcoGame::buildVertices);
 	register_method("buildVolume", &EcoGame::buildVolume);
+	register_method("test", &EcoGame::test);
 }
 
 EcoGame::EcoGame() {
@@ -15,8 +16,7 @@ EcoGame::EcoGame() {
 
 	/* Array quads = getQuads();
 	size_t size = quads.size();
-	String sizeStr = String("{0} quads").format(Array::make(size));
-	Godot::print(sizeStr);
+	Godot::print(String("{0} quads").format(Array::make(size)));
 
 	for (int i = 0; i < quads.size(); i++) {
 		Array quad = quads[i];
@@ -34,8 +34,19 @@ void EcoGame::_init() {
 	// initialize any variables here
 }
 
+void EcoGame::test(Variant v) {
+	Test* test = as<Test>(v.operator Object * ());
+	Godot::print(String("test x: {0}").format(Array::make(test->get_x())));
+}
+
 int EcoGame::flattenIndex(int x, int y, int z) {
 	return x + dims[0] * (y + dims[1] * z);
+}
+
+Vector3 EcoGame::position(int i) {
+	return Vector3(i % dims[0],
+		i / (dims[0] * dims[1]),
+		(i / dims[0]) % dims[1]);
 }
 
 unsigned char EcoGame::getType(PoolByteArray volume, int x, int y, int z) {
@@ -70,22 +81,22 @@ PoolByteArray EcoGame::buildVolume(Vector3 offset, int seed) {
 
 	PoolByteArray volume;
 	volume.resize(BUFFER_SIZE);
-	for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 0);
+	//for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 0);
 
-	for (int z = 0; z < CHUNK_SIZE_Z; z++) {
-		for (int x = 0; x < CHUNK_SIZE_X; x++) {
-			int y = getVoxelNoiseY(offset, x, z);
-			//Godot::print(String("y: {0}").format(Array::make(y)));
-			for (int i = 0; i < y; i++) {
-				float c = getVoxelNoiseChance(offset, x, i, z);
-				//Godot::print(String("c: {0}").format(Array::make(c)));
-				float t = 0.5;
-				volume = setVoxel(volume, x, i, z, 1);
-			}
-		}
-	}
+	//for (int z = 0; z < CHUNK_SIZE_Z; z++) {
+	//	for (int x = 0; x < CHUNK_SIZE_X; x++) {
+	//		int y = getVoxelNoiseY(offset, x, z);
+	//		//Godot::print(String("y: {0}").format(Array::make(y)));
+	//		for (int i = 0; i < y; i++) {
+	//			float c = getVoxelNoiseChance(offset, x, i, z);
+	//			//Godot::print(String("c: {0}").format(Array::make(c)));
+	//			float t = 0.5;
+	//			volume = setVoxel(volume, x, i, z, 1);
+	//		}
+	//	}
+	//}
 
-	//for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 1);
+	for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 1);
 	return volume;
 }
 
@@ -101,8 +112,8 @@ Array EcoGame::buildVertices(Vector3 offset, PoolByteArray volume) {
 	int du[3];
 	int dv[3];
 
-	int mask[BUFFER_SIZE];
-	memset(mask, -1, sizeof(mask));
+	int *mask = new int[BUFFER_SIZE];
+	memset(mask, -1, sizeof(*mask));
 
 	int bl[3];
 	int tl[3];
@@ -216,6 +227,8 @@ Array EcoGame::buildVertices(Vector3 offset, PoolByteArray volume) {
 		}
 	}
 	
+	std::free(mask);
+
 	return vertices;
 }
 

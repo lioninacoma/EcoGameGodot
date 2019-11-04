@@ -4,7 +4,7 @@ class_name ChunkBuilder
 onready var EcoGame : Node = get_parent()
 
 # dependencies
-var EcoGameLib = load("res://bin/ecogame.gdns")
+var EcoGameNative = load("res://bin/EcoGame.gdns")
 
 # globals
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
@@ -28,7 +28,7 @@ func _build(userdata) -> void:
 	
 	var startTime = OS.get_ticks_msec()
 	
-	var eco = EcoGameLib.new()
+	var eco = EcoGameNative.new()
 	var chunk = userdata[0]
 	var staticBody = StaticBody.new()
 	var polygonShape = ConcavePolygonShape.new()

@@ -6,6 +6,7 @@ onready var fpsLabel = get_node('FPSLabel')
 # globals
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
 onready var Intersection : Node = get_node("/root/Intersection")
+var TestNative = load("res://bin/Test.gdns")
 
 # build thread variables
 var chunkBuilder : ChunkBuilder
@@ -21,6 +22,9 @@ onready var intersectRef : FuncRef = funcref(self, "_intersection")
 var mouseModeCaptured : bool = true
 
 func _ready() -> void:
+	var test = TestNative.new()
+	test.set_x(20)
+	print(test.get_x())
 	chunkBuilder = ChunkBuilder.new()
 	add_child(chunkBuilder)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
@@ -58,7 +62,7 @@ func _input(event : InputEvent) -> void:
 				vy % WorldVariables.CHUNK_SIZE_Y,
 				vz % WorldVariables.CHUNK_SIZE_Z, 0)
 			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
-			var cz = int(offset.y) / WorldVariables.CHUNK_SIZE_Z
+			var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
 			var index = flatten_index(cx, cz)
 			buildStack.push_front(index)
 			print("Voxel(%s, %s, %s) removed!"%[vx,vy,vz])

@@ -65,9 +65,9 @@ func set_voxel_column(x : int, y : int, z : int, v : int) -> void:
 		set_voxel(x, i, z, v)
 
 func _intersection(x : int, y : int, z : int) -> Voxel:
-	var chunkX = _offset[0]
-	var chunkY = _offset[1]
-	var chunkZ = _offset[2]
+	var chunkX : int = int(_offset.x)
+	var chunkY : int = int(_offset.y)
+	var chunkZ : int = int(_offset.z)
 	if (x >= chunkX && x < chunkX + WorldVariables.CHUNK_SIZE_X
 			&& y >= chunkY && y < chunkY + WorldVariables.CHUNK_SIZE_Y
 			&& z >= chunkZ && z < chunkZ + WorldVariables.CHUNK_SIZE_Z):
@@ -86,14 +86,14 @@ func get_voxel_ray(from : Vector3, to : Vector3) -> Voxel:
 	return null if list.empty() else list[0]
 
 func get_voxel_noise_y(x : int, z : int) -> int:
-	var noise2DV = Vector2(x + _offset[0], z + _offset[2]) * 0.25
+	var noise2DV = Vector2(x + _offset.x, z + _offset.z) * 0.25
 	var y = Noise.noise_2d(noise2DV) / 2.0 + 0.5
 	y = redistribution(y, 4.0)
 	y *= WorldVariables.CHUNK_SIZE_Y
 	return int(y)
 
 func get_voxel_noise_chance(x : int, y : int, z : int) -> float:
-	var noise3DV = Vector3(x + _offset[0], y + _offset[1], z + _offset[2]) * WorldVariables.NOISE_SCALE
+	var noise3DV = Vector3(x + _offset.x, y + _offset.y, z + _offset.z) * WorldVariables.NOISE_SCALE
 	return Noise.noise_3d(noise3DV) / 2.0 + 0.5
 
 func cot(x : float) -> float:

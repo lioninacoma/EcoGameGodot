@@ -1,13 +1,16 @@
-#ifndef GDEXAMPLE_H
-#define GDEXAMPLE_H
+#ifndef ECOGAME_H
+#define ECOGAME_H
 
 #include <Godot.hpp>
 #include <Reference.hpp>
 #include <OpenSimplexNoise.hpp>
 #include <String.hpp>
 #include <Array.hpp>
+
 #include <string.h>
 #include <vector>
+#include "test.h"
+
 using namespace std; 
 
 #define CHUNK_SIZE_X 16
@@ -28,38 +31,40 @@ using namespace std;
 
 namespace godot {
 
-class EcoGame : public Reference {
-	GODOT_CLASS(EcoGame, Reference)
+	class EcoGame : public Reference {
+		GODOT_CLASS(EcoGame, Reference)
 
-private:
-	OpenSimplexNoise *noise;
-	int dims[3] = {CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
+	private:
+		OpenSimplexNoise *noise;
+		int dims[3] = {CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z};
 
-	int flattenIndex(int x, int y, int z);
-	unsigned char getType(PoolByteArray volume, int x, int y, int z);
-	float getU(int type);
-	float getV(int type);
-	void quad(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int side, int type);
-	void createTop(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
-	void createBottom(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
-	void createLeft(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
-	void createRight(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
-	void createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
-	void createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
-	int getVoxelNoiseY(Vector3 offset, int x, int z);
-	float getVoxelNoiseChance(Vector3 offset, int x, int y, int z);
-	PoolByteArray setVoxel(PoolByteArray volume, int x, int y, int z, char v);
-public:
-	static void _register_methods();
+		int flattenIndex(int x, int y, int z);
+		Vector3 position(int i);
+		unsigned char getType(PoolByteArray volume, int x, int y, int z);
+		float getU(int type);
+		float getV(int type);
+		void quad(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int side, int type);
+		void createTop(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
+		void createBottom(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
+		void createLeft(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
+		void createRight(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
+		void createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
+		void createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], Array vertices, int type);
+		int getVoxelNoiseY(Vector3 offset, int x, int z);
+		float getVoxelNoiseChance(Vector3 offset, int x, int y, int z);
+		PoolByteArray setVoxel(PoolByteArray volume, int x, int y, int z, char v);
+	public:
+		static void _register_methods();
 
-	EcoGame();
-	~EcoGame();
+		EcoGame();
+		~EcoGame();
 
-	void _init(); // our initializer called by Godot
+		void _init(); // our initializer called by Godot
 
-	Array buildVertices(Vector3 offset, PoolByteArray volume);
-	PoolByteArray buildVolume(Vector3 offset, int seed);
-};
+		Array buildVertices(Vector3 offset, PoolByteArray volume);
+		PoolByteArray buildVolume(Vector3 offset, int seed);
+		void test(Variant v);
+	};
 
 }
 

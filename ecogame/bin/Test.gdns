@@ -3,5 +3,5 @@
 [ext_resource path="res://bin/EcoGame.gdnlib" type="GDNativeLibrary" id=1]
 
 [resource]
-class_name = "EcoGame"
+class_name = "Test"
 library = ExtResource( 1 )
