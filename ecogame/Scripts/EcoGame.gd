@@ -14,7 +14,6 @@ var Chunk = load("res://bin/Chunk.gdns")
 var chunks : Array = []
 var buildStack : Array = []
 var buildStackMaxSize : int = 30
-var maxAmountBuildJobs : int = 8
 
 # voxel variables
 onready var intersectRef : FuncRef = funcref(self, "_intersection")
@@ -90,16 +89,13 @@ func initialize_chunks_nearby() -> void:
 
 func process_build_stack() -> void:
 	for i in buildStack.size():
-		if i > 8: break
 		var index = buildStack.pop_front()
 		if index < 0 || index >= chunks.size(): continue
 		var chunk = chunks[index]
 		if chunk == null: continue
-#		print(self.get_class())
 		Lib.buildChunk(chunk, self)
 
 func addMeshInstance(meshIntance : MeshInstance) -> void:
-#	print("SET MESH INSTANCE")
 	self.add_child(meshIntance)
 
 # ------------------------- HELPER FUNCTIONS -------------------------

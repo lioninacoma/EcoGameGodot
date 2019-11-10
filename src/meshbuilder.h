@@ -32,7 +32,7 @@ namespace godot {
 		static BufferPool& get() { static BufferPool pool; return pool; }
 		
 		BufferPool() {
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < POOL_SIZE; i++) {
 				pool.push(new int[BUFFER_SIZE]);
 			}
 		};

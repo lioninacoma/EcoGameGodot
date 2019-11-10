@@ -1,5 +1,10 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(438,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+  chunk.cpp
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(214,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\chunk.cpp(45,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   chunkbuilder.cpp
+C:\Users\Frederick\source\repos\EcoGameGodot\src\chunk.cpp(52,46): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
 C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(214,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
 C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
 C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: Please define _WIN32_WINNT or _WIN32_WINDOWS appropriately. For example:
@@ -7,5 +12,38 @@ C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(
 C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: - add _WIN32_WINNT=0x0601 to your project's Preprocessor Definitions.
 C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: Assuming _WIN32_WINNT=0x0601 (i.e. Windows 7 target).
 C:\Users\Frederick\source\repos\EcoGameGodot\src\chunkbuilder.cpp(78,14): warning C4244: 'initializing': conversion from 'int64_t' to 'int', possible loss of data
+  ecogame.cpp
 C:\Users\Frederick\source\repos\EcoGameGodot\src\chunkbuilder.cpp(91,20): warning C4244: 'initializing': conversion from '__int64' to 'long', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(214,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+  gdlibrary.cpp
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: Please define _WIN32_WINNT or _WIN32_WINDOWS appropriately. For example:
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: - add -D_WIN32_WINNT=0x0601 to the compiler command line; or
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: - add _WIN32_WINNT=0x0601 to your project's Preprocessor Definitions.
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: Assuming _WIN32_WINNT=0x0601 (i.e. Windows 7 target).
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(214,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+  meshbuilder.cpp
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: Please define _WIN32_WINNT or _WIN32_WINDOWS appropriately. For example:
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: - add -D_WIN32_WINNT=0x0601 to the compiler command line; or
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: - add _WIN32_WINNT=0x0601 to your project's Preprocessor Definitions.
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: Assuming _WIN32_WINNT=0x0601 (i.e. Windows 7 target).
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(214,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\godot-cpp\include\core\Vector2.hpp(213,12): warning C4244: 'argument': conversion from 'double' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(20,17): warning C4244: 'argument': conversion from 'int' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(19,5): warning C4244: 'argument': conversion from 'int' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(18,19): warning C4244: 'argument': conversion from 'int' to 'real_t', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(194,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(195,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(243,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(244,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(291,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(292,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(339,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(340,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(387,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(388,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(435,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  Generating Code...
+C:\Users\Frederick\source\repos\EcoGameGodot\src\meshbuilder.cpp(436,10): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   EcoGame.vcxproj -> C:\Users\Frederick\source\repos\EcoGameGodot\\ecogame\bin\x64\EcoGame.dll

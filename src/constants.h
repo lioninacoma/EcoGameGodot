@@ -19,6 +19,6 @@
 
 #define NOISE_SEED 123
 
-#define THREAD_POOL_SIZE 8
+#define POOL_SIZE 8
 
 #endif

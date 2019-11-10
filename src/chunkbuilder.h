@@ -37,7 +37,7 @@ namespace godot {
 		static VerticesPool& get() { static VerticesPool pool; return pool; }
 
 		VerticesPool() {
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < POOL_SIZE; i++) {
 				pool.push(new float[BUFFER_SIZE]);
 			}
 		};
@@ -77,7 +77,7 @@ namespace godot {
 			void run(Chunk* chunk, Node* game);
 		};
 
-		ChunkBuilder() : ChunkBuilder(THREAD_POOL_SIZE) {};
+		ChunkBuilder() : ChunkBuilder(POOL_SIZE) {};
 		explicit ChunkBuilder(size_t size) : work(ioService) {
 			/*terrainMaterial = Ref<SpatialMaterial>(SpatialMaterial::_new());
 			ResourceLoader* resourceLoader = ResourceLoader::get_singleton();
