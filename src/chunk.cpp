@@ -52,21 +52,33 @@ float Chunk::getVoxelNoiseChance(Vector3 offset, int x, int y, int z) {
 	return noise->get_noise_3dv(noise3DV) / 2.0 + 0.5;
 }
 
+int Chunk::flattenIndex(int x, int y, int z) {
+	return x + CHUNK_SIZE_X * (y + CHUNK_SIZE_Y * z);
+}
+
+PoolByteArray* Chunk::setVoxel(PoolByteArray* volume, int x, int y, int z, char v) {
+	if (x < 0 || x >= CHUNK_SIZE_X) return volume;
+	if (y < 0 || y >= CHUNK_SIZE_Y) return volume;
+	if (z < 0 || z >= CHUNK_SIZE_Z) return volume;
+	volume->set(flattenIndex(x, y, z), v);
+	return volume;
+}
+
 void Chunk::buildVolume() {
-	//for (int i = 0; i < BUFFER_SIZE; i++) volume.set(i, 0);
+	for (int i = 0; i < BUFFER_SIZE; i++) volume->set(i, 0);
 
-	//for (int z = 0; z < CHUNK_SIZE_Z; z++) {
-	//	for (int x = 0; x < CHUNK_SIZE_X; x++) {
-	//		int y = getVoxelNoiseY(offset, x, z);
-	//		//Godot::print(String("y: {0}").format(Array::make(y)));
-	//		for (int i = 0; i < y; i++) {
-	//			float c = getVoxelNoiseChance(offset, x, i, z);
-	//			//Godot::print(String("c: {0}").format(Array::make(c)));
-	//			float t = 0.5;
-	//			volume = setVoxel(volume, x, i, z, 1);
-	//		}
-	//	}
-	//}
+	for (int z = 0; z < CHUNK_SIZE_Z; z++) {
+		for (int x = 0; x < CHUNK_SIZE_X; x++) {
+			int y = getVoxelNoiseY(offset, x, z);
+			//Godot::print(String("y: {0}").format(Array::make(y)));
+			for (int i = 0; i < y; i++) {
+				float c = getVoxelNoiseChance(offset, x, i, z);
+				//Godot::print(String("c: {0}").format(Array::make(c)));
+				float t = 0.5;
+				volume = setVoxel(volume, x, i, z, 1);
+			}
+		}
+	}
 
-	for (int i = 0; i < BUFFER_SIZE; i++) volume->set(i, 1);
+	//for (int i = 0; i < BUFFER_SIZE; i++) volume->set(i, 1);
 }

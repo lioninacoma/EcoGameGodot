@@ -17,12 +17,46 @@
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/fiber/future/promise.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/pool/pool_alloc.hpp>
 
 #include "constants.h"
 #include "chunk.h"
 #include "meshbuilder.h"
 
+typedef boost::fast_pool_allocator<float[BUFFER_SIZE]> VerticesAllocator;
+typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(float[BUFFER_SIZE])> VerticesAllocatorPool;
+
 namespace godot {
+
+	class VerticesPool {
+	private:
+		boost::mutex mutex;
+		queue<float*, list<float*, VerticesAllocator>> pool;
+	public:
+		static VerticesPool& get() { static VerticesPool pool; return pool; }
+
+		VerticesPool() {
+			for (int i = 0; i < 8; i++) {
+				pool.push(new float[BUFFER_SIZE]);
+			}
+		};
+		~VerticesPool() {
+			VerticesAllocatorPool::purge_memory();
+		};
+		float* borrow() {
+			mutex.lock();
+			float* o = pool.front();
+			pool.pop();
+			mutex.unlock();
+			return o;
+		};
+		void ret(float* o) {
+			mutex.lock();
+			pool.push(o);
+			mutex.unlock();
+		};
+	};
 
 	class ChunkBuilder {
 

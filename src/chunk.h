@@ -19,6 +19,8 @@ namespace godot {
 
 		int getVoxelNoiseY(Vector3 offset, int x, int z);
 		float getVoxelNoiseChance(Vector3 offset, int x, int y, int z);
+		int flattenIndex(int x, int y, int z);
+		PoolByteArray* setVoxel(PoolByteArray* volume, int x, int y, int z, char v);
 	public:
 		static void _register_methods();
 

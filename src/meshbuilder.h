@@ -8,9 +8,50 @@
 #include <Array.hpp>
 #include <PoolArrays.hpp>
 
+#include <list>
+#include <queue>
+#include <iostream>
+
+#include <boost/thread/mutex.hpp>
+#include <boost/pool/pool_alloc.hpp>
+
 #include "constants.h"
 
+typedef boost::fast_pool_allocator<int[BUFFER_SIZE]> BufferAllocator;
+typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(int[BUFFER_SIZE])> BufferAllocatorPool;
+
+using namespace std;
+
 namespace godot {
+
+	class BufferPool {
+	private:
+		boost::mutex mutex;
+		queue<int*, list<int*, BufferAllocator>> pool;
+	public:
+		static BufferPool& get() { static BufferPool pool; return pool; }
+		
+		BufferPool() {
+			for (int i = 0; i < 8; i++) {
+				pool.push(new int[BUFFER_SIZE]);
+			}
+		};
+		~BufferPool() {
+			BufferAllocatorPool::purge_memory();
+		};
+		int* borrow() {
+			mutex.lock();
+			int* o = pool.front();
+			pool.pop();
+			mutex.unlock();
+			return o;
+		};
+		void ret(int* o) {
+			mutex.lock();
+			pool.push(o);
+			mutex.unlock();
+		};
+	};
 
 	class MeshBuilder {
 	private:
@@ -28,7 +69,6 @@ namespace godot {
 		int createRight(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
-		PoolByteArray* setVoxel(PoolByteArray* volume, int x, int y, int z, char v);
 	public:
 		MeshBuilder();
 		~MeshBuilder();

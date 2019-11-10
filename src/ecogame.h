@@ -12,7 +12,7 @@
 #include "constants.h"
 #include "chunkbuilder.h"
 
-using namespace std; 
+using namespace std;
 
 namespace godot {
 

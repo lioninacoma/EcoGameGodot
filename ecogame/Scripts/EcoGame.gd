@@ -99,7 +99,7 @@ func process_build_stack() -> void:
 		Lib.buildChunk(chunk, self)
 
 func addMeshInstance(meshIntance : MeshInstance) -> void:
-	print("SET MESH INSTANCE")
+#	print("SET MESH INSTANCE")
 	self.add_child(meshIntance)
 
 # ------------------------- HELPER FUNCTIONS -------------------------

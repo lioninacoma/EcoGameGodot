@@ -11,30 +11,23 @@ using namespace godot;
 //}
 
 void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
-	auto staticBody = Ref<ConcavePolygonShape>(StaticBody::_new());
-	auto polygonShape = Ref<ConcavePolygonShape>(ConcavePolygonShape::_new());
-	auto meshInstance = MeshInstance::_new();
-	auto st = Ref<SurfaceTool>(SurfaceTool::_new());
-	auto mesh = Ref<ArrayMesh>(ArrayMesh::_new());
-	//auto collFaces = PoolVector3Array();
-
-	float* vertices = new float[BUFFER_SIZE];
-	memset(vertices, 0, sizeof(*vertices));
-
-	chunk->buildVolume();
-
 	bpt::ptime start, stop;
 	start = bpt::microsec_clock::local_time();
 
+	auto staticBody = StaticBody::_new();
+	auto polygonShape = ConcavePolygonShape::_new();
+	auto meshInstance = MeshInstance::_new();
+	auto mesh = ArrayMesh::_new();
+
+	float* vertices = VerticesPool::get().borrow();
+	//memset(vertices, 0, sizeof(*vertices));
+
+	chunk->buildVolume();
+
 	int offset = meshBuilder->buildVertices(chunk->getOffset(), chunk->getVolume(), vertices);
 	
-	stop = bpt::microsec_clock::local_time();
-	bpt::time_duration dur = stop - start;
-	long milliseconds = dur.total_milliseconds();
-	cout << milliseconds << endl;
-	
 	int amountVertices = offset / VERTEX_SIZE;
-	int amountIndices = offset / 2 * 3;
+	int amountIndices = amountVertices / 2 * 3;
 	//cout << "amount vertices: " << amountVertices << endl;
 
 	Array arrays;
@@ -52,6 +45,9 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	PoolIntArray indexArray;
 	indexArray.resize(amountIndices);
 
+	PoolVector3Array collisionArray;
+	collisionArray.resize(amountIndices);
+
 	for (int i = 0, n = 0; i < offset; i += VERTEX_SIZE, n++) {
 		vertexArray.set(n, Vector3(vertices[i], vertices[i + 1], vertices[i + 2]));
 		normalArray.set(n, Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]));
@@ -65,6 +61,12 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 		indexArray.set(n++, j);
 		indexArray.set(n++, j + 3);
 		indexArray.set(n++, j + 2);
+		collisionArray.set(i, vertexArray[j + 2]);
+		collisionArray.set(i + 1, vertexArray[j + 1]);
+		collisionArray.set(i + 2, vertexArray[j]);
+		collisionArray.set(i + 3, vertexArray[j]);
+		collisionArray.set(i + 4, vertexArray[j + 3]);
+		collisionArray.set(i + 5, vertexArray[j + 2]);
 	}
 
 	arrays[Mesh::ARRAY_VERTEX] = vertexArray;
@@ -72,10 +74,22 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	arrays[Mesh::ARRAY_TEX_UV] = uvArray;
 	arrays[Mesh::ARRAY_INDEX] = indexArray;
 
+	polygonShape->set_faces(collisionArray);
+	int ownerId = staticBody->create_shape_owner(staticBody);
+	staticBody->shape_owner_add_shape(ownerId, polygonShape);
+	meshInstance->add_child(staticBody);
+
 	mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
 	meshInstance->set_mesh(mesh);
 
-	game->call_deferred("addMeshInstance", meshInstance);
+	Variant v = game->call_deferred("addMeshInstance", meshInstance);
+	//game->add_child(meshInstance);
+	VerticesPool::get().ret(vertices);
+
+	stop = bpt::microsec_clock::local_time();
+	bpt::time_duration dur = stop - start;
+	long milliseconds = dur.total_milliseconds();
+	cout << milliseconds << endl;
 
 	//st->begin(Mesh::PRIMITIVE_TRIANGLES);
 

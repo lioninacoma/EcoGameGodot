@@ -1,6 +1,5 @@
 #include "meshbuilder.h"
-#include <iostream>
-using namespace std;
+
 using namespace godot;
 
 MeshBuilder::MeshBuilder() {
@@ -29,27 +28,15 @@ unsigned char MeshBuilder::getType(PoolByteArray* volume, int x, int y, int z) {
 	return 0;
 }
 
-PoolByteArray* MeshBuilder::setVoxel(PoolByteArray* volume, int x, int y, int z, char v) {
-	if (x < 0 || x >= CHUNK_SIZE_X) return volume;
-	if (y < 0 || y >= CHUNK_SIZE_Y) return volume;
-	if (z < 0 || z >= CHUNK_SIZE_Z) return volume;
-	volume->set(flattenIndex(x, y, z), v);
-	return volume;
-}
-
 int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out) {
 	//Godot::print(String("offset: {0}, volume[0]: {1}, volume[1]: {2}").format(Array::make(offset, (*volume)[0], (*volume)[1])));
 	
 	int vertexOffset = 0;
 	int i, j, k, l, w, h, u, v, n, side = 0, vOffset = 0;
 
-	int x[3];
-	int q[3];
-	int du[3];
-	int dv[3];
-
-	int* mask = new int[BUFFER_SIZE];
-	memset(mask, -1, sizeof(*mask));
+	//int* mask = new int[BUFFER_SIZE];
+	int* mask = BufferPool::get().borrow();
+	memset(mask, 0, sizeof(*mask));
 
 	int bl[3];
 	int tl[3];
@@ -62,8 +49,8 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 			u = (d + 1) % 3;
 			v = (d + 2) % 3;
 
-			memset(x, 0, sizeof(x));
-			memset(q, 0, sizeof(q));
+			int x[3] = { 0, 0, 0 };
+			int q[3] = { 0, 0, 0 };
 			q[d] = 1;
 
 			if (d == 0) {
@@ -121,8 +108,8 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 								x[u] = i;
 								x[v] = j;
 
-								memset(du, 0, sizeof(du));
-								memset(dv, 0, sizeof(dv));
+								int du[3] = { 0, 0, 0 };
+								int dv[3] = { 0, 0, 0 };
 								du[u] = w;
 								dv[v] = h;
 
@@ -167,7 +154,8 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 		}
 	}
 
-	std::free(mask);
+	//delete[] mask;
+	BufferPool::get().ret(mask);
 	return vertexOffset;
 }
 
