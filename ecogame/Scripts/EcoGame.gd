@@ -6,10 +6,11 @@ onready var fpsLabel = get_node('FPSLabel')
 # globals
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
 onready var Intersection : Node = get_node("/root/Intersection")
-var TestNative = load("res://bin/Test.gdns")
+
+var Lib = load("res://bin/EcoGame.gdns").new()
+var Chunk = load("res://bin/Chunk.gdns")
 
 # build thread variables
-var chunkBuilder : ChunkBuilder
 var chunks : Array = []
 var buildStack : Array = []
 var buildStackMaxSize : int = 30
@@ -22,12 +23,8 @@ onready var intersectRef : FuncRef = funcref(self, "_intersection")
 var mouseModeCaptured : bool = true
 
 func _ready() -> void:
-	var test = TestNative.new()
-	test.set_x(20)
-	print(test.get_x())
-	chunkBuilder = ChunkBuilder.new()
-	add_child(chunkBuilder)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	add_child(Lib)
 
 func _process(delta : float) -> void:
 	fpsLabel.set_text(str(Engine.get_frames_per_second()))
@@ -43,29 +40,6 @@ func _process(delta : float) -> void:
 	initialize_chunks_nearby()
 	# starts ChunkBuilder jobs
 	process_build_stack()
-
-func _input(event : InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == 1:
-		var camera = $Player/Head/Camera
-		var from = camera.project_ray_origin(event.position)
-		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
-		var voxel = pick_voxel(from, to)
-		if voxel != null:
-			var chunk = voxel.get_chunk()
-			var offset = chunk.get_offset()
-			var position = voxel.get_position()
-			var vx = int(position.x)
-			var vy = int(position.y)
-			var vz = int(position.z)
-			chunk.set_voxel(
-				vx % WorldVariables.CHUNK_SIZE_X,
-				vy % WorldVariables.CHUNK_SIZE_Y,
-				vz % WorldVariables.CHUNK_SIZE_Z, 0)
-			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
-			var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
-			var index = flatten_index(cx, cz)
-			buildStack.push_front(index)
-			print("Voxel(%s, %s, %s) removed!"%[vx,vy,vz])
 
 func initialize_chunks_nearby() -> void:
 	if buildStack.size() >= buildStackMaxSize:
@@ -108,57 +82,25 @@ func initialize_chunks_nearby() -> void:
 				continue
 			
 			var offset = Vector3(x * WorldVariables.CHUNK_SIZE_X, 0, z * WorldVariables.CHUNK_SIZE_Z)
-			var chunk = Chunk.new(offset)
+			var chunk = Chunk.new()
+			chunk.setOffset(offset)
 			add_child(chunk)
 			chunks[index] = chunk
 			buildStack.push_back(index)
 
 func process_build_stack() -> void:
 	for i in buildStack.size():
-		if chunkBuilder.get_amount_active() < maxAmountBuildJobs:
-			var index = buildStack.pop_front()
-			if index < 0 || index >= chunks.size(): continue
-			var chunk = chunks[index]
-			if chunk == null: continue
-			
-			chunkBuilder.build_chunk(chunk)
-#			print("%s started!" % [chunkBuilder.get_id()])
-		else:
-			break
+		if i > 8: break
+		var index = buildStack.pop_front()
+		if index < 0 || index >= chunks.size(): continue
+		var chunk = chunks[index]
+		if chunk == null: continue
+#		print(self.get_class())
+		Lib.buildChunk(chunk, self)
 
-func pick_voxel(from : Vector3, to : Vector3) -> Voxel:
-	var voxel = null
-	var dist = INF
-	var chunks = get_chunks_ray(from, to)
-	var voxels = []
-	
-	for chunk in chunks:
-		var v = chunk.get_voxel_ray(from, to)
-		if v != null:
-			voxels.push_back(v)
-	
-	for v in voxels:
-		var currDst = from.distance_to(v.get_position())
-		if currDst < dist:
-			dist = currDst
-			voxel = v
-	
-	return voxel
-
-func _intersection(x : int, y : int, z : int) -> Chunk:
-	var xc = floor(x / WorldVariables.CHUNK_SIZE_X)
-	var zc = floor(z / WorldVariables.CHUNK_SIZE_Z)
-	if xc < 0 || xc >= WorldVariables.WORLD_SIZE: return null
-	if zc < 0 || zc >= WorldVariables.WORLD_SIZE: return null
-	var chunk = chunks[flatten_index(xc, zc)]
-	if chunk != null:
-		return chunk;
-	return null
-
-func get_chunks_ray(from : Vector3, to : Vector3) -> Array:
-	var list = []
-	list = Intersection.segment3DIntersections(from, to, false, intersectRef, list)
-	return list
+func addMeshInstance(meshIntance : MeshInstance) -> void:
+	print("SET MESH INSTANCE")
+	self.add_child(meshIntance)
 
 # ------------------------- HELPER FUNCTIONS -------------------------
 func flatten_index(x : int, z : int) -> int:

@@ -21,7 +21,13 @@
     <ClCompile Include="src\gdlibrary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\test.cpp">
+    <ClCompile Include="src\chunk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\chunkbuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\meshbuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,7 +35,16 @@
     <ClInclude Include="src\ecogame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\test.h">
+    <ClInclude Include="src\chunk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\chunkbuilder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\constants.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\meshbuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

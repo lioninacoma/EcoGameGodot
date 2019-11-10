@@ -78,7 +78,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)\godot-cpp\godot_headers;$(SolutionDir)\godot-cpp\include\gen;$(SolutionDir)\godot-cpp\include\core;$(SolutionDir)\godot-cpp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files\boost\boost_1_71_0\stage\lib;$(SolutionDir)\godot-cpp\bin;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)\godot-cpp\src;$(SolutionDir)\godot-cpp\src\gen;$(SolutionDir)\godot-cpp\src\core;$(SolutionDir)\src;$(SourcePath)</SourcePath>
     <OutDir>$(SolutionDir)\ecogame\bin\$(Platform)</OutDir>
   </PropertyGroup>
@@ -113,12 +113,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;ECOGAME_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Program Files\boost\boost_1_71_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;libboost_thread-vc142-mt-gd-x64-1_71.lib;libboost_fiber-vc142-mt-gd-x64-1_71.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -159,13 +162,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\chunk.cpp" />
+    <ClCompile Include="src\chunkbuilder.cpp" />
+    <ClCompile Include="src\meshbuilder.cpp" />
     <ClCompile Include="src\ecogame.cpp" />
     <ClCompile Include="src\gdlibrary.cpp" />
-    <ClCompile Include="src\test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\chunk.h" />
+    <ClInclude Include="src\chunkbuilder.h" />
+    <ClInclude Include="src\constants.h" />
+    <ClInclude Include="src\meshbuilder.h" />
     <ClInclude Include="src\ecogame.h" />
-    <ClInclude Include="src\test.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
