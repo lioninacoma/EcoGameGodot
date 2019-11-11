@@ -69,7 +69,7 @@ namespace godot {
 		boost::asio::io_service ioService;
 		boost::asio::io_service::work work;
 		boost::thread_group threadpool;
-
+	
 		/*static Ref<SpatialMaterial> terrainMaterial;
 		static Ref<Texture> terrainTexture;*/
 	public:

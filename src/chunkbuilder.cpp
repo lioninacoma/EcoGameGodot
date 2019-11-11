@@ -1,10 +1,14 @@
 #include "chunkbuilder.h"
 #include <iostream>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <atomic>
 
 namespace bpt = boost::posix_time;
 using namespace std;
 using namespace godot;
+
+static std::atomic<int> cnt = 0;
+static std::atomic<int> msTotal = 0;
 
 //void ChunkBuilder::Worker::run(boost::fibers::promise<int>& p) {
 //	int ret = 100;
@@ -90,7 +94,11 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	stop = bpt::microsec_clock::local_time();
 	bpt::time_duration dur = stop - start;
 	long milliseconds = dur.total_milliseconds();
-	cout << milliseconds << endl;
+
+	msTotal += milliseconds;
+	cnt++;
+
+	cout << (float(msTotal) / float(cnt)) << " ms" << endl;
 
 	//st->begin(Mesh::PRIMITIVE_TRIANGLES);
 

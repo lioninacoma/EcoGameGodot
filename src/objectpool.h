@@ -1,7 +1,9 @@
 #ifndef OBJECTPOOL_H
 #define OBJECTPOOL_H
+#define SEGREGATED_STORAGE
 
 #include <boost/thread/mutex.hpp>
+#include <boost/pool/pool_alloc.hpp>
 #include <boost/pool/simple_segregated_storage.hpp>
 #include <vector>
 #include <cstddef>
@@ -11,6 +13,8 @@
 #include "constants.h"
 
 using namespace std;
+
+#if defined(SEGREGATED_STORAGE)
 
 namespace godot {
 
@@ -40,5 +44,44 @@ namespace godot {
 	};
 
 }
+
+#else
+
+namespace godot {
+
+	template<class O, size_t poolSize = POOL_SIZE, size_t bufferSize = BUFFER_SIZE>
+	class ObjectPool {
+		typedef boost::fast_pool_allocator<O, boost::default_user_allocator_new_delete, boost::details::pool::default_mutex> ObjectAllocator;
+		typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(O) * bufferSize> ObjectAllocatorPool;
+		list<O*, ObjectAllocator>* l;
+		boost::mutex mutex;
+	public:
+		ObjectPool() {
+			l = new list<O*, ObjectAllocator>(poolSize);
+			for (int i = 0; i < poolSize; i++) {
+				l->push_front(static_cast<O*>(ObjectAllocatorPool::malloc()));
+			}
+		};
+		~ObjectPool() {
+			l->clear();
+			ObjectAllocatorPool::purge_memory();
+		};
+		O* borrow() {
+			mutex.lock();
+			O* o = l->front();
+			l->pop_front();
+			mutex.unlock();
+			return o;
+		};
+		void ret(O* o) {
+			mutex.lock();
+			l->push_front(o);
+			mutex.unlock();
+		};
+	};
+
+}
+
+#endif
 
 #endif
