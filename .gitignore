@@ -5,5 +5,5 @@
 *.lib
 *.pdb
 godot-cpp/
-.import/
 .vs/
+x64/

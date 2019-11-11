@@ -75,13 +75,13 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	arrays[Mesh::ARRAY_TEX_UV] = uvArray;
 	arrays[Mesh::ARRAY_INDEX] = indexArray;
 
+	mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
+	meshInstance->set_mesh(mesh);
+
 	polygonShape->set_faces(collisionArray);
 	int ownerId = staticBody->create_shape_owner(staticBody);
 	staticBody->shape_owner_add_shape(ownerId, polygonShape);
 	meshInstance->add_child(staticBody);
-
-	mesh->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arrays);
-	meshInstance->set_mesh(mesh);
 
 	Variant v = game->call_deferred("addMeshInstance", meshInstance);
 	//game->add_child(meshInstance);
