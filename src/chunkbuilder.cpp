@@ -1,6 +1,7 @@
 #include "chunkbuilder.h"
 #include <iostream>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+
 namespace bpt = boost::posix_time;
 using namespace std;
 using namespace godot;
@@ -19,12 +20,12 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	auto meshInstance = MeshInstance::_new();
 	auto mesh = ArrayMesh::_new();
 
-	float* vertices = VerticesPool::get().borrow();
+	float* vertices = ChunkBuilder::getVerticesPool().borrow();
 	//memset(vertices, 0, sizeof(*vertices));
 
 	chunk->buildVolume();
 
-	int offset = meshBuilder->buildVertices(chunk->getOffset(), chunk->getVolume(), vertices);
+	int offset = meshBuilder.buildVertices(chunk->getOffset(), chunk->getVolume(), vertices);
 	
 	int amountVertices = offset / VERTEX_SIZE;
 	int amountIndices = amountVertices / 2 * 3;
@@ -84,7 +85,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 	Variant v = game->call_deferred("addMeshInstance", meshInstance);
 	//game->add_child(meshInstance);
-	VerticesPool::get().ret(vertices);
+	ChunkBuilder::getVerticesPool().ret(vertices);
 
 	stop = bpt::microsec_clock::local_time();
 	bpt::time_duration dur = stop - start;

@@ -12,19 +12,20 @@
 #include <queue>
 #include <iostream>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/pool/pool_alloc.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/pool/pool_alloc.hpp>
 
 #include "constants.h"
+#include "objectpool.h"
 
-typedef boost::fast_pool_allocator<int[BUFFER_SIZE]> BufferAllocator;
-typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(int[BUFFER_SIZE])> BufferAllocatorPool;
+//typedef boost::fast_pool_allocator<int[BUFFER_SIZE]> BufferAllocator;
+//typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(int[BUFFER_SIZE])> BufferAllocatorPool;
 
 using namespace std;
 
 namespace godot {
 
-	class BufferPool {
+	/*class BufferPool {
 	private:
 		boost::mutex mutex;
 		queue<int*, list<int*, BufferAllocator>> pool;
@@ -51,10 +52,14 @@ namespace godot {
 			pool.push(o);
 			mutex.unlock();
 		};
-	};
+	};*/
 
 	class MeshBuilder {
 	private:
+		static ObjectPool<int>& getMaskPool() {
+			static ObjectPool<int> pool;
+			return pool;
+		};
 		int dims[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
 
 		int flattenIndex(int x, int y, int z);

@@ -16,20 +16,21 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/fiber/future/promise.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/pool/pool_alloc.hpp>
+//#include <boost/fiber/future/promise.hpp>
+//#include <boost/thread/mutex.hpp>
+//#include <boost/pool/pool_alloc.hpp>
 
 #include "constants.h"
 #include "chunk.h"
 #include "meshbuilder.h"
+#include "objectpool.h"
 
-typedef boost::fast_pool_allocator<float[BUFFER_SIZE]> VerticesAllocator;
-typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(float[BUFFER_SIZE])> VerticesAllocatorPool;
+//typedef boost::fast_pool_allocator<float[BUFFER_SIZE]> VerticesAllocator;
+//typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(float[BUFFER_SIZE])> VerticesAllocatorPool;
 
 namespace godot {
 
-	class VerticesPool {
+	/*class VerticesPool {
 	private:
 		boost::mutex mutex;
 		queue<float*, list<float*, VerticesAllocator>> pool;
@@ -56,11 +57,15 @@ namespace godot {
 			pool.push(o);
 			mutex.unlock();
 		};
-	};
+	};*/
 
 	class ChunkBuilder {
 
 	private :
+		static ObjectPool<float>& getVerticesPool() {
+			static ObjectPool<float> pool;
+			return pool;
+		};
 		boost::asio::io_service ioService;
 		boost::asio::io_service::work work;
 		boost::thread_group threadpool;
@@ -71,7 +76,7 @@ namespace godot {
 		class Worker {
 
 		private:
-			MeshBuilder* meshBuilder = new MeshBuilder();
+			MeshBuilder meshBuilder;
 
 		public:
 			void run(Chunk* chunk, Node* game);
@@ -91,7 +96,7 @@ namespace godot {
 		}
 		~ChunkBuilder() {
 			ioService.stop();
-			threadpool.join_all();
+			threadpool.interrupt_all();
 		};
 
 		void build(Chunk *chunk, Node *game);

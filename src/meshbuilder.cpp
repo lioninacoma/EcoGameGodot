@@ -35,7 +35,7 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 	int i, j, k, l, w, h, u, v, n, side = 0, vOffset = 0;
 
 	//int* mask = new int[BUFFER_SIZE];
-	int* mask = BufferPool::get().borrow();
+	int* mask = MeshBuilder::getMaskPool().borrow();
 	memset(mask, 0, sizeof(*mask));
 
 	int bl[3];
@@ -155,7 +155,7 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 	}
 
 	//delete[] mask;
-	BufferPool::get().ret(mask);
+	MeshBuilder::getMaskPool().ret(mask);
 	return vertexOffset;
 }
 
