@@ -4,6 +4,7 @@
 *.ilk
 *.lib
 *.pdb
+*.exe
 godot-cpp/
 .vs/
 x64/
