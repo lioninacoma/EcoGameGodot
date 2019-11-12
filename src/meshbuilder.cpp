@@ -1,5 +1,9 @@
 #include "meshbuilder.h"
+#include <iostream>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
+namespace bpt = boost::posix_time;
+using namespace std;
 using namespace godot;
 
 MeshBuilder::MeshBuilder() {
@@ -10,47 +14,40 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-int MeshBuilder::flattenIndex(int x, int y, int z) {
-	return x + dims[0] * (y + dims[1] * z);
-}
-
-Vector3 MeshBuilder::position(int i) {
-	return Vector3(i % dims[0],
-		i / (dims[0] * dims[1]),
-		(i / dims[0]) % dims[1]);
-}
-
-unsigned char MeshBuilder::getType(PoolByteArray* volume, int x, int y, int z) {
-	int index = flattenIndex(x, y, z);
-	if (index >= 0 && index < BUFFER_SIZE)
-		//Godot::print(String("volume[index]: {0}").format(Array::make(volume[index])));
-		return (*volume)[index];
-	return 0;
-}
-
-int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out) {
+int MeshBuilder::buildVertices(Chunk* chunk, float* out) {
 	//Godot::print(String("offset: {0}, volume[0]: {1}, volume[1]: {2}").format(Array::make(offset, (*volume)[0], (*volume)[1])));
-	
-	int vertexOffset = 0;
-	int i, j, k, l, w, h, u, v, n, side = 0, vOffset = 0;
 
-	//int* mask = new int[BUFFER_SIZE];
+	Vector3 offset = chunk->getOffset();
+	int i, j, k, l, w, h, u, v, n, d, side = 0, vertexOffset = 0, face = -1, v0 = -1, v1 = -1;
+	bool backFace, b, done = false;
+
 	int* mask = MeshBuilder::getMaskPool().borrow();
-	memset(mask, 0, sizeof(*mask));
+	//int* mask = new int[BUFFER_SIZE];
+	//memset(mask, -1, BUFFER_SIZE);
 
 	int bl[3];
 	int tl[3];
 	int tr[3];
 	int br[3];
 
-	for (bool backFace = true, b = false; b != backFace; backFace = backFace && b, b = !b) {
+	int x[3] = { 0, 0, 0 };
+	int q[3] = { 0, 0, 0 };
+	int du[3] = { 0, 0, 0 };
+	int dv[3] = { 0, 0, 0 };
+
+	for (backFace = true, b = false; b != backFace; backFace = backFace && b, b = !b) {
 		// sweep over 3-axes
-		for (int d = 0; d < 3; ++d) {
+		for (d = 0; d < 3; ++d) {
 			u = (d + 1) % 3;
 			v = (d + 2) % 3;
 
-			int x[3] = { 0, 0, 0 };
-			int q[3] = { 0, 0, 0 };
+			x[0] = 0;
+			x[1] = 0;
+			x[2] = 0;
+
+			q[0] = 0;
+			q[1] = 0;
+			q[2] = 0;
 			q[d] = 1;
 
 			if (d == 0) {
@@ -68,11 +65,12 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 				n = 0;
 				for (x[v] = 0; x[v] < dims[v]; x[v]++) {
 					for (x[u] = 0; x[u] < dims[u]; x[u]++) {
-						int v0 = (0 <= x[d]) ? getType(volume, x[0], x[1], x[2]) : -1;
-						int v1 = (x[d] < dims[d] - 1) ? getType(volume, x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
+						v0 = (0 <= x[d]) ? chunk->getVoxel(x[0], x[1], x[2]) : -1;
+						v1 = (x[d] < dims[d] - 1) ? chunk->getVoxel(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
 						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? v1 : v0;
 					}
 				}
+
 				// increment x[d]
 				x[d]++;
 				// generate mesh for mask using lexicographic ordering
@@ -88,10 +86,10 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 							while (i + w < dims[u] && mask[n + w] > 0 && mask[n + w] == mask[n]) w++;
 
 							// compute height (this is slightly awkward
-							bool done = false;
+							done = false;
 							for (h = 1; j + h < dims[v]; h++) {
 								for (k = 0; k < w; k++) {
-									int face = mask[n + k + h * dims[u]];
+									face = mask[n + k + h * dims[u]];
 									if (face <= 0 || face != mask[n]) {
 										done = true;
 										break;
@@ -108,9 +106,14 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 								x[u] = i;
 								x[v] = j;
 
-								int du[3] = { 0, 0, 0 };
-								int dv[3] = { 0, 0, 0 };
+								du[0] = 0;
+								du[1] = 0;
+								du[2] = 0;
 								du[u] = w;
+
+								dv[0] = 0;
+								dv[1] = 0;
+								dv[2] = 0;
 								dv[v] = h;
 
 								bl[0] = x[0];
@@ -154,8 +157,8 @@ int MeshBuilder::buildVertices(Vector3 offset, PoolByteArray* volume, float* out
 		}
 	}
 
-	//delete[] mask;
 	MeshBuilder::getMaskPool().ret(mask);
+	//delete[] mask;
 	return vertexOffset;
 }
 

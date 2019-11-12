@@ -9,61 +9,22 @@
 #include <ConcavePolygonShape.hpp>
 #include <SurfaceTool.hpp>
 #include <ArrayMesh.hpp>
-//#include <SpatialMaterial.hpp>
-//#include <Texture.hpp>
-//#include <ResourceLoader.hpp>
 
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
-//#include <boost/fiber/future/promise.hpp>
-//#include <boost/thread/mutex.hpp>
-//#include <boost/pool/pool_alloc.hpp>
 
 #include "constants.h"
 #include "chunk.h"
 #include "meshbuilder.h"
 #include "objectpool.h"
 
-//typedef boost::fast_pool_allocator<float[BUFFER_SIZE]> VerticesAllocator;
-//typedef boost::singleton_pool<boost::fast_pool_allocator_tag, sizeof(float[BUFFER_SIZE])> VerticesAllocatorPool;
-
 namespace godot {
-
-	/*class VerticesPool {
-	private:
-		boost::mutex mutex;
-		queue<float*, list<float*, VerticesAllocator>> pool;
-	public:
-		static VerticesPool& get() { static VerticesPool pool; return pool; }
-
-		VerticesPool() {
-			for (int i = 0; i < POOL_SIZE; i++) {
-				pool.push(new float[BUFFER_SIZE]);
-			}
-		};
-		~VerticesPool() {
-			VerticesAllocatorPool::purge_memory();
-		};
-		float* borrow() {
-			mutex.lock();
-			float* o = pool.front();
-			pool.pop();
-			mutex.unlock();
-			return o;
-		};
-		void ret(float* o) {
-			mutex.lock();
-			pool.push(o);
-			mutex.unlock();
-		};
-	};*/
-
 	class ChunkBuilder {
 
 	private :
-		static ObjectPool<float>& getVerticesPool() {
-			static ObjectPool<float> pool;
+		static ObjectPool<float, MAX_VERTICES_SIZE>& getVerticesPool() {
+			static ObjectPool<float, MAX_VERTICES_SIZE> pool;
 			return pool;
 		};
 		boost::asio::io_service ioService;

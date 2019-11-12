@@ -15,12 +15,11 @@ namespace godot {
 	private:
 		OpenSimplexNoise* noise;
 		Vector3 offset;
-		PoolByteArray *volume;
+		char* volume;
 
-		int getVoxelNoiseY(Vector3 offset, int x, int z);
-		float getVoxelNoiseChance(Vector3 offset, int x, int y, int z);
+		int getVoxelNoiseY(int x, int z);
+		float getVoxelNoiseChance(int x, int y, int z);
 		int flattenIndex(int x, int y, int z);
-		PoolByteArray* setVoxel(PoolByteArray* volume, int x, int y, int z, char v);
 	public:
 		static void _register_methods();
 
@@ -29,10 +28,15 @@ namespace godot {
 		~Chunk();
 
 		void _init(); // our initializer called by Godot
-
+		
+		// getter
 		Vector3 getOffset();
-		PoolByteArray *getVolume();
+		char* getVolume();
+		char getVoxel(int x, int y, int z);
+
+		// setter
 		void setOffset(Vector3 offset);
+		void setVoxel(int x, int y, int z, char v);
 		void buildVolume();
 	};
 

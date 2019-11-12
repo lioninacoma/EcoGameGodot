@@ -18,7 +18,7 @@ using namespace std;
 
 namespace godot {
 
-	template<class O, size_t bufferSize = BUFFER_SIZE, size_t poolSize = POOL_SIZE>
+	template<class O, size_t bufferSize = 1, size_t poolSize = POOL_SIZE>
 	class ObjectPool {
 	private:
 		boost::mutex mutex;
