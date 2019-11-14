@@ -32,26 +32,37 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	PoolVector3Array collisionArray;
 
 	arrays.resize(Mesh::ARRAY_MAX);
+	vertexArray.resize(amountVertices);
+	normalArray.resize(amountVertices);
+	uvArray.resize(amountVertices);
+	indexArray.resize(amountIndices);
+	collisionArray.resize(amountIndices);
+
+	PoolVector3Array::Write vertexArrayWrite = vertexArray.write();
+	PoolVector3Array::Write normalArrayWrite = normalArray.write();
+	PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
+	PoolVector2Array::Write uvArrayWrite = uvArray.write();
+	PoolIntArray::Write indexArrayWrite = indexArray.write();
 	
-	for (int i = 0; i < offset; i += VERTEX_SIZE) {
-		vertexArray.push_back(Vector3(vertices[i], vertices[i + 1], vertices[i + 2]));
-		normalArray.push_back(Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]));
-		uvArray.push_back(Vector2(vertices[i + 6], vertices[i + 7]));
+	for (int i = 0, n = 0; i < offset; i += VERTEX_SIZE, n++) {
+		vertexArrayWrite[n] = Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+		normalArrayWrite[n] = Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]);
+		uvArrayWrite[n] = Vector2(vertices[i + 6], vertices[i + 7]);
 	}
 
 	for (int i = 0, j = 0; i < amountIndices; i += 6, j += 4) {
-		indexArray.push_back(j + 2);
-		indexArray.push_back(j + 1);
-		indexArray.push_back(j);
-		indexArray.push_back(j);
-		indexArray.push_back(j + 3);
-		indexArray.push_back(j + 2);
-		collisionArray.push_back(vertexArray[j + 2]);
-		collisionArray.push_back(vertexArray[j + 1]);
-		collisionArray.push_back(vertexArray[j]);
-		collisionArray.push_back(vertexArray[j]);
-		collisionArray.push_back(vertexArray[j + 3]);
-		collisionArray.push_back(vertexArray[j + 2]);
+		indexArrayWrite[i+0] = j + 2;
+		indexArrayWrite[i+1] = j + 1;
+		indexArrayWrite[i+2] = j;
+		indexArrayWrite[i+3] = j;
+		indexArrayWrite[i+4] = j + 3;
+		indexArrayWrite[i+5] = j + 2;
+		collisionArrayWrite[i+0] = vertexArrayWrite[j + 2];
+		collisionArrayWrite[i+1] = vertexArrayWrite[j + 1];
+		collisionArrayWrite[i+2] = vertexArrayWrite[j];
+		collisionArrayWrite[i+3] = vertexArrayWrite[j];
+		collisionArrayWrite[i+4] = vertexArrayWrite[j + 3];
+		collisionArrayWrite[i+5] = vertexArrayWrite[j + 2];
 	}
 
 	arrays[Mesh::ARRAY_VERTEX] = vertexArray;
