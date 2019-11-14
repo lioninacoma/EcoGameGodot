@@ -6,7 +6,7 @@ namespace bpt = boost::posix_time;
 using namespace std;
 using namespace godot;
 
-void Worker::run(Chunk* chunk, Node* game) {
+void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	if (!chunk || !game) return;
 
 	bpt::ptime start, stop;

@@ -23,20 +23,21 @@
 #include "objectpool.h"
 
 namespace godot {
-	class Worker {
-	private:
-		static ObjectPool<float, MAX_VERTICES_SIZE, 12>& getVerticesPool() {
-			static ObjectPool<float, MAX_VERTICES_SIZE, 12> pool;
-			return pool;
-		};
-		MeshBuilder meshBuilder;
-	public:
-		void run(Chunk* chunk, Node* game);
-	};
 
 	class ChunkBuilder {
 
 	private :
+		class Worker {
+		private:
+			static ObjectPool<float, MAX_VERTICES_SIZE, POOL_SIZE>& getVerticesPool() {
+				static ObjectPool<float, MAX_VERTICES_SIZE, POOL_SIZE> pool;
+				return pool;
+			};
+			MeshBuilder meshBuilder;
+		public:
+			void run(Chunk* chunk, Node* game);
+		};
+
 		boost::asio::io_service ioService;
 		boost::asio::io_service::work work;
 		boost::thread_group threadpool;

@@ -13,9 +13,9 @@ var Chunk = load("res://bin/Chunk.gdns")
 # build thread variables
 var chunks : Array = []
 var buildStack : Array = []
-var buildStackMaxSize : int = 16
-var threadPool : ThreadPool = ThreadPool.new(8)
-var mutex : Mutex = Mutex.new()
+var buildStackMaxSize : int = 20
+#var threadPool : ThreadPool = ThreadPool.new(8)
+#var mutex : Mutex = Mutex.new()
 
 # voxel variables
 onready var intersectRef : FuncRef = funcref(self, "_intersection")
@@ -24,6 +24,7 @@ onready var intersectRef : FuncRef = funcref(self, "_intersection")
 var mouseModeCaptured : bool = true
 
 func _ready() -> void:
+	chunks.resize(WorldVariables.WORLD_SIZE * WorldVariables.WORLD_SIZE)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	add_child(Lib)
 
@@ -45,7 +46,6 @@ func _process(delta : float) -> void:
 func initialize_chunks_nearby() -> void:
 	if buildStack.size() >= buildStackMaxSize:
 		return
-	chunks.resize(WorldVariables.WORLD_SIZE * WorldVariables.WORLD_SIZE)
 	
 	var player = $Player
 	var pos = player.translation

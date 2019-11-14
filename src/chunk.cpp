@@ -22,7 +22,7 @@ void Chunk::_init() {
 	Chunk::volume = new char[BUFFER_SIZE];
 
 	Chunk::noise->set_seed(NOISE_SEED);
-	Chunk::noise->set_octaves(6);
+	Chunk::noise->set_octaves(3);
 	Chunk::noise->set_period(60.0);
 	Chunk::noise->set_persistence(0.5);
 }
@@ -43,7 +43,7 @@ char Chunk::getVoxel(int x, int y, int z) {
 }
 
 int Chunk::getVoxelNoiseY(int x, int z) {
-	float scale = 0.15;
+	float scale = 0.25;
 	float y = noise->get_noise_2d(
 		(x + offset.x) * scale, 
 		(z + offset.z) * scale) / 2.0 + 0.5;
