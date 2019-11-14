@@ -25,8 +25,8 @@
 namespace godot {
 	class Worker {
 	private:
-		static ObjectPool<float, MAX_VERTICES_SIZE>& getVerticesPool() {
-			static ObjectPool<float, MAX_VERTICES_SIZE> pool;
+		static ObjectPool<float, MAX_VERTICES_SIZE, 12>& getVerticesPool() {
+			static ObjectPool<float, MAX_VERTICES_SIZE, 12> pool;
 			return pool;
 		};
 		MeshBuilder meshBuilder;
