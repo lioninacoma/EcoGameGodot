@@ -50,5 +50,8 @@
     <ClInclude Include="src\objectpool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\semaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

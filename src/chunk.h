@@ -37,7 +37,7 @@ namespace godot {
 		// setter
 		void setOffset(Vector3 offset);
 		void setVoxel(int x, int y, int z, char v);
-		void buildVolume();
+		int buildVolume();
 	};
 
 }

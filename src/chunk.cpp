@@ -22,7 +22,7 @@ void Chunk::_init() {
 	Chunk::volume = new char[BUFFER_SIZE];
 
 	Chunk::noise->set_seed(NOISE_SEED);
-	Chunk::noise->set_octaves(4);
+	Chunk::noise->set_octaves(6);
 	Chunk::noise->set_period(60.0);
 	Chunk::noise->set_persistence(0.5);
 }
@@ -43,7 +43,7 @@ char Chunk::getVoxel(int x, int y, int z) {
 }
 
 int Chunk::getVoxelNoiseY(int x, int z) {
-	float scale = 0.25;
+	float scale = 0.15;
 	float y = noise->get_noise_2d(
 		(x + offset.x) * scale, 
 		(z + offset.z) * scale) / 2.0 + 0.5;
@@ -74,8 +74,9 @@ void Chunk::setVoxel(int x, int y, int z, char v) {
 	volume[flattenIndex(x, y, z)] = v;
 }
 
-void Chunk::buildVolume() {
+int Chunk::buildVolume() {
 	memset(volume, 0, BUFFER_SIZE);
+	int amountVoxel = 0;
 
 	for (int z = 0; z < CHUNK_SIZE_Z; z++) {
 		for (int x = 0; x < CHUNK_SIZE_X; x++) {
@@ -85,8 +86,13 @@ void Chunk::buildVolume() {
 				float c = getVoxelNoiseChance(x, i, z);
 				//Godot::print(String("c: {0}").format(Array::make(c)));
 				float t = 0.6;
-				if (c < t) setVoxel(x, i, z, 1);
+				//if (c < t) {
+					setVoxel(x, i, z, 1);
+					amountVoxel++;
+				//}
 			}
 		}
 	}
+
+	return amountVoxel;
 }

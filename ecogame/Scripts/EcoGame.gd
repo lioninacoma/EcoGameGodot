@@ -7,13 +7,15 @@ onready var fpsLabel = get_node('FPSLabel')
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
 onready var Intersection : Node = get_node("/root/Intersection")
 
-var Lib = load("res://bin/EcoGame.gdns").new()
+var Lib = load("res://bin/ecogame.gdns").new()
 var Chunk = load("res://bin/Chunk.gdns")
 
 # build thread variables
 var chunks : Array = []
 var buildStack : Array = []
-var buildStackMaxSize : int = 30
+var buildStackMaxSize : int = 16
+var threadPool : ThreadPool = ThreadPool.new(8)
+var mutex : Mutex = Mutex.new()
 
 # voxel variables
 onready var intersectRef : FuncRef = funcref(self, "_intersection")
@@ -83,20 +85,32 @@ func initialize_chunks_nearby() -> void:
 			var offset = Vector3(x * WorldVariables.CHUNK_SIZE_X, 0, z * WorldVariables.CHUNK_SIZE_Z)
 			var chunk = Chunk.new()
 			chunk.setOffset(offset)
-			add_child(chunk)
 			chunks[index] = chunk
 			buildStack.push_back(index)
 
 func process_build_stack() -> void:
-	for i in buildStack.size():
+	for i in range(buildStack.size()):
 		var index = buildStack.pop_front()
 		if index < 0 || index >= chunks.size(): continue
 		var chunk = chunks[index]
 		if chunk == null: continue
 		Lib.buildChunk(chunk, self)
 
-func addMeshInstance(meshIntance : MeshInstance) -> void:
-	self.add_child(meshIntance)
+func build_mesh_instance(arrays : Array, collisionArray : PoolVector3Array) -> void:
+	var meshInstance = MeshInstance.new()
+	var mesh = ArrayMesh.new()
+	var staticBody = StaticBody.new()
+	var polygonShape = ConcavePolygonShape.new()
+	
+	mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, arrays)
+	meshInstance.mesh = mesh
+	
+	polygonShape.set_faces(collisionArray)
+	var ownerId = staticBody.create_shape_owner(staticBody)
+	staticBody.shape_owner_add_shape(ownerId, polygonShape)
+	meshInstance.add_child(staticBody)
+	
+	add_child(meshInstance)
 
 # ------------------------- HELPER FUNCTIONS -------------------------
 func flatten_index(x : int, z : int) -> int:
