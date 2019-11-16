@@ -9,6 +9,7 @@ onready var Intersection : Node = get_node("/root/Intersection")
 
 var Lib = load("res://bin/ecogame.gdns").new()
 var Chunk = load("res://bin/Chunk.gdns")
+var Voxel = load("res://bin/Voxel.gdns")
 
 # build thread variables
 var chunks : Array = []
@@ -96,8 +97,9 @@ func process_build_stack() -> void:
 		if chunk == null: continue
 		Lib.buildChunk(chunk, self)
 
-func build_mesh_instance(arrays : Array, collisionArray : PoolVector3Array) -> void:
+func build_mesh_instance(arrays : Array, collisionArray : PoolVector3Array, chunk) -> void:
 	var meshInstance = MeshInstance.new()
+	var oldMeshInstanceId = chunk.getMeshInstanceId()
 	var mesh = ArrayMesh.new()
 	var staticBody = StaticBody.new()
 	var polygonShape = ConcavePolygonShape.new()
@@ -110,7 +112,71 @@ func build_mesh_instance(arrays : Array, collisionArray : PoolVector3Array) -> v
 	staticBody.shape_owner_add_shape(ownerId, polygonShape)
 	meshInstance.add_child(staticBody)
 	
+	if oldMeshInstanceId != 0:
+		remove_child(instance_from_id(oldMeshInstanceId))
+	
 	add_child(meshInstance)
+	chunk.setMeshInstanceId(meshInstance.get_instance_id())
+
+func _input(event : InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == 1:
+		var camera = $Player/Head/Camera
+		var from = camera.project_ray_origin(event.position)
+		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
+		var voxel = pick_voxel(from, to)
+		if voxel != null:
+			var offset = voxel.getChunkOffset()
+			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
+			var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
+			var index = flatten_index(cx, cz)
+			var chunk = chunks[index]
+			var position = voxel.getPosition()
+			var vx = int(position.x)
+			var vy = int(position.y)
+			var vz = int(position.z)
+
+			chunk.setVoxel(
+				vx % WorldVariables.CHUNK_SIZE_X,
+				vy % WorldVariables.CHUNK_SIZE_Y,
+				vz % WorldVariables.CHUNK_SIZE_Z, 0)
+
+			buildStack.push_front(index)
+			print("Voxel(%s, %s, %s) removed!"%[vx,vy,vz])
+
+func pick_voxel(from : Vector3, to : Vector3) -> Voxel:
+	var voxel = null
+	var dist = INF
+	var chunks = get_chunks_ray(from, to)
+
+	var voxels = []
+
+	for chunk in chunks:
+		var v = chunk.getVoxelRay(from, to)
+		if v != null:
+			voxels.push_back(v)
+
+	for v in voxels:
+		var currDst = from.distance_to(v.getPosition())
+		if currDst < dist:
+			dist = currDst
+			voxel = v
+
+	return voxel
+
+func _intersection(x : int, y : int, z : int) -> Chunk:
+	var xc = floor(x / WorldVariables.CHUNK_SIZE_X)
+	var zc = floor(z / WorldVariables.CHUNK_SIZE_Z)
+	if xc < 0 || xc >= WorldVariables.WORLD_SIZE: return null
+	if zc < 0 || zc >= WorldVariables.WORLD_SIZE: return null
+	var chunk = chunks[flatten_index(xc, zc)]
+	if chunk != null:
+		return chunk;
+	return null
+
+func get_chunks_ray(from : Vector3, to : Vector3) -> Array:
+	var list = []
+	list = Intersection.segment3DIntersections(from, to, false, intersectRef, list)
+	return list
 
 # ------------------------- HELPER FUNCTIONS -------------------------
 func flatten_index(x : int, z : int) -> int:

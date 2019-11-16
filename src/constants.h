@@ -1,8 +1,10 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#include <vector>
+
 #define CHUNK_SIZE_X 16
-#define CHUNK_SIZE_Y 128
+#define CHUNK_SIZE_Y 96
 #define CHUNK_SIZE_Z 16
 #define VERTEX_SIZE 8
 #define BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z
@@ -21,5 +23,10 @@
 #define NOISE_SEED 123
 
 #define POOL_SIZE 8
+
+template <class T>
+bool contains(const std::vector<T>& vec, const T& value) {
+	return std::find(vec.begin(), vec.end(), value) != vec.end();
+}
 
 #endif

@@ -11,22 +11,33 @@ const FLY_SPEED = 40
 const FLY_ACCEL = 4
 
 # walk variables
-#var gravity = -9.8 * 3
-var gravity = 0.0
-const MAX_SPEED = 120
-const MAX_RUNNING_SPEED = 130
+var gravity = -9.8 * 3
+#var gravity = 0.0
+const MAX_SPEED = 12
+const MAX_RUNNING_SPEED = 20
 const ACCEL = 2
 const DEACCEL = 6
 
 # jumping
-var jump_height = 50
+var jump_height = 30
+var is_fly = true
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	pass # Replace with function body.
 
 func _physics_process(delta):
-	walk(delta)
+	if Input.is_action_just_pressed("switch_fly"):
+		is_fly = !is_fly
+		if (is_fly):
+			jump_height = 30
+		else:
+			jump_height = 10
+	
+	if (is_fly):
+		fly(delta)
+	else:
+		walk(delta)
 
 func _input(event):
 	if event is InputEventMouseMotion:
@@ -83,12 +94,8 @@ func walk(delta):
 	# move
 	velocity = move_and_slide(velocity, Vector3(0, 1, 0))
 	
-	if Input.is_action_pressed("jump"):
+	if Input.is_action_just_pressed("jump"):
 		velocity.y = jump_height
-	elif Input.is_action_pressed("move_sprint"):
-		velocity.y = -jump_height
-	else:
-		velocity.y = 0
 
 func fly(delta):
 	# reset direction of the player
@@ -115,3 +122,8 @@ func fly(delta):
 	
 	# move
 	move_and_slide(velocity)
+	
+	if Input.is_action_pressed("jump"):
+		velocity.y = jump_height
+	elif Input.is_action_pressed("move_sprint"):
+		velocity.y = -jump_height

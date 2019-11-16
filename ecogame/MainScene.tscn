@@ -64,7 +64,7 @@ material/0 = null
 shape = SubResource( 6 )
 
 [node name="Player" type="KinematicBody" parent="."]
-transform = Transform( -0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, -0.707107, -5, 400, -5 )
+transform = Transform( -0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, -0.707107, -5, 100, -5 )
 script = ExtResource( 2 )
 
 [node name="Capsule" type="CollisionShape" parent="Player"]

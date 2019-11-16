@@ -15,7 +15,9 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 	start = bpt::microsec_clock::local_time();
 
-	if (!chunk->buildVolume()) return;
+	if (!chunk->getMeshInstanceId()) {
+		if (!chunk->buildVolume()) return;
+	}
 
 	float* vertices = Worker::getVerticesPool().borrow();
 	memset(vertices, 0, MAX_VERTICES_SIZE);
@@ -71,7 +73,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	arrays[Mesh::ARRAY_INDEX] = indexArray;
 
 	//Variant v = game->call("build_mesh_instance", arrays, collisionArray);
-	Variant v = game->call_deferred("build_mesh_instance", arrays, collisionArray);
+	Variant v = game->call_deferred("build_mesh_instance", arrays, collisionArray, Ref<Chunk>(chunk));
 
 	Worker::getVerticesPool().ret(vertices);
 

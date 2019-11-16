@@ -5,7 +5,7 @@
 #include <SceneTree.hpp>
 #include <ViewPort.hpp>
 #include <Node.hpp>
-#include <Spatial.hpp>
+#include <Node.hpp>
 #include <String.hpp>
 #include <Array.hpp>
 
@@ -16,8 +16,8 @@ using namespace std;
 
 namespace godot {
 
-	class EcoGame : public Spatial {
-		GODOT_CLASS(EcoGame, Spatial)
+	class EcoGame : public Node {
+		GODOT_CLASS(EcoGame, Node)
 
 	private:
 		ChunkBuilder chunkBuilder;
