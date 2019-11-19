@@ -81,7 +81,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	cout << "chunk build in " << ms << " ms" << endl;
+	//cout << "chunk build in " << ms << " ms" << endl;
 }
 
 void ChunkBuilder::build(Chunk* chunk, Node* game) {

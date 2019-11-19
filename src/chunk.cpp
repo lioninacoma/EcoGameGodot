@@ -40,7 +40,7 @@ int Chunk::getVoxel(int x, int y, int z) {
 }
 
 int Chunk::getVoxelNoiseY(int x, int z) {
-	float scale = 0.75;
+	float scale = 0.25;
 	float y = noise->get_noise_2d(
 		(x + offset.x) * scale, 
 		(z + offset.z) * scale) / 2.0 + 0.5;
@@ -53,7 +53,7 @@ int Chunk::flattenIndex(int x, int y, int z) {
 }
 
 float Chunk::getVoxelNoiseChance(int x, int y, int z) {
-	float scale = 1.25;
+	float scale = 1.0;
 	return noise->get_noise_3d(
 		(x + offset.x) * scale, 
 		(y + offset.y) * scale, 
@@ -116,7 +116,7 @@ int Chunk::buildVolume() {
 			for (int i = 0; i < y; i++) {
 				float c = getVoxelNoiseChance(x, i, z);
 				//Godot::print(String("c: {0}").format(Array::make(c)));
-				float t = 0.5;
+				float t = 0.7;
 				if (c < t) {
 					setVoxel(x, i, z, 1);
 					amountVoxel++;

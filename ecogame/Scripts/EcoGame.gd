@@ -15,8 +15,7 @@ var Voxel = load("res://bin/Voxel.gdns")
 var chunks : Array = []
 var buildStack : Array = []
 var buildStackMaxSize : int = 20
-#var threadPool : ThreadPool = ThreadPool.new(8)
-#var mutex : Mutex = Mutex.new()
+var chunksBuild = 0
 
 # voxel variables
 onready var intersectRef : FuncRef = funcref(self, "_intersection")
@@ -31,7 +30,7 @@ func _ready() -> void:
 
 func _process(delta : float) -> void:
 	fpsLabel.set_text(str(Engine.get_frames_per_second()))
-	
+
 	if Input.is_action_just_pressed("ui_cancel"):
 		if mouseModeCaptured:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -108,12 +107,14 @@ func build_mesh_instance(arrays : Array, collisionArray : PoolVector3Array, chun
 	meshInstance.mesh = mesh
 	
 	polygonShape.set_faces(collisionArray)
-	var ownerId = staticBody.create_shape_owner(staticBody)
+	var ownerId = staticBody.create_shape_owner(chunk)
 	staticBody.shape_owner_add_shape(ownerId, polygonShape)
 	meshInstance.add_child(staticBody)
 	
 	if oldMeshInstanceId != 0:
-		remove_child(instance_from_id(oldMeshInstanceId))
+		var oldMeshInstance = instance_from_id(oldMeshInstanceId)
+		if oldMeshInstance:
+			remove_child(oldMeshInstance)
 	
 	add_child(meshInstance)
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
@@ -123,27 +124,33 @@ func _input(event : InputEvent) -> void:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
-		var voxel = pick_voxel(from, to)
-		if voxel != null:
-			var offset = voxel.getChunkOffset()
+		var space_state = get_world().direct_space_state
+		var result = space_state.intersect_ray(from, to)
+		
+		if result:
+			var chunk = result.collider.shape_owner_get_owner(0)
+#			var shape = result.collider.shape_owner_get_shape(0, 0)
+			var offset = chunk.getOffset()
+			
+			var voxelPosition = result.position
+			var normal = result.normal
+			var bias = 0.01
+			var vx = int(voxelPosition.x - (bias if normal.x > 0 else 0))
+			var vy = int(voxelPosition.y - (bias if normal.y > 0 else 0))
+			var vz = int(voxelPosition.z - (bias if normal.z > 0 else 0))
+			
 			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
 			var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
 			var index = flatten_index(cx, cz)
-			var chunk = chunks[index]
-			var position = voxel.getPosition()
-			var vx = int(position.x)
-			var vy = int(position.y)
-			var vz = int(position.z)
-
+			
 			chunk.setVoxel(
 				vx % WorldVariables.CHUNK_SIZE_X,
 				vy % WorldVariables.CHUNK_SIZE_Y,
 				vz % WorldVariables.CHUNK_SIZE_Z, 0)
 
 			buildStack.push_front(index)
-			print("Voxel(%s, %s, %s) removed!"%[vx,vy,vz])
 
-func pick_voxel(from : Vector3, to : Vector3) -> Voxel:
+func pick_voxel(from : Vector3, to : Vector3):
 	var voxel = null
 	var dist = INF
 	var chunks = get_chunks_ray(from, to)
@@ -160,10 +167,10 @@ func pick_voxel(from : Vector3, to : Vector3) -> Voxel:
 		if currDst < dist:
 			dist = currDst
 			voxel = v
-
+			
 	return voxel
 
-func _intersection(x : int, y : int, z : int) -> Chunk:
+func _intersection(x : int, y : int, z : int):
 	var xc = floor(x / WorldVariables.CHUNK_SIZE_X)
 	var zc = floor(z / WorldVariables.CHUNK_SIZE_Z)
 	if xc < 0 || xc >= WorldVariables.WORLD_SIZE: return null
