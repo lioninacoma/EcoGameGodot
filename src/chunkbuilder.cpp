@@ -20,7 +20,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	}
 
 	float* vertices = Worker::getVerticesPool().borrow();
-	memset(vertices, 0, MAX_VERTICES_SIZE);
+	memset(vertices, 0, MAX_VERTICES_SIZE * sizeof(*vertices));
 
 	int offset = meshBuilder.buildVertices(chunk, vertices);
 	int amountVertices = offset / VERTEX_SIZE;
@@ -81,7 +81,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	//cout << "chunk build in " << ms << " ms" << endl;
+	cout << "chunk build in " << ms << " ms" << endl;
 }
 
 void ChunkBuilder::build(Chunk* chunk, Node* game) {

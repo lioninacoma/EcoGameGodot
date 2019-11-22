@@ -131,6 +131,9 @@ func _input(event : InputEvent) -> void:
 			var chunk = result.collider.shape_owner_get_owner(0)
 #			var shape = result.collider.shape_owner_get_shape(0, 0)
 			var offset = chunk.getOffset()
+			var areas = chunk.getFlatAreas(2);
+			for area in areas:
+				print("x1: %s, y1: %s, x2 %s, y2: %s" % [area[0].x, area[0].y, area[1].x, area[1].y])
 			
 			var voxelPosition = result.position
 			var normal = result.normal
@@ -147,7 +150,11 @@ func _input(event : InputEvent) -> void:
 				vx % WorldVariables.CHUNK_SIZE_X,
 				vy % WorldVariables.CHUNK_SIZE_Y,
 				vz % WorldVariables.CHUNK_SIZE_Z, 0)
-
+			
+			print("current surface y: %s" % [chunk.getCurrentSurfaceY(
+				vx % WorldVariables.CHUNK_SIZE_X, 
+				vz % WorldVariables.CHUNK_SIZE_Z)])
+			
 			buildStack.push_front(index)
 
 func pick_voxel(from : Vector3, to : Vector3):

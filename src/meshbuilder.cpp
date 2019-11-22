@@ -23,7 +23,7 @@ int MeshBuilder::buildVertices(Chunk* chunk, float* out) {
 
 	int* mask = MeshBuilder::getMaskPool().borrow();
 	//int* mask = new int[BUFFER_SIZE];
-	memset(mask, -1, BUFFER_SIZE);
+	memset(mask, -1, BUFFER_SIZE * sizeof(*mask));
 
 	int bl[3];
 	int tl[3];

@@ -27,11 +27,15 @@ namespace godot {
 		Vector3 offset;
 		int meshInstanceId = 0;
 		char* volume;
+		int* surfaceY;
 
-		int getVoxelNoiseY(int x, int z);
-		float getVoxelNoiseChance(int x, int y, int z);
 		int flattenIndex(int x, int y, int z);
+		int flattenIndex2D(int x, int z);
+		int getVoxelY(int x, int z);
+		float getVoxelChance(int x, int y, int z);
 		Voxel* intersection(int x, int y, int z);
+		PoolVector2Array findNextRect(int* mask);
+		void markRect(PoolVector2Array rect, int* mask);
 	public:
 		static void _register_methods();
 
@@ -52,7 +56,9 @@ namespace godot {
 			return meshInstanceId;
 		};
 		int getVoxel(int x, int y, int z);
+		int getCurrentSurfaceY(int x, int z);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
+		Array getFlatAreas(float minSideLength);
 
 		// setter
 		void setOffset(Vector3 offset) {

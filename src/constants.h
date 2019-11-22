@@ -21,6 +21,9 @@
 #define TEXTURE_ATLAS_LEN 3
 
 #define NOISE_SEED 123
+#define VOXEL_CHANCE_T 0.7
+#define VOXEL_CHANCE_NOISE_SCALE 1.0
+#define VOXEL_Y_NOISE_SCALE 0.25
 
 #define POOL_SIZE 8
 
