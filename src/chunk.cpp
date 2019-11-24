@@ -40,7 +40,7 @@ int Chunk::getVoxel(int x, int y, int z) {
 	if (x < 0 || x >= CHUNK_SIZE_X) return 0;
 	if (y < 0 || y >= CHUNK_SIZE_Y) return 0;
 	if (z < 0 || z >= CHUNK_SIZE_Z) return 0;
-	return (int) volume[Fn::fi3(x, y, z)];
+	return (int) volume[fn::fi3(x, y, z)];
 }
 
 int Chunk::getVoxelY(int x, int z) {
@@ -206,7 +206,7 @@ Voxel* Chunk::intersection(int x, int y, int z) {
 }
 
 int Chunk::getCurrentSurfaceY(int x, int z) {
-	return getCurrentSurfaceY(Fn::fi2(x, z));
+	return getCurrentSurfaceY(fn::fi2(x, z));
 }
 
 int Chunk::getCurrentSurfaceY(int i) {
@@ -231,20 +231,20 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	if (x < 0 || x >= CHUNK_SIZE_X) return;
 	if (y < 0 || y >= CHUNK_SIZE_Y) return;
 	if (z < 0 || z >= CHUNK_SIZE_Z) return;
-	volume[Fn::fi3(x, y, z)] = (char)v;
+	volume[fn::fi3(x, y, z)] = (char)v;
 
-	int dy = surfaceY[Fn::fi2(x, z)];
+	int dy = surfaceY[fn::fi2(x, z)];
 
 	if (v == 0 && dy == y) {
 		for (int i = y - 1; i >= 0; i--) {
-			surfaceY[Fn::fi2(x, z)]--;
+			surfaceY[fn::fi2(x, z)]--;
 			if (getVoxel(x, i, z)) {
 				break;
 			}
 		}
 	}
 	else {
-		surfaceY[Fn::fi2(x, z)] = max(dy, y);
+		surfaceY[fn::fi2(x, z)] = max(dy, y);
 	}
 }
 

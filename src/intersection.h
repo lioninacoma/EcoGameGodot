@@ -65,7 +65,7 @@ namespace godot {
 
 			while (true) {
 				P p = intersection(gx, gy, gz);
-				if (p && !Fn::contains(list, p)) {
+				if (p && !fn::contains(list, p)) {
 					list.push_back(p);
 					if (first) return list;
 				}

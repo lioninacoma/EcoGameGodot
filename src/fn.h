@@ -6,7 +6,7 @@
 #include "constants.h"
 
 namespace godot {
-	namespace Fn {
+	namespace fn {
 		template <class T>
 		static bool contains(const std::vector<T>& vec, const T& value) {
 			return std::find(vec.begin(), vec.end(), value) != vec.end();
