@@ -13,8 +13,8 @@
 #include <cassert>
 #include <iostream>
 
-#include "semaphore.h"
 #include "constants.h"
+#include "semaphore.h"
 
 using namespace std;
 

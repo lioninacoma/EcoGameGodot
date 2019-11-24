@@ -2,15 +2,15 @@
 #define ECOGAME_H
 
 #include <Godot.hpp>
-#include <SceneTree.hpp>
-#include <ViewPort.hpp>
-#include <Node.hpp>
 #include <Node.hpp>
 #include <String.hpp>
 #include <Array.hpp>
 
+#include <iostream>
+
 #include "constants.h"
 #include "chunkbuilder.h"
+#include "scenehandle.h"
 
 using namespace std;
 
@@ -21,14 +21,15 @@ namespace godot {
 
 	private:
 		ChunkBuilder chunkBuilder;
-
 	public:
 		static void _register_methods();
 
 		EcoGame();
 		~EcoGame();
 
-		void _init(); // our initializer called by Godot
+		void _init();
+		void ready();
+
 		void buildChunk(Variant vChunk);
 	};
 

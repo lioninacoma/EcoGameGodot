@@ -2,7 +2,6 @@
 #include <boost/thread/mutex.hpp>    
 #include <boost/thread/lock_types.hpp>
 
-
 class semaphore
 {
 	//The current semaphore count.

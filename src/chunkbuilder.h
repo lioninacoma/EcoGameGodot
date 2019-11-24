@@ -11,6 +11,8 @@
 #include <SurfaceTool.hpp>
 #include <ArrayMesh.hpp>
 
+#include <iostream>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
@@ -21,6 +23,9 @@
 #include "chunk.h"
 #include "meshbuilder.h"
 #include "objectpool.h"
+
+using namespace std;
+namespace bpt = boost::posix_time;
 
 namespace godot {
 
@@ -61,7 +66,7 @@ namespace godot {
 			ioService.stop();
 			threadpool.join_all();
 		};
-		void build(Chunk *chunk, Node *game);
+		void build(Chunk *chunk, Node* game);
 	};
 
 }

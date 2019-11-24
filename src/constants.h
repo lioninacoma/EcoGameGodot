@@ -1,8 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#include <vector>
-
+#define WORLD_SIZE 8
 #define CHUNK_SIZE_X 16
 #define CHUNK_SIZE_Y 96
 #define CHUNK_SIZE_Z 16
@@ -26,10 +25,5 @@
 #define VOXEL_Y_NOISE_SCALE 0.25
 
 #define POOL_SIZE 8
-
-template <class T>
-bool contains(const std::vector<T>& vec, const T& value) {
-	return std::find(vec.begin(), vec.end(), value) != vec.end();
-}
 
 #endif

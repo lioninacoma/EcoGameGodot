@@ -7,7 +7,8 @@ onready var fpsLabel = get_node('FPSLabel')
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
 onready var Intersection : Node = get_node("/root/Intersection")
 
-var Lib = load("res://bin/ecogame.gdns").new()
+var Lib = load("res://bin/EcoGame.gdns").new()
+var WorldBuilder = load("res://bin/WorldBuilder.gdns").new()
 var Chunk = load("res://bin/Chunk.gdns")
 var Voxel = load("res://bin/Voxel.gdns")
 
@@ -27,6 +28,7 @@ func _ready() -> void:
 	chunks.resize(WorldVariables.WORLD_SIZE * WorldVariables.WORLD_SIZE)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	add_child(Lib)
+	Lib.ready()
 
 func _process(delta : float) -> void:
 	fpsLabel.set_text(str(Engine.get_frames_per_second()))
@@ -131,31 +133,67 @@ func _input(event : InputEvent) -> void:
 			var chunk = result.collider.shape_owner_get_owner(0)
 #			var shape = result.collider.shape_owner_get_shape(0, 0)
 			var offset = chunk.getOffset()
-			var areas = chunk.getFlatAreas(2);
-			for area in areas:
-				print("x1: %s, y1: %s, x2 %s, y2: %s" % [area[0].x, area[0].y, area[1].x, area[1].y])
-			
 			var voxelPosition = result.position
+			
 			var normal = result.normal
 			var bias = 0.01
 			var vx = int(voxelPosition.x - (bias if normal.x > 0 else 0))
 			var vy = int(voxelPosition.y - (bias if normal.y > 0 else 0))
 			var vz = int(voxelPosition.z - (bias if normal.z > 0 else 0))
 			
-			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
-			var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
-			var index = flatten_index(cx, cz)
+			var ax : int
+			var ay : int
+			var az : int
+			var cx : int
+			var cz : int
+			var index : int
+			var chunkPosition : Vector3
+			var areas = WorldBuilder.getSquares(Vector2(vx, vz), 1.0, 3.0);
+			for area in areas:
+				print("a: %s, b: %s, y: %s, A: %s, offset: %s" % [area[0], area[1], area[2].x, area[2].y, area[3]])
+				
+				for z in range(area[0].y, area[1].y):
+					for x in range(area[0].x, area[1].x):
+						ax = int(x + area[3].x)
+						ay = int(area[2].x + 1)
+						az = int(z + area[3].y)
+						
+						chunkPosition = Vector3(ax, ay, az)
+						chunkPosition = to_chunk_coords(chunkPosition)
+						cx = int(chunkPosition.x)
+						cz = int(chunkPosition.z)
+						
+						if cx < 0 || cx >= WorldVariables.WORLD_SIZE: continue
+						if cz < 0 || cz >= WorldVariables.WORLD_SIZE: continue
+						
+						index = flatten_index(cx, cz)
+						
+#						print ("x: %s, z: %s, cx: %s, cz: %s, index: %s" % [x, z, cx, cz, index])
+						
+						chunk = chunks[index]
+						
+						chunk.setVoxel(
+							ax % WorldVariables.CHUNK_SIZE_X,
+							ay % WorldVariables.CHUNK_SIZE_Y,
+							az % WorldVariables.CHUNK_SIZE_Z, 1)
+						
+						if !buildStack.has(index):
+							buildStack.push_front(index)
 			
-			chunk.setVoxel(
-				vx % WorldVariables.CHUNK_SIZE_X,
-				vy % WorldVariables.CHUNK_SIZE_Y,
-				vz % WorldVariables.CHUNK_SIZE_Z, 0)
-			
-			print("current surface y: %s" % [chunk.getCurrentSurfaceY(
-				vx % WorldVariables.CHUNK_SIZE_X, 
-				vz % WorldVariables.CHUNK_SIZE_Z)])
-			
-			buildStack.push_front(index)
+#			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
+#			var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
+#			var index = flatten_index(cx, cz)
+#
+#			chunk.setVoxel(
+#				vx % WorldVariables.CHUNK_SIZE_X,
+#				vy % WorldVariables.CHUNK_SIZE_Y,
+#				vz % WorldVariables.CHUNK_SIZE_Z, 0)
+#
+##			print("current surface y: %s" % [chunk.getCurrentSurfaceY(
+##				vx % WorldVariables.CHUNK_SIZE_X, 
+##				vz % WorldVariables.CHUNK_SIZE_Z)])
+#
+#			buildStack.push_front(index)
 
 func pick_voxel(from : Vector3, to : Vector3):
 	var voxel = null
@@ -178,11 +216,11 @@ func pick_voxel(from : Vector3, to : Vector3):
 	return voxel
 
 func _intersection(x : int, y : int, z : int):
-	var xc = floor(x / WorldVariables.CHUNK_SIZE_X)
-	var zc = floor(z / WorldVariables.CHUNK_SIZE_Z)
-	if xc < 0 || xc >= WorldVariables.WORLD_SIZE: return null
-	if zc < 0 || zc >= WorldVariables.WORLD_SIZE: return null
-	var chunk = chunks[flatten_index(xc, zc)]
+	var cx = floor(x / WorldVariables.CHUNK_SIZE_X)
+	var cz = floor(z / WorldVariables.CHUNK_SIZE_Z)
+	if cx < 0 || cx >= WorldVariables.WORLD_SIZE: return null
+	if cz < 0 || cz >= WorldVariables.WORLD_SIZE: return null
+	var chunk = get_chunk(cx, cz)
 	if chunk != null:
 		return chunk;
 	return null
@@ -191,6 +229,9 @@ func get_chunks_ray(from : Vector3, to : Vector3) -> Array:
 	var list = []
 	list = Intersection.segment3DIntersections(from, to, false, intersectRef, list)
 	return list
+
+func get_chunk(x : int, z : int):
+	return chunks[flatten_index(x, z)]
 
 # ------------------------- HELPER FUNCTIONS -------------------------
 func flatten_index(x : int, z : int) -> int:

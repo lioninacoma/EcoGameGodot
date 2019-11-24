@@ -1,9 +1,5 @@
 #include "meshbuilder.h"
-#include <iostream>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
 
-namespace bpt = boost::posix_time;
-using namespace std;
 using namespace godot;
 
 MeshBuilder::MeshBuilder() {

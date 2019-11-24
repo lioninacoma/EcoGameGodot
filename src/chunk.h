@@ -7,11 +7,11 @@
 #include <OpenSimplexNoise.hpp>
 
 #include <vector>
-
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
 #include "constants.h"
+#include "fn.h"
 #include "intersection.h"
 #include "voxel.h"
 
@@ -29,13 +29,11 @@ namespace godot {
 		char* volume;
 		int* surfaceY;
 
-		int flattenIndex(int x, int y, int z);
-		int flattenIndex2D(int x, int z);
 		int getVoxelY(int x, int z);
 		float getVoxelChance(int x, int y, int z);
 		Voxel* intersection(int x, int y, int z);
-		PoolVector2Array findNextRect(int* mask);
-		void markRect(PoolVector2Array rect, int* mask);
+		//PoolVector2Array findNextRect(int* mask);
+		//void markRect(PoolVector2Array rect, int* mask);
 	public:
 		static void _register_methods();
 
@@ -57,8 +55,9 @@ namespace godot {
 		};
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
+		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
-		Array getFlatAreas(float minSideLength);
+		//Array getFlatAreas(float minSideLength);
 
 		// setter
 		void setOffset(Vector3 offset) {

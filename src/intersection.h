@@ -8,13 +8,13 @@
 #include <vector>
 #include <iostream>
 
+#include "fn.h"
+
 using namespace std;
 
 namespace godot {
 
 	class Intersection {
-	private:
-
 	public:
 		template<class P>
 		static vector<P> get(Vector3 start, Vector3 end, bool first, boost::function<P(int, int, int)> intersection, vector<P> list) {
@@ -65,7 +65,7 @@ namespace godot {
 
 			while (true) {
 				P p = intersection(gx, gy, gz);
-				if (p && !contains(list, p)) {
+				if (p && !Fn::contains(list, p)) {
 					list.push_back(p);
 					if (first) return list;
 				}

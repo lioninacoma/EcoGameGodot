@@ -1,19 +1,14 @@
 #include "chunkbuilder.h"
-#include <iostream>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include "ecogame.h"
 
-namespace bpt = boost::posix_time;
-using namespace std;
 using namespace godot;
 
 void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
-	if (!chunk || !game) return;
+	if (!chunk) return;
 
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
 	long ms = 0;
-
-	start = bpt::microsec_clock::local_time();
 
 	if (!chunk->getMeshInstanceId()) {
 		if (!chunk->buildVolume()) return;
@@ -21,6 +16,8 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 	float* vertices = Worker::getVerticesPool().borrow();
 	memset(vertices, 0, MAX_VERTICES_SIZE * sizeof(*vertices));
+
+	start = bpt::microsec_clock::local_time();
 
 	int offset = meshBuilder.buildVertices(chunk, vertices);
 	int amountVertices = offset / VERTEX_SIZE;
