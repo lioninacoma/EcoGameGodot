@@ -37,7 +37,7 @@ namespace godot {
 		MeshBuilder();
 		~MeshBuilder();
 
-		int buildVertices(Chunk* chunk, float* out);
+		int buildVertices(Chunk* chunk, float* out, int type);
 	};
 
 }

@@ -10,7 +10,7 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-int MeshBuilder::buildVertices(Chunk* chunk, float* out) {
+int MeshBuilder::buildVertices(Chunk* chunk, float* out, int type) {
 	//Godot::print(String("offset: {0}, volume[0]: {1}, volume[1]: {2}").format(Array::make(offset, (*volume)[0], (*volume)[1])));
 
 	Vector3 offset = chunk->getOffset();
@@ -63,7 +63,7 @@ int MeshBuilder::buildVertices(Chunk* chunk, float* out) {
 					for (x[u] = 0; x[u] < dims[u]; x[u]++) {
 						v0 = (0 <= x[d]) ? chunk->getVoxel(x[0], x[1], x[2]) : -1;
 						v1 = (x[d] < dims[d] - 1) ? chunk->getVoxel(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
-						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? v1 : v0;
+						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? ((v1 == type) ? v1 : -1) : ((v0 == type) ? v0 : -1);
 					}
 				}
 

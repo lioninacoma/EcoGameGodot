@@ -100,20 +100,26 @@ func process_build_stack() -> void:
 		Lib.buildChunk(chunk, self)
 		buildingChunks += 1
 
-func build_mesh_instance(arrays : Array, collisionArray : PoolVector3Array, chunk) -> void:
+func build_mesh_instance(meshes : Array, chunk) -> void:
 	var meshInstance = MeshInstance.new()
-	var oldMeshInstanceId = chunk.getMeshInstanceId()
 	var mesh = ArrayMesh.new()
-	var staticBody = StaticBody.new()
-	var polygonShape = ConcavePolygonShape.new()
+	var oldMeshInstanceId = chunk.getMeshInstanceId()
 	
-	mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, arrays)
+	for meshData in meshes:
+		var mi = meshData[2] - 1
+		if meshData[3] <= 0: continue
+		var staticBody = StaticBody.new()
+		var polygonShape = ConcavePolygonShape.new()
+		
+		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, meshData[0])
+		mesh.surface_set_material(mi, WorldVariables.materials[mi])
+		
+		polygonShape.set_faces(meshData[1])
+		var ownerId = staticBody.create_shape_owner(chunk)
+		staticBody.shape_owner_add_shape(ownerId, polygonShape)
+		meshInstance.add_child(staticBody)
+	
 	meshInstance.mesh = mesh
-	
-	polygonShape.set_faces(collisionArray)
-	var ownerId = staticBody.create_shape_owner(chunk)
-	staticBody.shape_owner_add_shape(ownerId, polygonShape)
-	meshInstance.add_child(staticBody)
 	
 	if oldMeshInstanceId != 0:
 		var oldMeshInstance = instance_from_id(oldMeshInstanceId)
@@ -145,7 +151,7 @@ func build_areas(data) -> void:
 	var chunk
 	var stack : Array = []
 	
-	var areas = Lib.getSquares(center, 32.0, 4.0)
+	var areas = Lib.getSquares(center, radius, minSideLength)
 	var i : int = 1
 	for area in areas:
 		for z in range(area[0].y, area[1].y):
@@ -170,7 +176,7 @@ func build_areas(data) -> void:
 				chunk.setVoxel(
 					ax % WorldVariables.CHUNK_SIZE_X,
 					ay % WorldVariables.CHUNK_SIZE_Y,
-					az % WorldVariables.CHUNK_SIZE_Z, 1)
+					az % WorldVariables.CHUNK_SIZE_Z, 2)
 				
 				if !stack.has(index):
 					stack.push_front(index)
@@ -179,7 +185,7 @@ func build_areas(data) -> void:
 		buildStack.push_back(index)
 
 func _input(event : InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == 1:
+	if event is InputEventMouseButton and event.pressed:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
@@ -188,7 +194,6 @@ func _input(event : InputEvent) -> void:
 		
 		if result:
 			var chunk = result.collider.shape_owner_get_owner(0)
-#			var shape = result.collider.shape_owner_get_shape(0, 0)
 			var offset = chunk.getOffset()
 			var voxelPosition = result.position
 			
@@ -198,26 +203,25 @@ func _input(event : InputEvent) -> void:
 			var vy = int(voxelPosition.y - (bias if normal.y > 0 else 0))
 			var vz = int(voxelPosition.z - (bias if normal.z > 0 else 0))
 			
-			var center : Vector2 = Vector2(vx, vz)
-			var radius : float = 32.0
-			var minSideLength : float = 1.0
-			threadPool.submit_task(self, "build_areas", [center, radius, minSideLength])
-#			build_areas([center, radius, minSideLength])
+			if event.button_index == 1:
+				var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
+				var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
+				var index = flatten_index(cx, cz)
+	
+				chunk.setVoxel(
+					vx % WorldVariables.CHUNK_SIZE_X,
+					vy % WorldVariables.CHUNK_SIZE_Y,
+					vz % WorldVariables.CHUNK_SIZE_Z, 0)
+	
+				buildStack.push_front(index)
+			else:
+				var center : Vector2 = Vector2(vx, vz)
+				var radius : float = 128.0
+				var minSideLength : float = 5.0
+				
+				threadPool.submit_task(self, "build_areas", [center, radius, minSideLength])
+
 			
-#			var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
-#			var cz = int(offset.z) / WorldVariables.CHUNK_SIZE_Z
-#			var index = flatten_index(cx, cz)
-#
-#			chunk.setVoxel(
-#				vx % WorldVariables.CHUNK_SIZE_X,
-#				vy % WorldVariables.CHUNK_SIZE_Y,
-#				vz % WorldVariables.CHUNK_SIZE_Z, 0)
-#
-##			print("current surface y: %s" % [chunk.getCurrentSurfaceY(
-##				vx % WorldVariables.CHUNK_SIZE_X, 
-##				vz % WorldVariables.CHUNK_SIZE_Z)])
-#
-#			buildStack.push_front(index)
 
 func pick_voxel(from : Vector3, to : Vector3):
 	var voxel = null

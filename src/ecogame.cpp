@@ -71,7 +71,7 @@ Array EcoGame::getSquares(Vector2 center, float radius, float minSideLength) {
 	int* surfaceY = getIntBufferPool().borrow();
 	int* mask = getIntBufferPool().borrow();
 
-	Godot::print(String("center: {0}, radius: {1}, tl: {2}, br: {3}, W: {4}, H: {5}").format(Array::make(center, radius, tl, br, W, H)));
+	//Godot::print(String("center: {0}, radius: {1}, tl: {2}, br: {3}, W: {4}, H: {5}").format(Array::make(center, radius, tl, br, W, H)));
 
 	for (z = zS; z <= zE; z++) {
 		for (x = xS; x <= xE; x++) {
