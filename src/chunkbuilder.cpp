@@ -12,17 +12,28 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 	start = bpt::microsec_clock::local_time();
 
-	float* vertices = Worker::getVerticesPool().borrow();
-	memset(vertices, 0, MAX_VERTICES_SIZE * sizeof(*vertices));
-
 	if (!chunk->getMeshInstanceId()) {
 		if (!chunk->buildVolume()) return;
 	}
 
 	Array meshes;
+	vector<float*> buffers;
+	const int types = 3;
 
-	for (int type = 1; type <= 2; type++) {
-		int offset = meshBuilder.buildVertices(chunk, vertices, type);
+	for (int i = 0; i < types; i++) {
+		float* vertices = Worker::getVerticesPool().borrow();
+		memset(vertices, 0, MAX_VERTICES_SIZE * sizeof(*vertices));
+		buffers.push_back(vertices);
+	}
+
+	vector<int> offsets = meshBuilder.buildVertices(chunk, buffers);
+
+	int type = 1;
+	for (int i = 0; i < offsets.size(); i++) {
+		int offset = offsets[i];
+		if (offset <= 0) continue;
+
+		float* vertices = buffers[type - 1];
 		int amountVertices = offset / VERTEX_SIZE;
 		int amountIndices = amountVertices / 2 * 3;
 
@@ -79,12 +90,18 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 		meshData.push_back(offset);
 
 		meshes.push_back(meshData);
+		
+		type++;
 	}
 
 	//Variant v = game->call("build_mesh_instance", arrays, collisionArray);
 	Variant v = game->call_deferred("build_mesh_instance", meshes, Ref<Chunk>(chunk));
 
-	Worker::getVerticesPool().ret(vertices);
+	for (int i = 0; i < types; i++) {
+		float* vertices = buffers[i];
+		Worker::getVerticesPool().ret(vertices);
+	}
+	
 
 	stop = bpt::microsec_clock::local_time();
 	dur = stop - start;

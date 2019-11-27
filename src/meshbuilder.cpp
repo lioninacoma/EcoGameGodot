@@ -10,12 +10,20 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-int MeshBuilder::buildVertices(Chunk* chunk, float* out, int type) {
+vector<int> MeshBuilder::buildVertices(Chunk* chunk, vector<float*> buffers) {
 	//Godot::print(String("offset: {0}, volume[0]: {1}, volume[1]: {2}").format(Array::make(offset, (*volume)[0], (*volume)[1])));
 
 	Vector3 offset = chunk->getOffset();
-	int i, j, k, l, w, h, u, v, n, d, side = 0, vertexOffset = 0, face = -1, v0 = -1, v1 = -1;
+
+	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, type;
 	bool backFace, b, done = false;
+
+	vector<int> vertexOffsets;
+	vertexOffsets.resize(buffers.size());
+
+	for (i = 0; i < vertexOffsets.size(); i++) {
+		vertexOffsets[i] = 0;
+	}
 
 	int* mask = MeshBuilder::getMaskPool().borrow();
 	//int* mask = new int[BUFFER_SIZE];
@@ -63,7 +71,7 @@ int MeshBuilder::buildVertices(Chunk* chunk, float* out, int type) {
 					for (x[u] = 0; x[u] < dims[u]; x[u]++) {
 						v0 = (0 <= x[d]) ? chunk->getVoxel(x[0], x[1], x[2]) : -1;
 						v1 = (x[d] < dims[d] - 1) ? chunk->getVoxel(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
-						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? ((v1 == type) ? v1 : -1) : ((v0 == type) ? v0 : -1);
+						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? v1 : v0;
 					}
 				}
 
@@ -129,7 +137,8 @@ int MeshBuilder::buildVertices(Chunk* chunk, float* out, int type) {
 								br[2] = x[2] + dv[2];
 
 								// create quad
-								vertexOffset = quad(offset, bl, tl, tr, br, out, side, mask[n], vertexOffset);
+								type = mask[n];
+								vertexOffsets[type] = quad(offset, bl, tl, tr, br, buffers[type - 1], side, type, vertexOffsets[type]);
 							}
 
 							// zero-out mask
@@ -155,7 +164,7 @@ int MeshBuilder::buildVertices(Chunk* chunk, float* out, int type) {
 
 	MeshBuilder::getMaskPool().ret(mask);
 	//delete[] mask;
-	return vertexOffset;
+	return vertexOffsets;
 }
 
 float MeshBuilder::getU(int type) {

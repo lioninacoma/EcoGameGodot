@@ -18,8 +18,8 @@ namespace godot {
 
 	class MeshBuilder {
 	private:
-		static ObjectPool<int, BUFFER_SIZE, POOL_SIZE>& getMaskPool() {
-			static ObjectPool<int, BUFFER_SIZE, POOL_SIZE> pool;
+		static ObjectPool<int, BUFFER_SIZE, POOL_SIZE * 4>& getMaskPool() {
+			static ObjectPool<int, BUFFER_SIZE, POOL_SIZE * 4> pool;
 			return pool;
 		};
 		int dims[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
@@ -37,7 +37,7 @@ namespace godot {
 		MeshBuilder();
 		~MeshBuilder();
 
-		int buildVertices(Chunk* chunk, float* out, int type);
+		vector<int> buildVertices(Chunk* chunk, vector<float*> buffers);
 	};
 
 }
