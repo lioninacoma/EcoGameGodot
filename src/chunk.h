@@ -28,6 +28,7 @@ namespace godot {
 		int meshInstanceId = 0;
 		char* volume;
 		int* surfaceY;
+		bool building = false;
 
 		int getVoxelY(int x, int z);
 		float getVoxelChance(int x, int y, int z);
@@ -53,6 +54,9 @@ namespace godot {
 		int getMeshInstanceId() {
 			return meshInstanceId;
 		};
+		bool isBuilding() {
+			return Chunk::building;
+		}
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
@@ -63,6 +67,9 @@ namespace godot {
 		void setOffset(Vector3 offset) {
 			Chunk::offset = offset;
 		};
+		void setBuilding(bool building) {
+			Chunk::building = building;
+		}
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;
 		};

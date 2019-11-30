@@ -4,7 +4,7 @@ using namespace godot;
 
 void EcoGame::_register_methods() {
 	register_method("buildChunk", &EcoGame::buildChunk);
-	register_method("getSquares", &EcoGame::getSquares);
+	register_method("buildAreas", &EcoGame::buildAreas);
 }
 
 EcoGame::EcoGame() {
@@ -37,78 +37,82 @@ Chunk* EcoGame::getChunk(int x, int z) {
 	return chunk;
 }
 
-Array EcoGame::getSquares(Vector2 center, float radius, float minSideLength) {
-	Array squares = Array();
-	if (minSideLength < 1) return squares;
+void EcoGame::buildAreas(Vector2 center, float radius, float minSideLength) {
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildAreasT, this, center, radius, minSideLength, game));
+}
+
+void EcoGame::buildAreasT(Vector2 center, float radius, float minSideLength, Node* game) {
+	if (minSideLength < 1) return;
+		
+	int xS, xE, zS, zE, currentY, x, z, i, j, totalSquareArea;
+	float nextArea;
+	Area area;
+	Vector2 start, end, offset;
+	Array indices;
+	Chunk* chunk;
+	vector<Chunk*> chunks;
+	std::set<int, greater<int>> uniques;
 
 	Vector3 tl = Vector3(center.x - radius, 0, center.y - radius);
 	Vector3 br = Vector3(center.x + radius, 0, center.y + radius);
+
 	tl = fn::toChunkCoords(tl);
 	br = fn::toChunkCoords(br);
 
-	int xS = (int)tl.x;
+	xS = (int)tl.x;
 	xS = max(0, xS);
 
-	int xE = (int)br.x;
-	xE = min(WORLD_SIZE, xE);
+	xE = (int)br.x;
+	xE = min(WORLD_SIZE - 1, xE);
 
-	int zS = (int)tl.z;
+	zS = (int)tl.z;
 	zS = max(0, zS);
 
-	int zE = (int)br.z;
-	zE = min(WORLD_SIZE, zE);
+	zE = (int)br.z;
+	zE = min(WORLD_SIZE - 1, zE);
 
-	const float minSize = minSideLength * minSideLength;
+	const float MIN_SIZE = minSideLength * minSideLength;
+	const int C_W = xE - xS + 1;
+	const int C_H = zE - zS + 1;
+	const int W = C_W * CHUNK_SIZE_X;
+	const int H = C_H * CHUNK_SIZE_Z;
 
-	vector<int>::iterator it;
-	vector<int> uniques;
+	//Godot::print(String("start: {0}, end: {1}, C_W: {2}, C_H: {3}, W: {4}, H: {5}").format(Array::make(Vector2(xS, zS), Vector2(xE, zE), C_W, C_H, W, H)));
 
-	const int W = (xE - xS + 1) * CHUNK_SIZE_X;
-	const int H = (zE - zS + 1) * CHUNK_SIZE_Z;
-	int currentY, x, z, i, j, totalSquareArea;
-	float nextArea;
-
+	chunks.resize(C_W * C_H);
 	int* surfaceY = getIntBufferPool().borrow();
 	int* mask = getIntBufferPool().borrow();
 
-	//Godot::print(String("center: {0}, radius: {1}, tl: {2}, br: {3}, W: {4}, H: {5}").format(Array::make(center, radius, tl, br, W, H)));
+	//Godot::print(String("chunks, surfaceY and mask initialized"));
 
 	for (z = zS; z <= zE; z++) {
 		for (x = xS; x <= xE; x++) {
-			Chunk* chunk = getChunk(x, z);
+			indices.push_back(fn::fi2(x, z, WORLD_SIZE));
+			chunk = getChunk(x, z);
 
 			if (!chunk) continue;
+
+			//Godot::print(String("x: {0}, z: {1}, x - xS: {2}, z - zS: {3}, index: {4}, size: {5}").format(Array::make(x, z, x - xS, z - zS, fn::fi2(x - xS, z - zS, C_W), C_W * C_H)));
+			chunks[fn::fi2(x - xS, z - zS, C_W)] = chunk;
+			//Godot::print(String("chunk offset: {0} set").format(Array::make(chunk->getOffset())));
 
 			for (j = 0; j < CHUNK_SIZE_Z; j++) {
 				for (i = 0; i < CHUNK_SIZE_X; i++) {
 					currentY = chunk->getCurrentSurfaceY(i, j);
-					uniques.push_back(currentY);
+					uniques.insert(currentY);
 					surfaceY[fn::fi2((x - xS) * CHUNK_SIZE_X + i, (z - zS) * CHUNK_SIZE_Z + j, W)] = currentY;
-					//cout << std::setfill(' ') << std::setw(2) << currentY;
 				}
-				//cout << endl;
 			}
-			//cout << endl;
 		}
 	}
 
-	/*for (j = 0; j < H; j++) {
-		for (i = 0; i < W; i++) {
-			cout << std::setfill(' ') << std::setw(2) << surfaceY[fn::fi2(i, j, W)];
-		}
-		cout << endl;
-	}
-	cout << endl;
-
-	getIntBufferPool().ret(surfaceY);
-	getIntBufferPool().ret(mask);
-	return squares;*/
-
-	sort(uniques.begin(), uniques.end());
-	it = unique(uniques.begin(), uniques.end());
-	uniques.resize(distance(uniques.begin(), it));
+	//Godot::print(String("surfaceY and uniques set"));
 
 	for (int nextY : uniques) {
+
+		//Godot::print(String("nextY: {0}").format(Array::make(nextY)));
+
 		// get the area covered by rectangles
 		totalSquareArea = 0;
 		for (i = 0; i < W * H; i++) {
@@ -118,34 +122,56 @@ Array EcoGame::getSquares(Vector2 center, float radius, float minSideLength) {
 
 		nextArea = 0;
 
-		// find all rectangle until their area matches the total
+		// find all areas with surface area >= minSize
 		while (true) {
-			PoolVector2Array square = findNextSquare(mask, W, H);
-			nextArea = (square[1].x - square[0].x) * (square[1].y - square[0].y);
+			area = findNextArea(mask, nextY, W, H);
+			start = area.getStart();
+			end = area.getEnd();
+			nextArea = (end.x - start.x) * (end.y - start.y);
 
-			if (nextArea >= minSize) {
-				square.push_back(Vector2(nextY, nextArea));
-				square.push_back(Vector2(xS * CHUNK_SIZE_X, zS * CHUNK_SIZE_Z));
-				squares.push_back(square);
-				markSquare(square, mask, W);
-			}
-			else {
-				break;
-			}
+			if (nextArea < MIN_SIZE) break;
+
+			Godot::print(String("area start: {0}, end: {1}, y: {2}").format(Array::make(area.getStart(), area.getEnd(), area.getY())));
+
+			offset.x = xS * CHUNK_SIZE_X;
+			offset.y = zS * CHUNK_SIZE_Z;
+			area.addOffset(offset);
+
+			buildArea(area, chunks, xS, zS, C_W);
+			markArea(area, mask, xS, zS, W);
 		}
 	}
 
+	Variant v = game->call_deferred("update_chunks", indices, indices.size());
+
 	getIntBufferPool().ret(surfaceY);
 	getIntBufferPool().ret(mask);
-	return squares;
 }
 
-PoolVector2Array EcoGame::findNextSquare(int* mask, const int W, const int H) {
-	PoolVector2Array square;
-	square.resize(2);
+void EcoGame::buildArea(EcoGame::Area area, vector<Chunk*> chunks, int xS, int zS, const int C_W) {
+	int i, j, x, z, vx, vy, vz, y = (int) area.getY() + 1;
+	Chunk* chunk;
+	Vector2 start = area.getStart();
+	Vector2 end = area.getEnd();
+	Vector2 chunkPos;
 
-	PoolVector2Array::Write squareWrite = square.write();
+	for (i = start.x; i < end.x; ++i) {
+		for (j = start.y; j < end.y; ++j) {
+			chunkPos.x = i;
+			chunkPos.y = j;
+			chunkPos = fn::toChunkCoords(chunkPos);
+			x = (int)chunkPos.x;
+			z = (int)chunkPos.y;
+			chunk = chunks[fn::fi2(x - xS, z - zS, C_W)];
+			chunk->setVoxel(
+				i % CHUNK_SIZE_X, 
+				y % CHUNK_SIZE_Y,
+				j % CHUNK_SIZE_Z, 2);
+		}
+	}
+}
 
+EcoGame::Area EcoGame::findNextArea(int* mask, int y, const int W, const int H) {
 	int i, j, x1, x2, y1, y2, area;
 	int max_of_s, max_i, max_j;
 	int* sub = getIntBufferPool().borrow();
@@ -184,19 +210,18 @@ PoolVector2Array EcoGame::findNextSquare(int* mask, const int W, const int H) {
 	x2 = max_i + 1;
 	y2 = max_j + 1;
 
-	squareWrite[0] = Vector2(x1, y1);
-	squareWrite[1] = Vector2(x2, y2);
-
 	getIntBufferPool().ret(sub);
 
-	return square;
+	return EcoGame::Area(Vector2(x1, y1), Vector2(x2, y2), y);
 }
 
-void EcoGame::markSquare(PoolVector2Array rect, int* mask, const int W) {
-	for (int i = rect[0].x; i <= rect[1].x; ++i) {
-		for (int j = rect[0].y; j <= rect[1].y; ++j) {
-			mask[fn::fi2(i, j, W)] = 0;
+void EcoGame::markArea(EcoGame::Area area, int* mask, int xS, int zS, const int W) {
+	int x, z;
+	Vector2 start = area.getStart();
+	Vector2 end = area.getEnd();
+	for (z = start.y; z <= end.y; ++z) {
+		for (x = start.x; x <= end.x; ++x) {
+			mask[fn::fi2(x - (xS * CHUNK_SIZE_X), z - (zS * CHUNK_SIZE_Z), W)] = 0;
 		}
 	}
 }
-

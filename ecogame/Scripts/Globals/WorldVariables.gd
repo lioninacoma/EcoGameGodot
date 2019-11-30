@@ -1,7 +1,7 @@
 extends Node
 
 # world building variables
-const WORLD_SIZE : int = 8;
+const WORLD_SIZE : int = 24;
 const CHUNK_SIZE_X : int = 16
 const CHUNK_SIZE_Y : int = 256
 const CHUNK_SIZE_Z : int = 16

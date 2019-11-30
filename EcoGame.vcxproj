@@ -178,6 +178,7 @@
     <ClInclude Include="src\constants.h" />
     <ClInclude Include="src\meshbuilder.h" />
     <ClInclude Include="src\ecogame.h" />
+    <ClInclude Include="src\threadpool.h" />
     <ClInclude Include="src\voxel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

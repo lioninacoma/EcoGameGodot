@@ -15,7 +15,7 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, vector<float*> buffers) {
 
 	Vector3 offset = chunk->getOffset();
 
-	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, type;
+	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx;
 	bool backFace, b, done = false;
 
 	vector<int> vertexOffsets;
@@ -137,8 +137,8 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, vector<float*> buffers) {
 								br[2] = x[2] + dv[2];
 
 								// create quad
-								type = mask[n];
-								vertexOffsets[type] = quad(offset, bl, tl, tr, br, buffers[type - 1], side, type, vertexOffsets[type]);
+								idx = mask[n] - 1;
+								vertexOffsets[idx] = quad(offset, bl, tl, tr, br, buffers[idx], side, mask[n], vertexOffsets[idx]);
 							}
 
 							// zero-out mask

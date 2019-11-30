@@ -21,7 +21,7 @@ namespace godot {
 		}
 
 		static int fi2(int x, int z, int w) {
-			return x * w + z;
+			return x + z * w;
 		}
 
 		static int fi2(int x, int z) {

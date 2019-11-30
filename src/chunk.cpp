@@ -3,12 +3,14 @@
 using namespace godot;
 
 void Chunk::_register_methods() {
+	register_method("isBuilding", &Chunk::isBuilding);
 	register_method("getOffset", &Chunk::getOffset);
 	register_method("getVolume", &Chunk::getVolume);
 	register_method("getVoxel", &Chunk::getVoxel);
 	register_method("getMeshInstanceId", &Chunk::getMeshInstanceId);
 	register_method("getVoxelRay", &Chunk::getVoxelRay);
 	//register_method("getFlatAreas", &Chunk::getFlatAreas);
+	register_method("setBuilding", &Chunk::setBuilding);
 	register_method("setOffset", &Chunk::setOffset);
 	register_method("setVoxel", &Chunk::setVoxel);
 	register_method("setMeshInstanceId", &Chunk::setMeshInstanceId);
@@ -231,8 +233,8 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	if (x < 0 || x >= CHUNK_SIZE_X) return;
 	if (y < 0 || y >= CHUNK_SIZE_Y) return;
 	if (z < 0 || z >= CHUNK_SIZE_Z) return;
+	
 	volume[fn::fi3(x, y, z)] = (char)v;
-
 	int dy = surfaceY[fn::fi2(x, z)];
 
 	if (v == 0 && dy == y) {

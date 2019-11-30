@@ -16,9 +16,6 @@ var chunks : Array = []
 var buildStack : Array = []
 var buildStackMaxSize : int = 20
 var chunksBuild = 0
-var threadPool : ThreadPool = ThreadPool.new(8)
-var mutex : Mutex = Mutex.new()
-var buildingChunks : int = 0
 
 # voxel variables
 onready var intersectRef : FuncRef = funcref(self, "_intersection")
@@ -63,16 +60,16 @@ func initialize_chunks_nearby() -> void:
 	xS = max(0, xS)
 	
 	var xE = int(br.x)
-	xE = min(WorldVariables.WORLD_SIZE, xE)
+	xE = min(WorldVariables.WORLD_SIZE - 1, xE)
 	
 	var zS = int(tl.z)
 	zS = max(0, zS)
 	
 	var zE = int(br.z)
-	zE = min(WorldVariables.WORLD_SIZE, zE)
+	zE = min(WorldVariables.WORLD_SIZE - 1, zE)
 	
-	for z in range(zS, zE):
-		for x in range(xS, xE):
+	for z in range(zS, zE + 1):
+		for x in range(xS, xE + 1):
 			if buildStack.size() >= buildStackMaxSize:
 				return
 			var index = flatten_index(x, z)
@@ -97,8 +94,8 @@ func process_build_stack() -> void:
 		if index < 0 || index >= chunks.size(): continue
 		var chunk = chunks[index]
 		if chunk == null: continue
+		chunk.setBuilding(true)
 		Lib.buildChunk(chunk, self)
-		buildingChunks += 1
 
 func build_mesh_instance(meshes : Array, chunk) -> void:
 	var meshInstance = MeshInstance.new()
@@ -128,61 +125,7 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 	
 	add_child(meshInstance)
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
-	
-	if buildingChunks > 0:
-		buildingChunks -= 1
-	mutex.unlock()
-
-func build_areas(data) -> void:
-	while buildingChunks > 0:
-		mutex.lock()
-	
-	var center : Vector2 = data[0]
-	var radius : float = data[1]
-	var minSideLength : float = data[2]
-	
-	var ax : int
-	var ay : int
-	var az : int
-	var cx : int
-	var cz : int
-	var index : int
-	var chunkPosition : Vector3
-	var chunk
-	var stack : Array = []
-	
-	var areas = Lib.getSquares(center, radius, minSideLength)
-	var i : int = 1
-	for area in areas:
-		for z in range(area[0].y, area[1].y):
-			for x in range(area[0].x, area[1].x):
-				ax = int(x + area[3].x)
-				ay = int(area[2].x + 1)
-				az = int(z + area[3].y)
-				
-				chunkPosition = Vector3(ax, ay, az)
-				chunkPosition = to_chunk_coords(chunkPosition)
-				cx = int(chunkPosition.x)
-				cz = int(chunkPosition.z)
-				
-				if cx < 0 || cx >= WorldVariables.WORLD_SIZE: continue
-				if cz < 0 || cz >= WorldVariables.WORLD_SIZE: continue
-				
-				index = flatten_index(cx, cz)
-				chunk = get_chunk(cx, cz)
-				
-				if !chunk: continue
-				
-				chunk.setVoxel(
-					ax % WorldVariables.CHUNK_SIZE_X,
-					ay % WorldVariables.CHUNK_SIZE_Y,
-					az % WorldVariables.CHUNK_SIZE_Z, 2)
-				
-				if !stack.has(index):
-					stack.push_front(index)
-	
-	for index in stack:
-		buildStack.push_back(index)
+	chunk.setBuilding(false)
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
@@ -198,10 +141,10 @@ func _input(event : InputEvent) -> void:
 			var voxelPosition = result.position
 			
 			var normal = result.normal
-			var bias = 0.01
-			var vx = int(voxelPosition.x - (bias if normal.x > 0 else 0))
-			var vy = int(voxelPosition.y - (bias if normal.y > 0 else 0))
-			var vz = int(voxelPosition.z - (bias if normal.z > 0 else 0))
+			var b = 0.1
+			var vx = int(voxelPosition.x - (b if normal.x > 0 else 0))
+			var vy = int(voxelPosition.y - (b if normal.y > 0 else 0))
+			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
 			
 			if event.button_index == 1:
 				var cx = int(offset.x) / WorldVariables.CHUNK_SIZE_X
@@ -216,12 +159,10 @@ func _input(event : InputEvent) -> void:
 				buildStack.push_front(index)
 			else:
 				var center : Vector2 = Vector2(vx, vz)
-				var radius : float = 128.0
+				var radius : float = 32.0
 				var minSideLength : float = 5.0
 				
-				threadPool.submit_task(self, "build_areas", [center, radius, minSideLength])
-
-			
+				Lib.buildAreas(center, radius, minSideLength)
 
 func pick_voxel(from : Vector3, to : Vector3):
 	var voxel = null
@@ -264,9 +205,13 @@ func get_chunk(x : int, z : int):
 	var chunk = chunks[flatten_index(x, z)]
 	return chunk
 
+func update_chunks(indices : Array, size : int) -> void:
+	for index in indices:
+		buildStack.push_back(index)
+
 # ------------------------- HELPER FUNCTIONS -------------------------
 func flatten_index(x : int, z : int) -> int:
-	return x * WorldVariables.WORLD_SIZE + z
+	return x + z * WorldVariables.WORLD_SIZE
 
 func to_chunk_coords(position : Vector3) -> Vector3:
 	var ix = int(position.x)
