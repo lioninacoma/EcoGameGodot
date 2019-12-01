@@ -1,12 +1,12 @@
 extends Node
 
 # world building variables
-const WORLD_SIZE : int = 24;
+const WORLD_SIZE : int = 64;
 const CHUNK_SIZE_X : int = 16
 const CHUNK_SIZE_Y : int = 256
 const CHUNK_SIZE_Z : int = 16
 const PICK_DISTANCE : int = 10
-const BUILD_DISTANCE : int = 600
+const BUILD_DISTANCE : int = 128
 const NOISE_SCALE : float = 1.5
 const NOISE_SEED : int = 512365
 

@@ -1,7 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define WORLD_SIZE 24
+#define WORLD_SIZE 64
 #define CHUNK_SIZE_X 16
 #define CHUNK_SIZE_Y 96
 #define CHUNK_SIZE_Z 16

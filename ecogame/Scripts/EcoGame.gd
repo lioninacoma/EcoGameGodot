@@ -159,7 +159,7 @@ func _input(event : InputEvent) -> void:
 				buildStack.push_front(index)
 			else:
 				var center : Vector2 = Vector2(vx, vz)
-				var radius : float = 2.0
+				var radius : float = 64.0
 				var minSideLength : float = 4.0
 				
 				Lib.buildAreas(center, radius, minSideLength)

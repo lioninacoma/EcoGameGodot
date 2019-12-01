@@ -23,7 +23,6 @@
 using namespace std;
 
 namespace godot {
-
 	class EcoGame : public Node {
 		GODOT_CLASS(EcoGame, Node)
 

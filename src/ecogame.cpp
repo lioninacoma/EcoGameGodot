@@ -163,15 +163,16 @@ void EcoGame::buildArea(EcoGame::Area area, vector<Chunk*> chunks, int xS, int z
 
 	Godot::print(String("width: {0}").format(Array::make(area.getWidth())));
 
-	/*vector<Voxel> voxels;
-	if (area.getWidth() <= 4) {
+	vector<Voxel> voxels;
+	
+	if (area.getWidth() >= 6) {
+		voxels = voxelsHouse6x6;
+	}
+	else if (area.getWidth() >= 4) {
 		voxels = voxelsHouse4x4;
 	}
-	else if (area.getWidth() <= 6) {
-		voxels = voxelsHouse6x6;
-	}*/
 
-	for (Voxel v : voxelsHouse4x4) {
+	for (Voxel v : voxels) {
 		pos = v.getPosition();
 		pos += offset;
 		type = v.getType();
