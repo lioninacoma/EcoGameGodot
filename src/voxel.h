@@ -22,6 +22,7 @@ namespace godot {
 		}
 
 		Voxel() : Voxel(Vector3(), Vector3(), 0) {}
+		Voxel(Vector3 position, char type) : Voxel(position, Vector3(), type) {}
 		Voxel(Vector3 position, Vector3 chunkOffset, char type) {
 			Voxel::position = position;
 			Voxel::chunkOffset = chunkOffset;

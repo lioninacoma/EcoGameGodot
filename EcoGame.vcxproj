@@ -180,6 +180,9 @@
     <ClInclude Include="src\ecogame.h" />
     <ClInclude Include="src\threadpool.h" />
     <ClInclude Include="src\voxel.h" />
+    <ClInclude Include="src\voxelasset.h" />
+    <ClInclude Include="src\voxelasset_house4x4.h" />
+    <ClInclude Include="src\voxelasset_house6x6.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -120,25 +120,23 @@ void EcoGame::buildAreasT(Vector2 center, float radius, float minSideLength, Nod
 			totalSquareArea += (mask[i] > 0) ? 1 : 0;
 		}
 
-		nextArea = 0;
-
 		// find all areas with surface area >= minSize
 		while (true) {
 			area = findNextArea(mask, nextY, W, H);
 			start = area.getStart();
 			end = area.getEnd();
-			nextArea = (end.x - start.x) * (end.y - start.y);
+			nextArea = area.getWidth() * area.getHeight();
 
 			if (nextArea < MIN_SIZE) break;
 
-			Godot::print(String("area start: {0}, end: {1}, y: {2}").format(Array::make(area.getStart(), area.getEnd(), area.getY())));
+			//Godot::print(String("area start: {0}, end: {1}, y: {2}").format(Array::make(area.getStart(), area.getEnd(), area.getY())));
 
 			offset.x = xS * CHUNK_SIZE_X;
 			offset.y = zS * CHUNK_SIZE_Z;
-			area.addOffset(offset);
+			area.setOffset(offset);
 
 			buildArea(area, chunks, xS, zS, C_W);
-			markArea(area, mask, xS, zS, W);
+			markArea(area, mask, W);
 		}
 	}
 
@@ -149,25 +147,47 @@ void EcoGame::buildAreasT(Vector2 center, float radius, float minSideLength, Nod
 }
 
 void EcoGame::buildArea(EcoGame::Area area, vector<Chunk*> chunks, int xS, int zS, const int C_W) {
-	int i, j, x, z, vx, vy, vz, y = (int) area.getY() + 1;
+	int i, j, type, x, z, vx, vy, vz, y = (int) area.getY() + 1;
 	Chunk* chunk;
-	Vector2 start = area.getStart();
-	Vector2 end = area.getEnd();
+	Vector2 start = area.getStart() + area.getOffset();
 	Vector2 chunkPos;
 
-	for (i = start.x; i < end.x; ++i) {
-		for (j = start.y; j < end.y; ++j) {
-			chunkPos.x = i;
-			chunkPos.y = j;
-			chunkPos = fn::toChunkCoords(chunkPos);
-			x = (int)chunkPos.x;
-			z = (int)chunkPos.y;
-			chunk = chunks[fn::fi2(x - xS, z - zS, C_W)];
-			chunk->setVoxel(
-				i % CHUNK_SIZE_X, 
-				y % CHUNK_SIZE_Y,
-				j % CHUNK_SIZE_Z, 2);
-		}
+	VoxelAsset_House4x4 house4x4;
+	vector<Voxel> voxelsHouse4x4 = house4x4.getVoxels();
+
+	VoxelAsset_House6x6 house6x6;
+	vector<Voxel> voxelsHouse6x6 = house6x6.getVoxels();
+
+	Vector3 pos;
+	Vector3 offset = Vector3(start.x, y, start.y);
+
+	Godot::print(String("width: {0}").format(Array::make(area.getWidth())));
+
+	/*vector<Voxel> voxels;
+	if (area.getWidth() <= 4) {
+		voxels = voxelsHouse4x4;
+	}
+	else if (area.getWidth() <= 6) {
+		voxels = voxelsHouse6x6;
+	}*/
+
+	for (Voxel v : voxelsHouse4x4) {
+		pos = v.getPosition();
+		pos += offset;
+		type = v.getType();
+		chunkPos.x = pos.x;
+		chunkPos.y = pos.z;
+		chunkPos = fn::toChunkCoords(chunkPos);
+		x = (int)chunkPos.x;
+		z = (int)chunkPos.y;
+		chunk = chunks[fn::fi2(x - xS, z - zS, C_W)];
+		vx = (int)pos.x;
+		vy = (int)pos.y;
+		vz = (int)pos.z;
+		chunk->setVoxel(
+			vx % CHUNK_SIZE_X,
+			vy % CHUNK_SIZE_Y,
+			vz % CHUNK_SIZE_Z, type);
 	}
 }
 
@@ -205,8 +225,8 @@ EcoGame::Area EcoGame::findNextArea(int* mask, int y, const int W, const int H) 
 		}
 	}
 
-	x1 = max_i - max_of_s + 1;
-	y1 = max_j - max_of_s + 1;
+	x1 = (max_i - max_of_s) + 1;
+	y1 = (max_j - max_of_s) + 1;
 	x2 = max_i + 1;
 	y2 = max_j + 1;
 
@@ -215,13 +235,13 @@ EcoGame::Area EcoGame::findNextArea(int* mask, int y, const int W, const int H) 
 	return EcoGame::Area(Vector2(x1, y1), Vector2(x2, y2), y);
 }
 
-void EcoGame::markArea(EcoGame::Area area, int* mask, int xS, int zS, const int W) {
-	int x, z;
+void EcoGame::markArea(EcoGame::Area area, int* mask, const int W) {
+	int x, z, w = area.getWidth(), h = area.getHeight();
 	Vector2 start = area.getStart();
 	Vector2 end = area.getEnd();
-	for (z = start.y; z <= end.y; ++z) {
-		for (x = start.x; x <= end.x; ++x) {
-			mask[fn::fi2(x - (xS * CHUNK_SIZE_X), z - (zS * CHUNK_SIZE_Z), W)] = 0;
+	for (z = start.y; z < start.y + h; ++z) {
+		for (x = start.x; x < start.x + w; ++x) {
+			mask[fn::fi2(x, z, W)] = 0;
 		}
 	}
 }
