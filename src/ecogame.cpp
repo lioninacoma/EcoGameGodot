@@ -41,7 +41,7 @@ void EcoGame::buildAreas(Vector2 center, float radius, float minSideLength) {
 	if (minSideLength < 1) return;
 
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildAreasT, this, center, radius, minSideLength, 0, game));
+	ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildAreasT, this, center, radius, minSideLength, 1, game));
 }
 
 void EcoGame::buildAreasT(Vector2 center, float radius, float minSideLength, int maxDeltaY, Node* game) {
@@ -123,7 +123,7 @@ void EcoGame::buildAreasT(Vector2 center, float radius, float minSideLength, int
 			mask[i] = (deltaY <= maxDeltaY && deltaY >= 0) ? 1 : 0;
 		}
 
-		areas = findAreasOfSize(4, mask, W, H);
+		areas = findAreasOfSize(6, mask, surfaceY, W, H);
 
 		for (Area area : areas) {
 			start = area.getStart();
@@ -133,28 +133,8 @@ void EcoGame::buildAreasT(Vector2 center, float radius, float minSideLength, int
 			offset.y = zS * CHUNK_SIZE_Z;
 			area.setOffset(offset);
 
-			buildArea(area, chunks, surfaceY, xS, zS, C_W, W);
+			buildArea(area, chunks, xS, zS, C_W, W);
 		}
-
-		/*i = 0;
-		// find all areas with surface area >= minSize
-		while (i++ < MAX_BUILD_AREAS) {
-			area = findNextArea(mask, W, H);
-			start = area.getStart();
-			end = area.getEnd();
-			nextArea = area.getWidth() * area.getHeight();
-
-			//Godot::print(String("area start: {0}, end: {1}, y: {2}").format(Array::make(area.getStart(), area.getEnd(), area.getY())));
-
-			if (nextArea < MIN_SIZE) break;
-
-			offset.x = xS * CHUNK_SIZE_X;
-			offset.y = zS * CHUNK_SIZE_Z;
-			area.setOffset(offset);
-
-			buildArea(area, chunks, surfaceY, xS, zS, C_W, W);
-			markArea(area, mask, W);
-		}*/
 	}
 
 	Variant v = game->call_deferred("update_chunks", indices, indices.size());
@@ -163,45 +143,20 @@ void EcoGame::buildAreasT(Vector2 center, float radius, float minSideLength, int
 	getIntBufferPool().ret(mask);
 }
 
-int EcoGame::getMeanY(int x1, int y1, int x2, int y2, int* surfaceY, const int W) {
-	int x, y, meanY = 0, count = 0;
-
-	for (y = y1; y < y2; y++) {
-		for (x = x1; x < x2; x++) {
-			meanY += surfaceY[fn::fi2(x, y, W)];
-			count++;
-		}
-	}
-
-	return (int)((float)meanY / (float)count);
-}
-
-void EcoGame::buildArea(EcoGame::Area area, vector<Chunk*> chunks, int* surfaceY, int xS, int zS, const int C_W, const int W) {
-	int i, j, type, x, z, vx, vy, vz, y = 0, sx, sy, ex, ey;
+void EcoGame::buildArea(EcoGame::Area area, vector<Chunk*> chunks, int xS, int zS, const int C_W, const int W) {
+	int i, j, type, x, z, vx, vy, vz, y = area.getY() + 1, sx, sy, ex, ey;
 	Chunk* chunk;
 	Vector2 chunkPos;
-	Vector2 start = area.getStart();
+	Vector2 start = area.getStart() + area.getOffset();
 	vector<Voxel> voxels;
-
-	sx = (int)start.x;
-	sy = (int)start.y;
-	start += area.getOffset();
 
 	//Godot::print(String("width: {0}").format(Array::make(area.getWidth())));
 	
 	if (area.getWidth() >= 6) {
-		ex = sx + 6;
-		ey = sy + 6;
-		y = getMeanY(sx, sy, ex, ey, surfaceY, W) + 1;
-
 		VoxelAsset_House6x6 house6x6;
 		voxels = house6x6.getVoxels();
 	}
 	else if (area.getWidth() >= 4) {
-		ex = sx + 4;
-		ey = sy + 4;
-		y = getMeanY(sx, sy, ex, ey, surfaceY, W) + 1;
-
 		VoxelAsset_House4x4 house4x4;
 		voxels = house4x4.getVoxels();
 	}
@@ -229,8 +184,8 @@ void EcoGame::buildArea(EcoGame::Area area, vector<Chunk*> chunks, int* surfaceY
 	}
 }
 
-vector<EcoGame::Area> EcoGame::findAreasOfSize(int size, int* mask, const int W, const int H) {
-	int i, j, x, y, x1, x2, y1, y2;
+vector<EcoGame::Area> EcoGame::findAreasOfSize(int size, int* mask, int* surfaceY, const int W, const int H) {
+	int i, j, x, y, x1, x2, y1, y2, areaY, meanY = 0, count = 0;
 	vector<EcoGame::Area> areas;
 
 	int* sub = getIntBufferPool().borrow();
@@ -254,14 +209,20 @@ vector<EcoGame::Area> EcoGame::findAreasOfSize(int size, int* mask, const int W,
 					y1 = (j - size) + 1;
 					x2 = i + 1;
 					y2 = j + 1;
-
-					areas.push_back(EcoGame::Area(Vector2(x1, y1), Vector2(x2, y2), 0));
+					
+					meanY = 0;
+					count = 0;
 
 					for (y = y1; y < y2; y++) {
 						for (x = x1; x < x2; x++) {
 							sub[fn::fi2(x, y, W)] = 0;
+							meanY += surfaceY[fn::fi2(x, y, W)];
+							count++;
 						}
 					}
+
+					areaY = (int)((float)meanY / (float)count);
+					areas.push_back(EcoGame::Area(Vector2(x1, y1), Vector2(x2, y2), areaY));
 				}
 			}
 			else {
@@ -273,59 +234,4 @@ vector<EcoGame::Area> EcoGame::findAreasOfSize(int size, int* mask, const int W,
 	getIntBufferPool().ret(sub);
 
 	return areas;
-}
-
-EcoGame::Area EcoGame::findNextArea(int* mask, const int W, const int H) {
-	int i, j, x, y, x1, x2, y1, y2, area, meanY, areaCount;
-	int max_of_s, max_i, max_j;
-	int* sub = getIntBufferPool().borrow();
-
-	for (i = 0; i < W; i++)
-		sub[fn::fi2(i, 0, W)] = mask[fn::fi2(i, 0, W)];
-
-	for (j = 0; j < H; j++)
-		sub[fn::fi2(0, j, W)] = mask[fn::fi2(0, j, W)];
-
-	for (i = 1; i < W; i++) {
-		for (j = 1; j < H; j++) {
-			if (mask[fn::fi2(i, j, W)] > 0)
-				sub[fn::fi2(i, j, W)] = min(
-					sub[fn::fi2(i, j - 1, W)],
-					min(sub[fn::fi2(i - 1, j, W)],
-						sub[fn::fi2(i - 1, j - 1, W)])) + 1;
-			else
-				sub[fn::fi2(i, j, W)] = 0;
-		}
-	}
-
-	max_of_s = sub[fn::fi2(0, 0, W)]; max_i = 0; max_j = 0;
-	for (i = 0; i < W; i++) {
-		for (j = 0; j < H; j++) {
-			if (max_of_s < sub[fn::fi2(i, j, W)]) {
-				max_of_s = sub[fn::fi2(i, j, W)];
-				max_i = i;
-				max_j = j;
-			}
-		}
-	}
-
-	x1 = (max_i - max_of_s) + 1;
-	y1 = (max_j - max_of_s) + 1;
-	x2 = max_i + 1;
-	y2 = max_j + 1;
-
-	getIntBufferPool().ret(sub);
-
-	return EcoGame::Area(Vector2(x1, y1), Vector2(x2, y2), 0);
-}
-
-void EcoGame::markArea(EcoGame::Area area, int* mask, const int W) {
-	int x, z;
-	Vector2 start = area.getStart();
-	Vector2 end = area.getEnd();
-	for (z = (int)start.y; z < (int)end.y; ++z) {
-		for (x = (int)start.x; x < (int)end.x; ++x) {
-			mask[fn::fi2(x, z, W)] = 0;
-		}
-	}
 }
