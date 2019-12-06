@@ -24,6 +24,8 @@
 #define VOXEL_CHANCE_NOISE_SCALE 1.0
 #define VOXEL_Y_NOISE_SCALE 0.25
 
+#define MAX_BUILD_AREAS 64
+
 #define POOL_SIZE 8
 
 #endif

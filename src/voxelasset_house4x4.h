@@ -32,10 +32,15 @@ namespace godot {
 				voxels.push_back(Voxel(Vector3(0, y, 3), 2));
 				voxels.push_back(Voxel(Vector3(0, y, 2), 2));
 				voxels.push_back(Voxel(Vector3(0, y, 1), 2));
+
+				voxels.push_back(Voxel(Vector3(1, y, 1), 0));
+				voxels.push_back(Voxel(Vector3(1, y, 2), 0));
+				voxels.push_back(Voxel(Vector3(2, y, 1), 0));
+				voxels.push_back(Voxel(Vector3(2, y, 2), 0));
 			}
 
 			// ceiling
-			for (y = 2; y < h; y++) {
+			for (y = 2; y < h - 1; y++) {
 				voxels.push_back(Voxel(Vector3(1, y, 1), 2));
 				voxels.push_back(Voxel(Vector3(1, y, 2), 2));
 				voxels.push_back(Voxel(Vector3(2, y, 1), 2));
@@ -43,6 +48,9 @@ namespace godot {
 			}
 
 			// door
+			//voxels.push_back(Voxel(Vector3(2, 0, 4), 0));
+			voxels.push_back(Voxel(Vector3(2, 0, 3), 0));
+			voxels.push_back(Voxel(Vector3(2, 1, 3), 0));
 			voxels.push_back(Voxel(Vector3(2, 2, 3), 2));
 
 			return voxels;

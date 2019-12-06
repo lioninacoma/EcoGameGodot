@@ -78,12 +78,14 @@ namespace godot {
 		//PoolVector2Array findNextSquare(int* mask, const int W, const int H);
 		//void markSquare(PoolVector2Array rect, int* mask, const int W);
 
-		EcoGame::Area findNextArea(int* mask, int y, const int W, const int H);
+		vector<EcoGame::Area> findAreasOfSize(int size, int* mask, const int W, const int H);
+		EcoGame::Area findNextArea(int* mask, const int W, const int H);
 		void markArea(EcoGame::Area area, int* mask, const int W);
-		void buildArea(EcoGame::Area area, vector<Chunk*> chunks, int xS, int zS, const int C_W);
+		void buildArea(EcoGame::Area area, vector<Chunk*> chunks, int* surfaceY, int xS, int zS, const int C_W, const int W);
+		int getMeanY(int x1, int y1, int x2, int y2, int* surfaceY, const int W);
 
 		ChunkBuilder chunkBuilder;
-		void buildAreasT(Vector2 center, float radius, float minSideLength, Node* game);
+		void buildAreasT(Vector2 center, float radius, float minSideLength, int maxDeltaY, Node* game);
 	public:
 		static void _register_methods();
 
