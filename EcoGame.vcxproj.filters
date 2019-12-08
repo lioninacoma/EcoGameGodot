@@ -74,7 +74,10 @@
     <ClInclude Include="src\voxelasset_house6x6.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\voxelasset_forest.h">
+    <ClInclude Include="src\voxelasset_pinetree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\voxelassetmanager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

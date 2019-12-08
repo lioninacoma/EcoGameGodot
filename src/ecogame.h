@@ -17,16 +17,19 @@
 #include "constants.h"
 #include "chunkbuilder.h"
 
-#include "voxelasset_house4x4.h"
-#include "voxelasset_house6x6.h"
+#include "voxelassetmanager.h"
 
 using namespace std;
+
+#define INT_POOL_BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Z * 128
 
 namespace godot {
 	class EcoGame : public Node {
 		GODOT_CLASS(EcoGame, Node)
 
 	private:
+		ChunkBuilder chunkBuilder;
+
 		class Area {
 		private:
 			Vector2 start;
@@ -70,19 +73,15 @@ namespace godot {
 			}
 		};
 
-		static ObjectPool<int, CHUNK_SIZE_X * CHUNK_SIZE_Z * 64, POOL_SIZE>& getIntBufferPool() {
-			static ObjectPool<int, CHUNK_SIZE_X * CHUNK_SIZE_Z * 64, POOL_SIZE> pool;
+		static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE>& getIntBufferPool() {
+			static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE> pool;
 			return pool;
 		};
 
-		//PoolVector2Array findNextSquare(int* mask, const int W, const int H);
-		//void markSquare(PoolVector2Array rect, int* mask, const int W);
-
 		vector<EcoGame::Area> findAreasOfSize(int size, int* mask, int* surfaceY, const int W, const int H);
-		void buildArea(EcoGame::Area area, vector<Chunk*> chunks, int xS, int zS, const int C_W, const int W);
-
-		ChunkBuilder chunkBuilder;
-		void buildAreasT(Vector2 center, float radius, float minSideLength, int maxDeltaY, Node* game);
+		void buildArea(EcoGame::Area area, Chunk** chunks, VoxelAssetType type, int xS, int zS, const int C_W, const int W, const int CHUNKS_LEN);
+		void buildAreasJob(Vector2 center, float radius, Node* game);
+		void buildAreasByType(Vector2 center, float radius, VoxelAssetType type, vector<int>* indices, Node* game);
 	public:
 		static void _register_methods();
 
@@ -90,14 +89,11 @@ namespace godot {
 		~EcoGame();
 
 		void _init();
-		void ready();
 
 		void buildChunk(Variant vChunk);
 		Chunk* getChunk(int x, int z);
 
-		void buildAreas(Vector2 center, float radius, float minSideLength);
-		void buildArea();
-		Array getSquares(Vector2 center, float radius, float minSideLength);
+		void buildAreas(Vector2 center, float radius);
 	};
 
 }

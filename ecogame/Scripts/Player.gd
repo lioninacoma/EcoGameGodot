@@ -29,10 +29,14 @@ func _ready():
 func _physics_process(delta):
 	if Input.is_action_just_pressed("switch_fly"):
 		is_fly = !is_fly
+		$Capsule.disabled = is_fly
 		if (is_fly):
 			jump_height = 30
 		else:
 			jump_height = 10
+	
+	if Input.is_action_just_pressed("switch_col"):
+		$Capsule.disabled = !$Capsule.disabled
 	
 	if (is_fly):
 		fly(delta)

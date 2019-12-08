@@ -70,6 +70,7 @@ script = ExtResource( 2 )
 [node name="Capsule" type="CollisionShape" parent="Player"]
 transform = Transform( 1, 0, 0, 0, -4.37114e-008, 1, 0, -1, -4.37114e-008, 0, 1.92498, 0 )
 shape = SubResource( 7 )
+disabled = true
 
 [node name="Head" type="Spatial" parent="Player"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.62671, 0 )
