@@ -22,6 +22,7 @@ namespace godot {
 
 	class VoxelAssetManager {
 	private:
+		std::map<VoxelAssetType, vector<Voxel>*> voxelCache;
 		std::map<VoxelAssetType, VoxelAsset*> voxels;
 
 		VoxelAssetManager() {
@@ -47,13 +48,22 @@ namespace godot {
 		}
 
 		vector<Voxel>* getVoxels(VoxelAssetType type) {
-			auto pos = voxels.find(type);
+			auto posC = voxelCache.find(type);
 
-			if (pos == voxels.end()) {
-				return NULL;
+			if (posC == voxelCache.end()) {
+				auto posV = voxels.find(type);
+
+				if (posV == voxels.end()) {
+					return NULL;
+				}
+				else {
+					auto voxels = posV->second->getVoxels();
+					voxelCache.insert(std::pair<VoxelAssetType, vector<Voxel>*>(type, voxels));
+					return voxels;
+				}
 			}
 			else {
-				return pos->second->getVoxels();
+				return posC->second;
 			}
 		}
 	};
