@@ -66,9 +66,8 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 	int maxDeltaY = voxelAsset->getMaxDeltaY();
 	int areaSize = voxelAsset->getWidth();
 	int xS, xE, zS, zE, currentY, deltaY, lastY = -1, x, z, ci, i, j;
-	float nextArea;
 	Area area;
-	Vector2 start, end, offset;
+	Vector2 offset, vPos, centerNorm;
 	Chunk* chunk;
 	Chunk** chunks;
 	vector<Area> areas;
@@ -91,6 +90,10 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 
 	zE = (int)br.z;
 	zE = min(WORLD_SIZE - 1, zE);
+
+	offset.x = xS * CHUNK_SIZE_X;
+	offset.y = zS * CHUNK_SIZE_Z;
+	centerNorm = center - offset;
 
 	const int C_W = xE - xS + 1;
 	const int C_H = zE - zS + 1;
@@ -127,9 +130,12 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 
 			for (j = 0; j < CHUNK_SIZE_Z; j++) {
 				for (i = 0; i < CHUNK_SIZE_X; i++) {
+					vPos.x = (x - xS) * CHUNK_SIZE_X + i;
+					vPos.y = (z - zS) * CHUNK_SIZE_Z + j;
+					if (vPos.distance_to(centerNorm) > radius) continue;
 					currentY = chunk->getCurrentSurfaceY(i, j);
 					yValues.push_back(currentY);
-					surfaceY[fn::fi2((x - xS) * CHUNK_SIZE_X + i, (z - zS) * CHUNK_SIZE_Z + j, W)] = currentY;
+					surfaceY[fn::fi2((int)vPos.x, (int)vPos.y, W)] = currentY;
 				}
 			}
 		}
@@ -156,13 +162,7 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 		areas = findAreasOfSize(areaSize, mask, surfaceY, W, H);
 
 		for (Area area : areas) {
-			start = area.getStart();
-			end = area.getEnd();
-			nextArea = area.getWidth() * area.getHeight();
-			offset.x = xS * CHUNK_SIZE_X;
-			offset.y = zS * CHUNK_SIZE_Z;
 			area.setOffset(offset);
-
 			buildArea(area, chunks, type, xS, zS, C_W, W, CHUNKS_LEN);
 		}
 	}
@@ -174,11 +174,10 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 
 void EcoGame::buildArea(EcoGame::Area area, Chunk** chunks, VoxelAssetType type, int xS, int zS, const int C_W, const int W, const int CHUNKS_LEN) {
 	int i, j, voxelType, vx, vy, vz, ci, cx, cz, ay = area.getY() + 1;
-	VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 	Chunk* chunk;
 	Vector2 chunkPos;
 	Vector2 start = area.getStart() + area.getOffset();
-	vector<Voxel>* voxels = voxelAsset->getVoxels();
+	vector<Voxel>* voxels = VoxelAssetManager::get()->getVoxels(type);
 
 	if (!voxels) return;
 
