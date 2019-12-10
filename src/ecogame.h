@@ -80,8 +80,8 @@ namespace godot {
 
 		vector<EcoGame::Area> findAreasOfSize(int size, int* mask, int* surfaceY, const int W, const int H);
 		void buildArea(EcoGame::Area area, Chunk** chunks, VoxelAssetType type, int xS, int zS, const int C_W, const int W, const int CHUNKS_LEN);
-		void buildAreasJob(Vector2 center, float radius, Node* game);
-		void buildAreasByType(Vector2 center, float radius, VoxelAssetType type, vector<int>* indices, Node* game);
+		void buildAreasJob(Array indices, Vector3 tl, Vector3 br, Node* game);
+		void buildAreasByType(Array indices, Vector3 tl, Vector3 br, VoxelAssetType type, Node* game);
 	public:
 		static void _register_methods();
 
@@ -92,8 +92,9 @@ namespace godot {
 
 		void buildChunk(Variant vChunk);
 		Chunk* getChunk(int x, int z);
+		Chunk* getChunk(int i);
 
-		void buildAreas(Vector2 center, float radius);
+		void buildAreas(Array indices, Vector3 tl, Vector3 br);
 	};
 
 }

@@ -29,6 +29,7 @@ namespace godot {
 		char* volume;
 		int* surfaceY;
 		bool building = false;
+		bool assetsBuilt = false;
 
 		int getVoxelY(int x, int z);
 		float getVoxelChance(int x, int y, int z);
@@ -55,6 +56,9 @@ namespace godot {
 		bool isBuilding() {
 			return Chunk::building;
 		}
+		bool isAssetsBuilt() {
+			return Chunk::assetsBuilt;
+		}
 		bool isReady() {
 			return !Chunk::building && Chunk::meshInstanceId > 0;
 		}
@@ -69,6 +73,9 @@ namespace godot {
 		};
 		void setBuilding(bool building) {
 			Chunk::building = building;
+		}
+		void markAssetsBuilt() {
+			Chunk::assetsBuilt = true;
 		}
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;

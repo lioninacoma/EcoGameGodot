@@ -37,47 +37,43 @@ Chunk* EcoGame::getChunk(int x, int z) {
 	return chunk;
 }
 
-void EcoGame::buildAreas(Vector2 center, float radius) {
+Chunk* EcoGame::getChunk(int i) {
+	Chunk* chunk = NULL;
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildAreasJob, this, center, radius, game));
-}
+	Variant vChunk = game->call("get_chunk_by_index", i);
 
-void EcoGame::buildAreasJob(Vector2 center, float radius, Node* game) {
-	auto indices = new std::vector<int>();
-
-	buildAreasByType(center, radius, VoxelAssetType::HOUSE_6X6, indices, game);
-	buildAreasByType(center, radius, VoxelAssetType::HOUSE_4X4, indices, game);
-	buildAreasByType(center, radius, VoxelAssetType::PINE_TREE, indices, game);
-
-	std::sort(indices->begin(), indices->end());
-	auto last = std::unique(indices->begin(), indices->end());
-	indices->erase(last, indices->end());
-
-	Array indicesArray;
-	for (std::vector<int>::iterator it = indices->begin(); it != indices->end(); it++) {
-		indicesArray.push_back(*it);
+	if (vChunk) {
+		chunk = as<Chunk>(vChunk.operator Object * ());
 	}
 
-	Variant v = game->call_deferred("update_chunks", indicesArray, indicesArray.size());
+	return chunk;
 }
 
-void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type, vector<int>* indices, Node* game) {
+void EcoGame::buildAreas(Array indices, Vector3 tl, Vector3 br) {
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildAreasJob, this, indices, tl, br, game));
+}
+
+void EcoGame::buildAreasJob(Array indices, Vector3 tl, Vector3 br, Node* game) {
+	buildAreasByType(indices, tl, br, VoxelAssetType::HOUSE_6X6, game);
+	buildAreasByType(indices, tl, br, VoxelAssetType::HOUSE_4X4, game);
+	buildAreasByType(indices, tl, br, VoxelAssetType::PINE_TREE, game);
+
+	Variant v = game->call_deferred("update_chunks", indices, indices.size());
+}
+
+void EcoGame::buildAreasByType(Array indices, Vector3 tl, Vector3 br, VoxelAssetType type, Node* game) {
 	VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 	int maxDeltaY = voxelAsset->getMaxDeltaY();
 	int areaSize = voxelAsset->getWidth();
-	int xS, xE, zS, zE, currentY, deltaY, lastY = -1, x, z, ci, i, j;
+	int xS, xE, zS, zE, currentY, deltaY, lastY = -1, x, z, ci, i, j, it;
 	Area area;
-	Vector2 offset, vPos, centerNorm;
+	Vector3 chunkOffset;
+	Vector2 offset, vPos;
 	Chunk* chunk;
 	Chunk** chunks;
 	vector<Area> areas;
 	vector<int> yValues;
-	
-	Vector3 tl = Vector3(center.x - radius, 0, center.y - radius);
-	Vector3 br = Vector3(center.x + radius, 0, center.y + radius);
-
-	tl = fn::toChunkCoords(tl);
-	br = fn::toChunkCoords(br);
 
 	xS = (int)tl.x;
 	xS = max(0, xS);
@@ -93,7 +89,6 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 
 	offset.x = xS * CHUNK_SIZE_X;
 	offset.y = zS * CHUNK_SIZE_Z;
-	centerNorm = center - offset;
 
 	const int C_W = xE - xS + 1;
 	const int C_H = zE - zS + 1;
@@ -114,29 +109,29 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 
 	//Godot::print(String("chunks, surfaceY and mask initialized"));
 
-	for (z = zS; z <= zE; z++) {
-		for (x = xS; x <= xE; x++) {
-			indices->push_back(fn::fi2(x, z, WORLD_SIZE));
+	for (it = 0; it < indices.size(); it++) {
+		chunk = getChunk(indices[it]);
 
-			chunk = getChunk(x, z);
-			ci = fn::fi2(x - xS, z - zS, C_W);
+		if (!chunk || !chunk->isReady()) continue;
 
-			if (!chunk || !chunk->isReady()) continue;
-			if (ci < 0 || ci >= CHUNKS_LEN) continue;
+		chunkOffset = chunk->getOffset();
+		x = chunkOffset.x / CHUNK_SIZE_X;
+		z = chunkOffset.z / CHUNK_SIZE_Z;
+		ci = fn::fi2(x - xS, z - zS, C_W);
 
-			//Godot::print(String("x: {0}, z: {1}, x - xS: {2}, z - zS: {3}, index: {4}, size: {5}").format(Array::make(x, z, x - xS, z - zS, fn::fi2(x - xS, z - zS, C_W), C_W * C_H)));
-			chunks[ci] = chunk;
-			//Godot::print(String("chunk offset: {0} set").format(Array::make(chunk->getOffset())));
+		if (ci < 0 || ci >= CHUNKS_LEN) continue;
 
-			for (j = 0; j < CHUNK_SIZE_Z; j++) {
-				for (i = 0; i < CHUNK_SIZE_X; i++) {
-					vPos.x = (x - xS) * CHUNK_SIZE_X + i;
-					vPos.y = (z - zS) * CHUNK_SIZE_Z + j;
-					if (vPos.distance_to(centerNorm) > radius) continue;
-					currentY = chunk->getCurrentSurfaceY(i, j);
-					yValues.push_back(currentY);
-					surfaceY[fn::fi2((int)vPos.x, (int)vPos.y, W)] = currentY;
-				}
+		//Godot::print(String("x: {0}, z: {1}, x - xS: {2}, z - zS: {3}, index: {4}, size: {5}").format(Array::make(x, z, x - xS, z - zS, fn::fi2(x - xS, z - zS, C_W), C_W * C_H)));
+		chunks[ci] = chunk;
+		//Godot::print(String("chunk offset: {0} set").format(Array::make(chunk->getOffset())));
+
+		for (j = 0; j < CHUNK_SIZE_Z; j++) {
+			for (i = 0; i < CHUNK_SIZE_X; i++) {
+				vPos.x = (x - xS) * CHUNK_SIZE_X + i;
+				vPos.y = (z - zS) * CHUNK_SIZE_Z + j;
+				currentY = chunk->getCurrentSurfaceY(i, j);
+				yValues.push_back(currentY);
+				surfaceY[fn::fi2((int)vPos.x, (int)vPos.y, W)] = currentY;
 			}
 		}
 	}
@@ -210,6 +205,8 @@ void EcoGame::buildArea(EcoGame::Area area, Chunk** chunks, VoxelAssetType type,
 			vx % CHUNK_SIZE_X,
 			vy % CHUNK_SIZE_Y,
 			vz % CHUNK_SIZE_Z, voxelType);
+
+		chunk->markAssetsBuilt();
 	}
 }
 

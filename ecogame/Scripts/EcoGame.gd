@@ -44,10 +44,51 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		# initializes chunks in range BUILD_DISTANCE to player
 		initialize_chunks_nearby()
+		# build assets
+		build_areas()
 		# starts ChunkBuilder jobs
 		process_build_stack()
 		# Reset timer
 		time = 0
+
+func build_areas() -> void:
+	var player = $Player
+	var pos = player.translation
+	var indices : Array
+	indices.clear()
+	var d = 64
+	var tl = Vector3(pos.x - d, 0, pos.z - d)
+	var br = Vector3(pos.x + d, 0, pos.z + d)
+	tl = to_chunk_coords(tl)
+	br = to_chunk_coords(br)
+	
+	var xS = int(tl.x)
+	xS = max(0, xS)
+	
+	var xE = int(br.x)
+	xE = min(WorldVariables.WORLD_SIZE - 1, xE)
+	
+	var zS = int(tl.z)
+	zS = max(0, zS)
+	
+	var zE = int(br.z)
+	zE = min(WorldVariables.WORLD_SIZE - 1, zE)
+	
+	for z in range(zS, zE + 1):
+		for x in range(xS, xE + 1):
+			var index = flatten_index(x, z)
+			var chunk = chunks[index]
+			
+			if !chunk || chunk.isAssetsBuilt(): 
+				continue
+			
+			if buildStack.has(index) || !chunk.isReady():
+				return;
+			
+			indices.push_back(index)
+	
+	if !indices.empty():
+		Lib.buildAreas(indices, tl, br)
 
 func initialize_chunks_nearby() -> void:
 	if buildStack.size() >= buildStackMaxSize:
@@ -164,11 +205,11 @@ func _input(event : InputEvent) -> void:
 					vz % WorldVariables.CHUNK_SIZE_Z, 0)
 	
 				buildStack.push_front(index)
-			else:
-				var center : Vector2 = Vector2(vx, vz)
-				var radius : float = 48.0
-				
-				Lib.buildAreas(center, radius)
+#			else:
+#				var center : Vector2 = Vector2(vx, vz)
+#				var radius : float = 48.0
+#
+#				Lib.buildAreas(center, radius)
 
 func pick_voxel(from : Vector3, to : Vector3):
 	var voxel = null
@@ -209,6 +250,11 @@ func get_chunk(x : int, z : int):
 	if x < 0 || x >= WorldVariables.WORLD_SIZE: return null
 	if z < 0 || z >= WorldVariables.WORLD_SIZE: return null
 	var chunk = chunks[flatten_index(x, z)]
+	return chunk
+
+func get_chunk_by_index(i : int):
+	if i < 0 || i >= chunks.size(): return null
+	var chunk = chunks[i]
 	return chunk
 
 func update_chunks(indices : Array, size : int) -> void:
