@@ -4,6 +4,7 @@ using namespace godot;
 
 void Chunk::_register_methods() {
 	register_method("isBuilding", &Chunk::isBuilding);
+	register_method("isReady", &Chunk::isReady);
 	register_method("getOffset", &Chunk::getOffset);
 	register_method("getVolume", &Chunk::getVolume);
 	register_method("getVoxel", &Chunk::getVoxel);

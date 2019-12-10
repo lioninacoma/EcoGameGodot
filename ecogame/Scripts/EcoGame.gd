@@ -12,6 +12,8 @@ var Chunk = load("res://bin/Chunk.gdns")
 var Voxel = load("res://bin/Voxel.gdns")
 
 # build thread variables
+const TIME_PERIOD = 0.2 # 200ms
+var time = 0
 var chunks : Array = []
 var buildStack : Array = []
 var buildStackMaxSize : int = 20
@@ -30,18 +32,22 @@ func _ready() -> void:
 
 func _process(delta : float) -> void:
 	fpsLabel.set_text(str(Engine.get_frames_per_second()))
-
+	
 	if Input.is_action_just_pressed("ui_cancel"):
 		if mouseModeCaptured:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		mouseModeCaptured = !mouseModeCaptured
-	
-	# initializes chunks in range BUILD_DISTANCE to player
-	initialize_chunks_nearby()
-	# starts ChunkBuilder jobs
-	process_build_stack()
+		
+	time += delta
+	if time > TIME_PERIOD:
+		# initializes chunks in range BUILD_DISTANCE to player
+		initialize_chunks_nearby()
+		# starts ChunkBuilder jobs
+		process_build_stack()
+		# Reset timer
+		time = 0
 
 func initialize_chunks_nearby() -> void:
 	if buildStack.size() >= buildStackMaxSize:
@@ -122,6 +128,7 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 		var oldMeshInstance = instance_from_id(oldMeshInstanceId)
 		if oldMeshInstance:
 			remove_child(oldMeshInstance)
+			oldMeshInstance.free()
 	
 	add_child(meshInstance)
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())

@@ -23,12 +23,12 @@ namespace godot {
 	class VoxelAssetManager {
 	private:
 		std::map<VoxelAssetType, vector<Voxel>*> voxelCache;
-		std::map<VoxelAssetType, VoxelAsset*> voxels;
+		std::map<VoxelAssetType, VoxelAsset*> assets;
 
 		VoxelAssetManager() {
-			voxels.insert(std::pair<VoxelAssetType, VoxelAsset*>(VoxelAssetType::HOUSE_4X4, new VoxelAsset_House4x4()));
-			voxels.insert(std::pair<VoxelAssetType, VoxelAsset*>(VoxelAssetType::HOUSE_6X6, new VoxelAsset_House6x6()));
-			voxels.insert(std::pair<VoxelAssetType, VoxelAsset*>(VoxelAssetType::PINE_TREE, new VoxelAsset_PineTree()));
+			assets.insert(std::pair<VoxelAssetType, VoxelAsset*>(VoxelAssetType::HOUSE_4X4, new VoxelAsset_House4x4()));
+			assets.insert(std::pair<VoxelAssetType, VoxelAsset*>(VoxelAssetType::HOUSE_6X6, new VoxelAsset_House6x6()));
+			assets.insert(std::pair<VoxelAssetType, VoxelAsset*>(VoxelAssetType::PINE_TREE, new VoxelAsset_PineTree()));
 		}
 	public:
 		static VoxelAssetManager* get() {
@@ -37,9 +37,9 @@ namespace godot {
 		}
 
 		VoxelAsset* getVoxelAsset(VoxelAssetType type) {
-			auto pos = voxels.find(type);
+			auto pos = assets.find(type);
 
-			if (pos == voxels.end()) {
+			if (pos == assets.end()) {
 				return NULL;
 			}
 			else {
@@ -51,15 +51,15 @@ namespace godot {
 			auto posC = voxelCache.find(type);
 
 			if (posC == voxelCache.end()) {
-				auto posV = voxels.find(type);
+				auto posV = assets.find(type);
 
-				if (posV == voxels.end()) {
+				if (posV == assets.end()) {
 					return NULL;
 				}
 				else {
-					auto voxels = posV->second->getVoxels();
-					voxelCache.insert(std::pair<VoxelAssetType, vector<Voxel>*>(type, voxels));
-					return voxels;
+					auto assets = posV->second->getVoxels();
+					voxelCache.insert(std::pair<VoxelAssetType, vector<Voxel>*>(type, assets));
+					return assets;
 				}
 			}
 			else {

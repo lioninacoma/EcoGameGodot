@@ -121,7 +121,7 @@ void EcoGame::buildAreasByType(Vector2 center, float radius, VoxelAssetType type
 			chunk = getChunk(x, z);
 			ci = fn::fi2(x - xS, z - zS, C_W);
 
-			if (!chunk) continue;
+			if (!chunk || !chunk->isReady()) continue;
 			if (ci < 0 || ci >= CHUNKS_LEN) continue;
 
 			//Godot::print(String("x: {0}, z: {1}, x - xS: {2}, z - zS: {3}, index: {4}, size: {5}").format(Array::make(x, z, x - xS, z - zS, fn::fi2(x - xS, z - zS, C_W), C_W * C_H)));

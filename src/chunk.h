@@ -55,6 +55,9 @@ namespace godot {
 		bool isBuilding() {
 			return Chunk::building;
 		}
+		bool isReady() {
+			return !Chunk::building && Chunk::meshInstanceId > 0;
+		}
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
