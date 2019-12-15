@@ -45,6 +45,22 @@ namespace godot {
 			Vector3 chunkCoords = toChunkCoords(Vector3(position.x, 0, position.y));
 			return Vector2(chunkCoords.x, chunkCoords.z);
 		}
+
+		static Vector3 toSectionCoords(Vector3 position) {
+			int ix = (int)position.x;
+			int iz = (int)position.z;
+			int sectionX = ix / (SECTION_SIZE * CHUNK_SIZE_X);
+			int sectionZ = iz / (SECTION_SIZE * CHUNK_SIZE_Z);
+			position.x = sectionX;
+			position.y = 0;
+			position.z = sectionZ;
+			return position;
+		}
+
+		static Vector2 toSectionCoords(Vector2 position) {
+			Vector3 sectionCoords = toSectionCoords(Vector3(position.x, 0, position.y));
+			return Vector2(sectionCoords.x, sectionCoords.z);
+		}
 	}
 }
 

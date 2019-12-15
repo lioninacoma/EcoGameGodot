@@ -25,9 +25,11 @@ namespace godot {
 	private:
 		OpenSimplexNoise* noise;
 		Vector3 offset;
+		int amountVoxel = 0;
 		int meshInstanceId = 0;
 		char* volume;
 		int* surfaceY;
+		bool volumeBuilt = false;
 		bool building = false;
 		bool assetsBuilt = false;
 
@@ -60,7 +62,7 @@ namespace godot {
 			return Chunk::assetsBuilt;
 		}
 		bool isReady() {
-			return !Chunk::building && Chunk::meshInstanceId > 0;
+			return Chunk::volumeBuilt && !Chunk::building && Chunk::meshInstanceId > 0;
 		}
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);

@@ -42,10 +42,14 @@ func _process(delta : float) -> void:
 		
 	time += delta
 	if time > TIME_PERIOD:
+		var player = $Player
+		var pos = player.translation
+		var d = 256
 		# initializes chunks in range BUILD_DISTANCE to player
-		initialize_chunks_nearby()
+#		initialize_chunks_nearby()
 		# build assets
-		build_areas()
+#		build_areas()
+		Lib.buildSections(pos, d)
 		# starts ChunkBuilder jobs
 		process_build_stack()
 		# Reset timer
@@ -144,7 +148,12 @@ func process_build_stack() -> void:
 		chunk.setBuilding(true)
 		Lib.buildChunk(chunk, self)
 
+func test() -> void:
+	print ("test")
+
 func build_mesh_instance(meshes : Array, chunk) -> void:
+	if (!meshes || !chunk): return
+	
 	var meshInstance = MeshInstance.new()
 	var mesh = ArrayMesh.new()
 	var oldMeshInstanceId = chunk.getMeshInstanceId()

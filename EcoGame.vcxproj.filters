@@ -80,5 +80,11 @@
     <ClInclude Include="src\voxelassetmanager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\section.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\area.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

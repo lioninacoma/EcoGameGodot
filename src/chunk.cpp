@@ -139,7 +139,8 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 }
 
 int Chunk::buildVolume() {
-	int amountVoxel = 0;
+	if (volumeBuilt) return amountVoxel;
+	amountVoxel = 0;
 
 	for (int z = 0; z < CHUNK_SIZE_Z; z++) {
 		for (int x = 0; x < CHUNK_SIZE_X; x++) {
@@ -154,5 +155,6 @@ int Chunk::buildVolume() {
 		}
 	}
 
+	volumeBuilt = true;
 	return amountVoxel;
 }

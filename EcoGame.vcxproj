@@ -169,8 +169,10 @@
     <ClCompile Include="src\gdlibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\area.h" />
     <ClInclude Include="src\fn.h" />
     <ClInclude Include="src\intersection.h" />
+    <ClInclude Include="src\section.h" />
     <ClInclude Include="src\semaphore.h" />
     <ClInclude Include="src\objectpool.h" />
     <ClInclude Include="src\chunk.h" />

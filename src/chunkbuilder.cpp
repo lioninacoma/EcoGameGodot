@@ -4,7 +4,7 @@
 using namespace godot;
 
 void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
-	if (!chunk) return;
+	if (!chunk || !game) return;
 
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
@@ -91,7 +91,6 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 		meshes.push_back(meshData);
 	}
 
-	//Variant v = game->call("build_mesh_instance", arrays, collisionArray);
 	Variant v = game->call_deferred("build_mesh_instance", meshes, Ref<Chunk>(chunk));
 
 	for (int i = 0; i < types; i++) {
@@ -103,7 +102,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	cout << "chunk build in " << ms << " ms" << endl;
+	//cout << "chunk build in " << ms << " ms" << endl;
 }
 
 void ChunkBuilder::build(Chunk* chunk, Node* game) {
