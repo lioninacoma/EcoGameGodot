@@ -41,7 +41,7 @@ namespace godot {
 	public:
 		ChunkBuilder() {};
 		~ChunkBuilder() {};
-		void build(Chunk *chunk, Node* game);
+		void build(Chunk* chunk, Node* game);
 	};
 
 }

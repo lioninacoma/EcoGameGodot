@@ -38,7 +38,6 @@ config/icon="res://icon.png"
 
 [autoload]
 
-Intersection="res://Scripts/Globals/Intersection.gd"
 WorldVariables="res://Scripts/Globals/WorldVariables.gd"
 
 [input]

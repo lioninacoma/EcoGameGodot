@@ -42,8 +42,6 @@ namespace godot {
 
 		void buildSections(Vector3 center, float radius);
 		void buildChunk(Variant vChunk);
-		Chunk* getChunk(int x, int z);
-		Chunk* getChunk(int i);
 	};
 
 }

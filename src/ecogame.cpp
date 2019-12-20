@@ -67,27 +67,3 @@ void EcoGame::buildChunk(Variant vChunk) {
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	chunkBuilder->build(chunk, game);
 }
-
-Chunk* EcoGame::getChunk(int x, int z) {
-	Chunk* chunk = NULL;
-	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	Variant vChunk = game->call("get_chunk", x, z);
-
-	if (vChunk) {
-		chunk = as<Chunk>(vChunk.operator Object * ());
-	}
-
-	return chunk;
-}
-
-Chunk* EcoGame::getChunk(int i) {
-	Chunk* chunk = NULL;
-	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	Variant vChunk = game->call("get_chunk_by_index", i);
-
-	if (vChunk) {
-		chunk = as<Chunk>(vChunk.operator Object * ());
-	}
-
-	return chunk;
-}
