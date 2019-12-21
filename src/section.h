@@ -59,9 +59,9 @@ namespace godot {
 				}
 			}
 
-			buildAreasByType(VoxelAssetType::HOUSE_6X6, game);
-			buildAreasByType(VoxelAssetType::HOUSE_4X4, game);
-			buildAreasByType(VoxelAssetType::PINE_TREE, game);
+			buildAreasByType(VoxelAssetType::HOUSE_6X6);
+			buildAreasByType(VoxelAssetType::HOUSE_4X4);
+			buildAreasByType(VoxelAssetType::PINE_TREE);
 
 			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
 				chunk = chunks[i];
@@ -85,10 +85,10 @@ namespace godot {
 			return chunks[i];
 		}
 
-		void buildAreasByType(VoxelAssetType type, Node* game) {
+		void buildAreasByType(VoxelAssetType type) {
 			VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 			int maxDeltaY = voxelAsset->getMaxDeltaY();
-			int areaSize = voxelAsset->getWidth();
+			int areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
 			int currentY, deltaY, lastY = -1, ci, i, j, it, vx, vz;
 			Vector2 areasOffset;
 			Vector3 chunkOffset;

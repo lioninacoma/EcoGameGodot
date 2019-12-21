@@ -139,16 +139,33 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 }
 
 int Chunk::buildVolume() {
+	int x, y, z, i, diff;
+	float c;
+
 	if (volumeBuilt) return amountVoxel;
 	amountVoxel = 0;
 
-	for (int z = 0; z < CHUNK_SIZE_Z; z++) {
-		for (int x = 0; x < CHUNK_SIZE_X; x++) {
-			int y = getVoxelY(x, z);
-			for (int i = 0; i < y; i++) {
-				float c = getVoxelChance(x, i, z);
+	for (z = 0; z < CHUNK_SIZE_Z; z++) {
+		for (x = 0; x < CHUNK_SIZE_X; x++) {
+			y = getVoxelY(x, z);
+			for (i = 0; i < y; i++) {
+				c = getVoxelChance(x, i, z);
 				if (c < VOXEL_CHANCE_T) {
-					setVoxel(x, i, z, 1);
+					diff = abs(y - i);
+
+					// GRASS LAYER
+					if (diff < 3) {
+						setVoxel(x, i, z, 1);
+					}
+					// DIRT LAYER
+					else if (diff < 12) {
+						setVoxel(x, i, z, 3);
+					}
+					// STONE LAYER
+					else {
+						setVoxel(x, i, z, 2);
+					}
+
 					amountVoxel++;
 				}
 			}

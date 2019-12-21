@@ -7,15 +7,12 @@ onready var fpsLabel = get_node('FPSLabel')
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
 
 var Lib = load("res://bin/EcoGame.gdns").new()
-var Chunk = load("res://bin/Chunk.gdns")
-var Voxel = load("res://bin/Voxel.gdns")
 
 # build thread variables
 const TIME_PERIOD = 0.2 # 200ms
 var time = 0
 var buildStack : Array = []
-var buildStackMaxSize : int = 20
-var chunksBuild = 0
+var maxChunksBuild : int = 16
 
 # config
 var mouseModeCaptured : bool = true
@@ -38,7 +35,7 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		var player = $Player
 		var pos = player.translation
-		var d = 256
+		var d = 128
 		Lib.buildSections(pos, d)
 		# starts ChunkBuilder jobs
 		process_build_stack()
@@ -46,7 +43,7 @@ func _process(delta : float) -> void:
 		time = 0
 
 func process_build_stack() -> void:
-	for i in range(buildStack.size()):
+	for i in range(min(buildStack.size(), maxChunksBuild)):
 		var chunk = buildStack.pop_front()
 		if chunk == null: continue
 		chunk.setBuilding(true)
@@ -58,6 +55,7 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 	var meshInstance = MeshInstance.new()
 	var mesh = ArrayMesh.new()
 	var oldMeshInstanceId = chunk.getMeshInstanceId()
+	var surfaceIndex = 0
 	
 	for meshData in meshes:
 		var mi = meshData[2] - 1
@@ -66,12 +64,13 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 		var polygonShape = ConcavePolygonShape.new()
 		
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, meshData[0])
-		mesh.surface_set_material(mi, WorldVariables.materials[mi])
+		mesh.surface_set_material(surfaceIndex, WorldVariables.materials[mi])
 		
 		polygonShape.set_faces(meshData[1])
 		var ownerId = staticBody.create_shape_owner(chunk)
 		staticBody.shape_owner_add_shape(ownerId, polygonShape)
 		meshInstance.add_child(staticBody)
+		surfaceIndex += 1
 	
 	meshInstance.mesh = mesh
 	
@@ -84,6 +83,9 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 	add_child(meshInstance)
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
 	chunk.setBuilding(false)
+
+func build_chunk_queued(chunk):
+	buildStack.push_front(chunk)
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
@@ -110,4 +112,4 @@ func _input(event : InputEvent) -> void:
 					vy % WorldVariables.CHUNK_SIZE_Y,
 					vz % WorldVariables.CHUNK_SIZE_Z, 0)
 				
-				buildStack.push_front(chunk)
+				build_chunk_queued(chunk)

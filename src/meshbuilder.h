@@ -18,8 +18,8 @@ namespace godot {
 
 	class MeshBuilder {
 	private:
-		static ObjectPool<int, BUFFER_SIZE, POOL_SIZE * 4>& getMaskPool() {
-			static ObjectPool<int, BUFFER_SIZE, POOL_SIZE * 4> pool;
+		static ObjectPool<int, BUFFER_SIZE, POOL_SIZE * 6>& getMaskPool() {
+			static ObjectPool<int, BUFFER_SIZE, POOL_SIZE * 6> pool;
 			return pool;
 		};
 		int dims[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };

@@ -18,7 +18,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 	Array meshes;
 	vector<float*> buffers;
-	const int types = 2;
+	const int types = 5;
 
 	for (int i = 0; i < types; i++) {
 		float* vertices = Worker::getVerticesPool().borrow();
@@ -107,5 +107,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 void ChunkBuilder::build(Chunk* chunk, Node* game) {
 	Worker* worker = new Worker();
+
+	
 	ThreadPool::get()->submitTask(boost::bind(&Worker::run, worker, chunk, game));
 }

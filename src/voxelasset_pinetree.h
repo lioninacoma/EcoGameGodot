@@ -20,8 +20,8 @@ namespace godot {
 			auto tree = new vector<Voxel>();
 
 			// trunk
-			tree->push_back(Voxel(Vector3(2, 0, 2), 2));
-			tree->push_back(Voxel(Vector3(2, 1, 2), 2));
+			tree->push_back(Voxel(Vector3(2, 0, 2), 4));
+			tree->push_back(Voxel(Vector3(2, 1, 2), 4));
 
 			int zd = 0;
 			int xw = 0;
@@ -30,7 +30,7 @@ namespace godot {
 			for (int y = 2; y < h; y++) {
 				for (int z = zd; z < d - zd; z++) {
 					for (int x = xw; x < w - xw; x++) {
-						tree->push_back(Voxel(Vector3(x, y, z), 1));
+						tree->push_back(Voxel(Vector3(x, y, z), 5));
 					}
 				}
 				zd++;

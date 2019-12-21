@@ -17,6 +17,8 @@ namespace godot {
 		boost::asio::io_service ioService;
 		boost::asio::io_service::work work;
 		boost::thread_group threadpool;
+		
+		static int activeTasks;
 	public:
 		static ThreadPool* get() {
 			static ThreadPool* pool = new ThreadPool();
