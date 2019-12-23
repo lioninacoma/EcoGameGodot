@@ -132,9 +132,12 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 				break;
 			}
 		}
+		amountVoxel--;
+		amountVoxel = max(amountVoxel, 0);
 	}
 	else {
 		surfaceY[fn::fi2(x, z)] = max(dy, y);
+		amountVoxel++;
 	}
 }
 
@@ -148,6 +151,14 @@ int Chunk::buildVolume() {
 	for (z = 0; z < CHUNK_SIZE_Z; z++) {
 		for (x = 0; x < CHUNK_SIZE_X; x++) {
 			y = getVoxelY(x, z);
+			
+			// WATER LAYER
+			if (y <= WATER_LEVEL) {
+				for (i = y; i <= WATER_LEVEL; i++) {
+					setVoxel(x, i, z, 6);
+				}
+			}
+
 			for (i = 0; i < y; i++) {
 				c = getVoxelChance(x, i, z);
 				if (c < VOXEL_CHANCE_T) {
@@ -165,8 +176,10 @@ int Chunk::buildVolume() {
 					else {
 						setVoxel(x, i, z, 2);
 					}
-
-					amountVoxel++;
+				}
+				// WATER LAYER
+				else if (i <= WATER_LEVEL) {
+					setVoxel(x, i, z, 6);
 				}
 			}
 		}

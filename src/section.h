@@ -20,8 +20,8 @@ namespace godot {
 		Chunk** chunks;
 		Vector2 offset;
 	public:
-		static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 64>& getIntBufferPool() {
-			static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 64> pool;
+		static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 4>& getIntBufferPool() {
+			static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 4> pool;
 			return pool;
 		};
 
@@ -89,7 +89,7 @@ namespace godot {
 			VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 			int maxDeltaY = voxelAsset->getMaxDeltaY();
 			int areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
-			int currentY, deltaY, lastY = -1, ci, i, j, it, vx, vz;
+			int currentY, currentType, currentIndex, deltaY, lastY = -1, ci, i, j, it, vx, vz;
 			Vector2 areasOffset;
 			Vector3 chunkOffset;
 			Chunk* chunk;
@@ -107,6 +107,9 @@ namespace godot {
 
 			int* mask = getIntBufferPool().borrow();
 			memset(mask, 0, INT_POOL_BUFFER_SIZE * sizeof(*mask));
+
+			int* types = getIntBufferPool().borrow();
+			memset(types, 0, INT_POOL_BUFFER_SIZE * sizeof(*types));
 
 			//Godot::print(String("chunks, surfaceY and mask initialized"));
 
@@ -130,8 +133,11 @@ namespace godot {
 						//Godot::print(String("vPos: {0}").format(Array::make(vPos)));
 
 						currentY = chunk->getCurrentSurfaceY(i, j);
+						currentType = chunk->getVoxel(i, currentY, j);
+						currentIndex = fn::fi2(vx, vz, SECTION_SIZE_CHUNKS);
 						yValues.push_back(currentY);
-						surfaceY[fn::fi2(vx, vz, SECTION_SIZE_CHUNKS)] = currentY;
+						surfaceY[currentIndex] = currentY;
+						types[currentIndex] = currentType;
 					}
 				}
 			}
@@ -151,7 +157,8 @@ namespace godot {
 
 				for (i = 0; i < SECTION_SIZE_CHUNKS * SECTION_SIZE_CHUNKS; i++) {
 					deltaY = nextY - surfaceY[i];
-					mask[i] = (deltaY <= maxDeltaY && deltaY >= 0) ? 1 : 0;
+					currentType = types[i];
+					mask[i] = (deltaY <= maxDeltaY && deltaY >= 0 && currentType != 6) ? 1 : 0;
 				}
 
 				areas = findAreasOfSize(areaSize, mask, surfaceY);
@@ -165,6 +172,7 @@ namespace godot {
 
 			getIntBufferPool().ret(surfaceY);
 			getIntBufferPool().ret(mask);
+			getIntBufferPool().ret(types);
 		}
 
 		void buildArea(Area area, VoxelAssetType type) {

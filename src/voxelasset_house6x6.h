@@ -20,7 +20,7 @@ namespace godot {
 			auto voxels = new vector<Voxel>();
 
 			// walls
-			for (y = 0; y < h - 1; y++) {
+			for (y = 0; y < h - 2; y++) {
 				voxels->push_back(Voxel(Vector3(0, y, 0), 2));
 				voxels->push_back(Voxel(Vector3(1, y, 0), 2));
 				voxels->push_back(Voxel(Vector3(2, y, 0), 2));
@@ -75,7 +75,7 @@ namespace godot {
 				voxels->push_back(Voxel(Vector3(4, y, 4), 2));
 			}
 
-			for (y = 4; y < h - 1; y++) {
+			for (y = 4; y < h; y++) {
 				voxels->push_back(Voxel(Vector3(2, y, 2), 2));
 				voxels->push_back(Voxel(Vector3(2, y, 3), 2));
 				voxels->push_back(Voxel(Vector3(3, y, 2), 2));
@@ -88,7 +88,7 @@ namespace godot {
 			voxels->push_back(Voxel(Vector3(3, 1, 5), 0));
 			voxels->push_back(Voxel(Vector3(3, 2, 5), 2));
 			voxels->push_back(Voxel(Vector3(3, 3, 5), 2));
-			voxels->push_back(Voxel(Vector3(3, 4, 5), 2));
+			//voxels->push_back(Voxel(Vector3(3, 4, 5), 2));
 
 			return voxels;
 		};

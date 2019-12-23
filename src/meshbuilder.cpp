@@ -10,7 +10,7 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-vector<int> MeshBuilder::buildVertices(Chunk* chunk, vector<float*> buffers) {
+vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffersLen) {
 	//Godot::print(String("offset: {0}, volume[0]: {1}, volume[1]: {2}").format(Array::make(offset, (*volume)[0], (*volume)[1])));
 
 	Vector3 offset = chunk->getOffset();
@@ -19,7 +19,7 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, vector<float*> buffers) {
 	bool backFace, b, done = false;
 
 	vector<int> vertexOffsets;
-	vertexOffsets.resize(buffers.size());
+	vertexOffsets.resize(buffersLen);
 
 	for (i = 0; i < vertexOffsets.size(); i++) {
 		vertexOffsets[i] = 0;

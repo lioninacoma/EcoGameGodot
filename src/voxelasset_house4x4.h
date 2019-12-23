@@ -40,7 +40,7 @@ namespace godot {
 			}
 
 			// ceiling
-			for (y = 2; y < h - 1; y++) {
+			for (y = 2; y < h; y++) {
 				voxels->push_back(Voxel(Vector3(1, y, 1), 2));
 				voxels->push_back(Voxel(Vector3(1, y, 2), 2));
 				voxels->push_back(Voxel(Vector3(2, y, 1), 2));

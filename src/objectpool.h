@@ -6,6 +6,7 @@
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/pool/simple_segregated_storage.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_types.hpp>
 
 #include <vector>
 #include <list>
@@ -29,32 +30,55 @@ namespace godot {
 		boost::simple_segregated_storage<std::size_t> storage;
 		std::vector<char>* v;
 		semaphore semaphore;
+	private:
+		O* doBorrow() {
+			boost::unique_lock<boost::mutex> lock(mutex);
+			return static_cast<O*>(storage.malloc());
+		}
+
+		void doRet(O* o) {
+			boost::unique_lock<boost::mutex> lock(mutex);
+			storage.free(o);
+		}
 	public:
 		ObjectPool() : semaphore(poolSize) {
 			v = new std::vector<char>(poolSize * bufferSize * sizeof(O));
 			storage.add_block(&v->front(), v->size(), bufferSize * sizeof(O));
 		};
 		~ObjectPool() {};
-		O* borrow() {
-			O* o = NULL;
 
-			do {
-				semaphore.wait();
-				mutex.lock();
-				if (!storage.empty()) {
-					o = static_cast<O*>(storage.malloc());
-				}
-				mutex.unlock();
-			} while (!o);
-			
+		O* borrow() {
+			semaphore.wait();
+			O* o = doBorrow();
 			return o;
 		};
+
+		O** borrow(int count) {
+			int i;
+
+			semaphore.wait(count);
+			O** oList = new O * [count];
+
+			for (i = 0; i < count; i++) {
+				oList[i] = doBorrow();
+			}
+
+			return oList;
+		}
+
 		void ret(O* o) {
-			mutex.lock();
-			storage.free(o);
-			mutex.unlock();
+			doRet(o);
 			semaphore.signal();
 		};
+
+		void ret(O** oList, int count) {
+			int i;
+			for (i = 0; i < count; i++) {
+				doRet(oList[i]);
+			}
+
+			semaphore.signal(count);
+		}
 	};
 
 }
