@@ -15,10 +15,10 @@ var buildStack : Array = []
 var maxChunksBuild : int = 16
 
 # config
-var mouseModeCaptured : bool = true
+var mouseModeCaptured : bool = false
 
 func _ready() -> void:
-	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	add_child(Lib)
 
 func _process(delta : float) -> void:
@@ -37,10 +37,11 @@ func _process(delta : float) -> void:
 		var pos = player.translation
 		var d = 128
 		Lib.buildSections(pos, d)
-		# starts ChunkBuilder jobs
-		process_build_stack()
 		# Reset timer
 		time = 0
+	
+	# starts ChunkBuilder jobs
+	process_build_stack()
 
 func process_build_stack() -> void:
 	for i in range(min(buildStack.size(), maxChunksBuild)):
@@ -60,16 +61,18 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 	for meshData in meshes:
 		var mi = meshData[2] - 1
 		if meshData[3] <= 0: continue
-		var staticBody = StaticBody.new()
-		var polygonShape = ConcavePolygonShape.new()
+		var staticBody : StaticBody = StaticBody.new()
+		var polygonShape : ConcavePolygonShape = ConcavePolygonShape.new()
 		
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, meshData[0])
 		mesh.surface_set_material(surfaceIndex, WorldVariables.materials[mi])
 		
-		polygonShape.set_faces(meshData[1])
-		var ownerId = staticBody.create_shape_owner(chunk)
-		staticBody.shape_owner_add_shape(ownerId, polygonShape)
-		meshInstance.add_child(staticBody)
+#		polygonShape.set_faces(meshData[1])
+#		var ownerId = staticBody.create_shape_owner(chunk)
+#		staticBody.shape_owner_add_shape(ownerId, polygonShape)
+#		staticBody.name = "sb"
+#		meshInstance.add_child(staticBody)
+		
 		surfaceIndex += 1
 	
 	meshInstance.mesh = mesh

@@ -61,6 +61,14 @@ namespace godot {
 			Vector3 sectionCoords = toSectionCoords(Vector3(position.x, 0, position.y));
 			return Vector2(sectionCoords.x, sectionCoords.z);
 		}
+
+		static int hash(Vector3 v) {
+			return ((int)(v.x * PRM1)) ^ ((int)(v.y * PRM2)) ^ ((int)(v.z * PRM3));
+		}
+
+		static int hash(Vector2 v) {
+			return ((int)(v.x * PRM1)) ^ ((int)(v.y * PRM2));
+		}
 	}
 }
 

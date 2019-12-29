@@ -49,7 +49,12 @@ void EcoGame::buildSections(Vector3 pos, float d) {
 
 	for (z = zS; z <= zE; z++) {
 		for (x = xS; x <= xE; x++) {
-			if (sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
+			if (sections[fn::fi2(x, z, SECTIONS_SIZE)]) {
+				section = sections[fn::fi2(x, z, SECTIONS_SIZE)];
+				
+				continue;
+			}
+
 			//Godot::print(String("section offset: {0}").format(Array::make(Vector2(x * SECTION_SIZE, z * SECTION_SIZE))));
 			section = new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE));
 			sections[fn::fi2(x, z, SECTIONS_SIZE)] = section;

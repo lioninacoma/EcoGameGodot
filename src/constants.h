@@ -3,13 +3,13 @@
 
 #define WORLD_SIZE 64	// Chunks
 #define CHUNK_SIZE_X 32 // Voxels
-#define CHUNK_SIZE_Y 128 // Voxels
+#define CHUNK_SIZE_Y 80 // Voxels
 #define CHUNK_SIZE_Z 32 // Voxels
 #define VERTEX_SIZE 8
 #define BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z
 #define MAX_VERTICES_SIZE (BUFFER_SIZE * VERTEX_SIZE * 6 * 4) / 2
 
-#define SECTION_SIZE 3 // Chunks
+#define SECTION_SIZE 1 // Chunks
 #define SECTIONS_SIZE WORLD_SIZE / SECTION_SIZE
 #define SECTION_CHUNKS_LEN SECTION_SIZE * SECTION_SIZE 
 #define SECTIONS_LEN SECTIONS_SIZE * SECTIONS_SIZE
@@ -35,5 +35,10 @@
 #define MAX_BUILD_AREAS 64
 
 #define POOL_SIZE 8
+
+// primes for hashes
+#define PRM1 73856093
+#define PRM2 19349663
+#define PRM3 83492791
 
 #endif

@@ -5,11 +5,18 @@
 #include <Reference.hpp>
 #include <Vector3.hpp>
 
+#include <unordered_map>
+#include <boost/graph/adjacency_list.hpp>
+
 #include "voxelassetmanager.h"
 #include "constants.h"
 #include "chunkbuilder.h"
 #include "fn.h"
 #include "chunk.h"
+
+typedef boost::property<boost::edge_weight_t, int> EdgeWeightProperty;
+typedef boost::adjacency_list<boost::listS, boost::vecS, boost::undirectedS, boost::no_property, EdgeWeightProperty> UndirectedGraph;
+typedef boost::graph_traits<UndirectedGraph>::edge_iterator edge_iterator;
 
 namespace godot {
 
@@ -17,6 +24,8 @@ namespace godot {
 		GODOT_CLASS(Section, Reference)
 
 	private:
+		std::unordered_map<int, Vector3>* graphNodes;
+		UndirectedGraph* graph;
 		Chunk** chunks;
 		Vector2 offset;
 	public:
@@ -33,6 +42,7 @@ namespace godot {
 		Section(Vector2 offset) {
 			Section::offset = offset;
 			chunks = new Chunk * [SECTION_CHUNKS_LEN * sizeof(*chunks)];
+			graph = new UndirectedGraph();
 
 			memset(chunks, 0, SECTION_CHUNKS_LEN * sizeof(*chunks));
 		}
@@ -59,9 +69,11 @@ namespace godot {
 				}
 			}
 
-			buildAreasByType(VoxelAssetType::HOUSE_6X6);
-			buildAreasByType(VoxelAssetType::HOUSE_4X4);
-			buildAreasByType(VoxelAssetType::PINE_TREE);
+			//buildAreasByType(VoxelAssetType::HOUSE_6X6);
+			//buildAreasByType(VoxelAssetType::HOUSE_4X4);
+			//buildAreasByType(VoxelAssetType::PINE_TREE);
+			if (!offset.x && !offset.y)
+				buildGraph();
 
 			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
 				chunk = chunks[i];
@@ -83,6 +95,97 @@ namespace godot {
 		Chunk* getChunk(int i) {
 			if (i < 0 || i >= SECTION_CHUNKS_LEN) return NULL;
 			return chunks[i];
+		}
+
+		void buildGraph() {
+			int maxDeltaY = 1;
+			int areaSize = 3;
+			int currentY, currentType, currentIndex, deltaY, ci, i, j, it, vx, vz;
+			Vector2 areasOffset;
+			Vector3 chunkOffset;
+			Chunk* chunk;
+			vector<Area> areas;
+			vector<int> yValues;
+
+			areasOffset.x = offset.x * CHUNK_SIZE_X; // Voxel
+			areasOffset.y = offset.y * CHUNK_SIZE_Z; // Voxel
+
+			//Godot::print(String("areasOffset: {0}").format(Array::make(areasOffset)));
+			//return;
+
+			int* surfaceY = getIntBufferPool().borrow();
+			memset(surfaceY, 0, INT_POOL_BUFFER_SIZE * sizeof(*surfaceY));
+
+			int* mask = getIntBufferPool().borrow();
+			memset(mask, 0, INT_POOL_BUFFER_SIZE * sizeof(*mask));
+
+			int* types = getIntBufferPool().borrow();
+			memset(types, 0, INT_POOL_BUFFER_SIZE * sizeof(*types));
+
+			//Godot::print(String("chunks, surfaceY and mask initialized"));
+
+			const int SECTION_SIZE_CHUNKS = SECTION_SIZE * CHUNK_SIZE_X;
+
+			for (it = 0; it < SECTION_CHUNKS_LEN; it++) {
+				chunk = chunks[it];
+
+				if (!chunk) continue;
+
+				chunkOffset = chunk->getOffset();				// Voxel
+				chunkOffset = fn::toChunkCoords(chunkOffset);	// Chunks
+
+				//Godot::print(String("chunkOffset: {0}").format(Array::make(chunkOffset)));
+
+				for (j = 0; j < CHUNK_SIZE_Z; j++) {
+					for (i = 0; i < CHUNK_SIZE_X; i++) {
+						vx = (int)((chunkOffset.x - offset.x) * CHUNK_SIZE_X + i);
+						vz = (int)((chunkOffset.z - offset.y) * CHUNK_SIZE_Z + j);
+
+						//Godot::print(String("vPos: {0}").format(Array::make(vPos)));
+
+						currentY = chunk->getCurrentSurfaceY(i, j);
+						currentType = chunk->getVoxel(i, currentY, j);
+						currentIndex = fn::fi2(vx, vz, SECTION_SIZE_CHUNKS);
+						yValues.push_back(currentY);
+						surfaceY[currentIndex] = currentY;
+						types[currentIndex] = currentType;
+					}
+				}
+			}
+
+			std::sort(yValues.begin(), yValues.end(), std::greater<int>());
+			auto last = std::unique(yValues.begin(), yValues.end());
+			yValues.erase(last, yValues.end());
+
+			//Godot::print(String("surfaceY and uniques set"));
+			//int lastY = -1;
+
+			for (int nextY : yValues) {
+
+				//if (lastY >= 0 && lastY - nextY <= maxDeltaY) continue;
+				//lastY = nextY;
+
+				Godot::print(String("nextY: {0}").format(Array::make(nextY)));
+
+				for (i = 0; i < SECTION_SIZE_CHUNKS * SECTION_SIZE_CHUNKS; i++) {
+					deltaY = nextY - surfaceY[i];
+					currentType = types[i];
+					mask[i] = (deltaY <= maxDeltaY && deltaY >= 0 && currentType != 6) ? 1 : 0;
+				}
+
+				areas = findAreasOfSize(areaSize, mask, surfaceY);
+
+				for (Area area : areas) {
+					area.setOffset(areasOffset);
+					buildNode(area);
+					//buildArea(area, type);
+					//Godot::print(String("area start: {0}, end: {1}").format(Array::make(area.getStart(), area.getEnd())));
+				}
+			}
+
+			getIntBufferPool().ret(surfaceY);
+			getIntBufferPool().ret(mask);
+			getIntBufferPool().ret(types);
 		}
 
 		void buildAreasByType(VoxelAssetType type) {
@@ -173,6 +276,41 @@ namespace godot {
 			getIntBufferPool().ret(surfaceY);
 			getIntBufferPool().ret(mask);
 			getIntBufferPool().ret(types);
+		}
+
+		void buildNode(Area area) {
+			int voxelType, vx, vy, vz, ci, cx, cz;
+			Chunk* chunk;
+			Vector2 chunkOffset;
+			Vector2 start = area.getStart() + area.getOffset();
+			Vector3 pos = Vector3(start.x + 1, 0, start.y + 1);
+
+			voxelType = 2;
+			chunkOffset.x = pos.x;
+			chunkOffset.y = pos.z;
+			chunkOffset = fn::toChunkCoords(chunkOffset);
+			cx = (int)(chunkOffset.x - offset.x);
+			cz = (int)(chunkOffset.y - offset.y);
+			ci = fn::fi2(cx, cz, SECTION_SIZE);
+
+			if (ci < 0 || ci >= SECTION_CHUNKS_LEN) return;
+
+			chunk = chunks[ci];
+
+			if (!chunk) return;
+
+			vx = (int)pos.x;
+			vz = (int)pos.z;
+			vy = (int)chunk->getCurrentSurfaceY(vx % CHUNK_SIZE_X, vz % CHUNK_SIZE_Z) + 1;
+
+			chunk->setVoxel(
+				vx % CHUNK_SIZE_X,
+				vy % CHUNK_SIZE_Y,
+				vz % CHUNK_SIZE_Z, voxelType);
+
+			//boost::add_edge(0, 1, 8, *graph);
+			Vector3 node = Vector3(vx, vy, vz);
+			graphNodes->insert(std::pair<int, Vector3>(fn::hash(node), node));
 		}
 
 		void buildArea(Area area, VoxelAssetType type) {
