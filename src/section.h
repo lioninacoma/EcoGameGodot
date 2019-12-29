@@ -5,6 +5,8 @@
 #include <Reference.hpp>
 #include <Vector3.hpp>
 
+#include <iostream>
+#include <string>
 #include <unordered_map>
 #include <boost/graph/adjacency_list.hpp>
 
@@ -43,6 +45,7 @@ namespace godot {
 			Section::offset = offset;
 			chunks = new Chunk * [SECTION_CHUNKS_LEN * sizeof(*chunks)];
 			graph = new UndirectedGraph();
+			graphNodes = new std::unordered_map<int, Vector3>();
 
 			memset(chunks, 0, SECTION_CHUNKS_LEN * sizeof(*chunks));
 		}
@@ -72,9 +75,13 @@ namespace godot {
 			//buildAreasByType(VoxelAssetType::HOUSE_6X6);
 			//buildAreasByType(VoxelAssetType::HOUSE_4X4);
 			//buildAreasByType(VoxelAssetType::PINE_TREE);
-			if (!offset.x && !offset.y)
+			if (!offset.x && !offset.y) {
 				buildGraph();
-
+				for (const auto& n : *graphNodes) {
+					std::cout << "key: [" << n.first << "], value: [(" << n.second.x << ", " << n.second.y << ", " << n.second.z << ")]\n";
+				}
+			}
+			
 			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
 				chunk = chunks[i];
 				if (!chunk) continue;
