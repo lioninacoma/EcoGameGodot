@@ -15,7 +15,8 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 
 	Vector3 offset = chunk->getOffset();
 
-	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx;
+	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj;
+	float nx, ny, nz;
 	bool backFace, b, done = false;
 
 	vector<int> vertexOffsets;
@@ -64,13 +65,13 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 				side = backFace ? SOUTH : NORTH;
 			}
 
-			for (x[d] = -1; x[d] < dims[d]; ) {
+			for (x[d] = -1; x[d] < DIMS[d]; ) {
 				// compute mask
 				n = 0;
-				for (x[v] = 0; x[v] < dims[v]; x[v]++) {
-					for (x[u] = 0; x[u] < dims[u]; x[u]++) {
+				for (x[v] = 0; x[v] < DIMS[v]; x[v]++) {
+					for (x[u] = 0; x[u] < DIMS[u]; x[u]++) {
 						v0 = (0 <= x[d]) ? chunk->getVoxel(x[0], x[1], x[2]) : -1;
-						v1 = (x[d] < dims[d] - 1) ? chunk->getVoxel(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
+						v1 = (x[d] < DIMS[d] - 1) ? chunk->getVoxel(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
 						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? v1 : v0;
 					}
 				}
@@ -80,20 +81,20 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 				// generate mesh for mask using lexicographic ordering
 				n = 0;
 
-				for (j = 0; j < dims[v]; j++) {
-					for (i = 0; i < dims[u]; ) {
+				for (j = 0; j < DIMS[v]; j++) {
+					for (i = 0; i < DIMS[u]; ) {
 
 						if (mask[n] > 0) {
 							
 							// compute width
 							w = 1;
-							while (i + w < dims[u] && mask[n + w] > 0 && mask[n + w] == mask[n]) w++;
+							while (i + w < DIMS[u] && mask[n + w] > 0 && mask[n + w] == mask[n]) w++;
 
 							// compute height (this is slightly awkward
 							done = false;
-							for (h = 1; j + h < dims[v]; h++) {
+							for (h = 1; j + h < DIMS[v]; h++) {
 								for (k = 0; k < w; k++) {
-									face = mask[n + k + h * dims[u]];
+									face = mask[n + k + h * DIMS[u]];
 									if (face <= 0 || face != mask[n]) {
 										done = true;
 										break;
@@ -139,12 +140,28 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 								// create quad
 								idx = mask[n] - 1;
 								vertexOffsets[idx] = quad(offset, bl, tl, tr, br, buffers[idx], side, mask[n], vertexOffsets[idx]);
+
+								if (side == TOP && bl[1] + 1 < CHUNK_SIZE_Y) {
+									ny = bl[1];
+									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 3.0) {
+										for (nx = bl[0] + 0.5; nx < br[0]; nx += 3.0) {
+											if (chunk->getVoxel((int)nx, (int)ny, (int)nz) == 0 && chunk->getVoxel((int)nx, (int)ny - 1, (int)nz) != 6) {
+												chunk->addNode(Point(offset.x + nx, offset.y + ny, offset.z + nz));
+											}
+										}
+									}
+
+									/*nx = bl[0] + (abs(bl[0] - br[0]) / 2.0);
+									ny = bl[1];
+									nz = bl[2] + (abs(bl[2] - tl[2]) / 2.0);*/
+									
+								}
 							}
 
 							// zero-out mask
 							for (l = 0; l < h; ++l) {
 								for (k = 0; k < w; ++k) {
-									mask[n + k + l * dims[u]] = -1;
+									mask[n + k + l * DIMS[u]] = -1;
 								}
 							}
 

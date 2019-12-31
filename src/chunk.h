@@ -7,6 +7,7 @@
 #include <OpenSimplexNoise.hpp>
 
 #include <vector>
+
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
@@ -25,10 +26,12 @@ namespace godot {
 	private:
 		OpenSimplexNoise* noise;
 		Vector3 offset;
+		int amountNodes = 0;
 		int amountVoxel = 0;
 		int meshInstanceId = 0;
 		char* volume;
 		int* surfaceY;
+		vector<Point>* nodes;
 		bool volumeBuilt = false;
 		bool building = false;
 		bool assetsBuilt = false;
@@ -68,6 +71,12 @@ namespace godot {
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
+		vector<Point>* getNodes() {
+			return Chunk::nodes;
+		};
+		int getAmountNodes() {
+			return Chunk::nodes->size();
+		};
 
 		// setter
 		void setOffset(Vector3 offset) {
@@ -75,15 +84,18 @@ namespace godot {
 		};
 		void setBuilding(bool building) {
 			Chunk::building = building;
-		}
+		};
 		void markAssetsBuilt() {
 			Chunk::assetsBuilt = true;
-		}
+		};
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;
 		};
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
+		void addNode(Point p) {
+			Chunk::nodes->push_back(p);
+		};
 	};
 
 }

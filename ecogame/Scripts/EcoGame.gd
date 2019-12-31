@@ -90,6 +90,21 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 func build_chunk_queued(chunk):
 	buildStack.push_front(chunk)
 
+func draw_debug(geometry : ImmediateGeometry):
+	var m = SpatialMaterial.new()
+	m.flags_use_point_size = true
+	m.vertex_color_use_as_albedo = true
+	geometry.set_material_override(m)
+	add_child(geometry)
+
+func draw_debug_dots(geometry : ImmediateGeometry):
+	var m = SpatialMaterial.new()
+	m.flags_use_point_size = true
+	m.vertex_color_use_as_albedo = true
+	m.params_point_size = 3
+	geometry.set_material_override(m)
+	add_child(geometry)
+
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		var camera = $Player/Head/Camera

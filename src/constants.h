@@ -16,13 +16,6 @@
 
 #define INT_POOL_BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Z * SECTION_CHUNKS_LEN
 
-#define SOUTH  0
-#define NORTH  1
-#define EAST   2
-#define WEST   3
-#define TOP    4
-#define BOTTOM 5
-
 #define TEXTURE_SCALE 1.0 / 1.0
 #define TEXTURE_ATLAS_LEN 3
 
@@ -36,9 +29,15 @@
 
 #define POOL_SIZE 8
 
-// primes for hashes
-#define PRM1 73856093
-#define PRM2 19349663
-#define PRM3 83492791
+struct Point {
+	double x;
+	double y;
+	double z;
+	Point() : Point(0.0, 0.0, 0.0) {}
+	Point(double x, double y, double z) : x(x), y(y), z(z) {}
+	int distance(Point o) {
+		return sqrt(pow(x - o.x, 2.0) + pow(y - o.y, 2.0) + pow(z - o.z, 2.0));
+	}
+};
 
 #endif

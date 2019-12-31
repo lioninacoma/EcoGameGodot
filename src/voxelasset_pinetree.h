@@ -10,7 +10,7 @@ namespace godot {
 
 	class VoxelAsset_PineTree : public VoxelAsset {
 	public:
-		VoxelAsset_PineTree() : VoxelAsset(5, 5, 5, 2) {};
+		VoxelAsset_PineTree() : VoxelAsset(5, 6, 5, 2) {};
 		vector<Voxel>* getVoxels() {
 			const int w = getWidth();
 			const int h = getHeight();
@@ -22,12 +22,13 @@ namespace godot {
 			// trunk
 			tree->push_back(Voxel(Vector3(2, 0, 2), 4));
 			tree->push_back(Voxel(Vector3(2, 1, 2), 4));
+			tree->push_back(Voxel(Vector3(2, 2, 2), 4));
 
 			int zd = 0;
 			int xw = 0;
 
 			// leaves
-			for (int y = 2; y < h; y++) {
+			for (int y = 3; y < h; y++) {
 				for (int z = zd; z < d - zd; z++) {
 					for (int x = xw; x < w - xw; x++) {
 						tree->push_back(Voxel(Vector3(x, y, z), 5));

@@ -2,6 +2,7 @@
 #define FN_H
 
 #include <vector>
+#include <boost/container_hash/hash.hpp>
 
 #include "constants.h"
 
@@ -62,12 +63,27 @@ namespace godot {
 			return Vector2(sectionCoords.x, sectionCoords.z);
 		}
 
-		static int hash(Vector3 v) {
-			return ((int)(v.x * PRM1)) ^ ((int)(v.y * PRM2)) ^ ((int)(v.z * PRM3));
+		static std::size_t hash(Point p) {
+			std::size_t seed = 0;
+			boost::hash_combine(seed, p.x);
+			boost::hash_combine(seed, p.y);
+			boost::hash_combine(seed, p.z);
+			return seed;
 		}
 
-		static int hash(Vector2 v) {
-			return ((int)(v.x * PRM1)) ^ ((int)(v.y * PRM2));
+		static std::size_t hash(Vector3 v) {
+			std::size_t seed = 0;
+			boost::hash_combine(seed, v.x);
+			boost::hash_combine(seed, v.y);
+			boost::hash_combine(seed, v.z);
+			return seed;
+		}
+
+		static std::size_t hash(Vector2 v) {
+			std::size_t seed = 0;
+			boost::hash_combine(seed, v.x);
+			boost::hash_combine(seed, v.y);
+			return seed;
 		}
 	}
 }
