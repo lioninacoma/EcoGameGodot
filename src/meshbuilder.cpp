@@ -146,7 +146,7 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 									for (nz = bl[2] + 0.5; nz <= tl[2]; nz += 2.0) {
 										for (nx = bl[0] + 0.5; nx <= br[0]; nx += 2.0) {
 											if (chunk->getVoxel((int)nx, (int)ny, (int)nz) == 0 && chunk->getVoxel((int)nx, (int)ny - 1, (int)nz) != 6) {
-												chunk->addNode(Point(offset.x + nx, offset.y + ny, offset.z + nz));
+												chunk->addNode(Vector3(offset.x + nx, offset.y + ny, offset.z + nz));
 											}
 										}
 									}

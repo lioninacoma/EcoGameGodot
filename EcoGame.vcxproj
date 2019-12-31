@@ -77,8 +77,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\dev\vcpkg\installed\x86-windows\include;$(SolutionDir)\godot-cpp\godot_headers;$(SolutionDir)\godot-cpp\include\gen;$(SolutionDir)\godot-cpp\include\core;$(SolutionDir)\godot-cpp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files\boost\boost_1_71_0\stage\lib;$(SolutionDir)\godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\dev\CGAL-5.0\include;C:\dev\vcpkg\installed\x86-windows\include;$(SolutionDir)\godot-cpp\godot_headers;$(SolutionDir)\godot-cpp\include\gen;$(SolutionDir)\godot-cpp\include\core;$(SolutionDir)\godot-cpp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\dev\vcpkg\installed\x86-windows\lib;C:\Program Files\boost\boost_1_71_0\stage\lib;$(SolutionDir)\godot-cpp\bin;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)\godot-cpp\src;$(SolutionDir)\godot-cpp\src\gen;$(SolutionDir)\godot-cpp\src\core;$(SolutionDir)\src;$(SourcePath)</SourcePath>
     <OutDir>$(SolutionDir)\ecogame\bin\$(Platform)</OutDir>
   </PropertyGroup>
@@ -119,7 +119,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;libboost_thread-vc142-mt-gd-x64-1_71.lib;libboost_fiber-vc142-mt-gd-x64-1_71.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;libboost_thread-vc142-mt-gd-x64-1_71.lib;libboost_fiber-vc142-mt-gd-x64-1_71.lib;bz2.lib;lzma.lib;mpfr.lib;mpir.lib;zlib.lib;zstd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Link>

@@ -29,12 +29,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, types);
 	cout << chunk->getAmountNodes() << endl;
 
-	auto points = *chunk->getNodes();/*
-	Vector3 offset = chunk->getOffset();
-	points.push_back(Point(offset.x + 64, offset.y + 64, offset.z + 64));
-	points.push_back(Point(offset.x + 70, offset.y + 64, offset.z + 70));
-	points.push_back(Point(offset.x + 60, offset.y + 64, offset.z + 45));
-	points.push_back(Point(offset.x + 32, offset.y + 64, offset.z + 18));*/
+	auto points = *chunk->getNodes();
 	int y0, y1, y2, areaSize;
 	int drawOffsetY = 1;
 	int maxDeltaY = 0;
@@ -45,49 +40,20 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	dots->begin(Mesh::PRIMITIVE_POINTS);
 	dots->set_color(Color(1, 0, 0, 1));
 
-	for (Point n : points) {
-		dots->add_vertex(Vector3(n.x, n.y + drawOffsetY, n.z));
+	std::list<Point> L;
+	for (Vector3 n : points) {
+		dots->add_vertex(n + Vector3(0, drawOffsetY, 0));
+		L.push_front(Point(n.x, n.y, n.z));
 	}
+
+	Triangulation T(L.begin(), L.end());
 
 	dots->end();
 	game->call_deferred("draw_debug_dots", dots);
 
-	voronoi_diagram<double> vd;
-	construct_voronoi(points.begin(), points.end(), &vd);
-
 	auto geo = ImmediateGeometry::_new();
 	geo->begin(Mesh::PRIMITIVE_LINES);
 	geo->set_color(Color(0, 1, 0, 1));
-
-	//cout << vd.cells().size() << endl;
-
-	for (const auto& cell : vd.cells()) {
-		auto edge = cell.incident_edge();
-		std::vector<int> triangle;
-		do {
-			auto cell = edge->cell();
-			assert(cell->contains_point());
-
-			triangle.push_back(cell->source_index());
-			if (triangle.size() == 3) {
-				/*cout 
-					<< "t0: (" << points[triangle[0]].x << ", " << points[triangle[0]].y << ", " << points[triangle[0]].z << "), "
-					<< "t1: (" << points[triangle[1]].x << ", " << points[triangle[1]].y << ", " << points[triangle[1]].z << "), "
-					<< "t2: (" << points[triangle[2]].x << ", " << points[triangle[2]].y << ", " << points[triangle[2]].z << ")" << endl;*/
-
-				geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
-				geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
-				geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
-				geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
-				geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
-				geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
-
-				triangle.erase(triangle.begin() + 1);
-			}
-
-			edge = edge->next();
-		} while (edge != cell.incident_edge());
-	}
 
 	//for (const auto& vertex : vd.vertices()) {
 	//	std::vector<int> triangle;

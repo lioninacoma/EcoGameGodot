@@ -31,7 +31,7 @@ namespace godot {
 		int meshInstanceId = 0;
 		char* volume;
 		int* surfaceY;
-		vector<Point>* nodes;
+		vector<Vector3>* nodes;
 		bool volumeBuilt = false;
 		bool building = false;
 		bool assetsBuilt = false;
@@ -71,7 +71,7 @@ namespace godot {
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
-		vector<Point>* getNodes() {
+		vector<Vector3>* getNodes() {
 			return Chunk::nodes;
 		};
 		int getAmountNodes() {
@@ -93,7 +93,7 @@ namespace godot {
 		};
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
-		void addNode(Point p) {
+		void addNode(Vector3 p) {
 			Chunk::nodes->push_back(p);
 		};
 	};
