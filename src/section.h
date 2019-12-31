@@ -162,213 +162,210 @@ namespace godot {
 			return chunks[i];
 		}
 
-		void buildGraph(Node* game) {
-			int y0, y1, y2, areaSize;
-			int drawOffsetY = 1;
-			int maxDeltaY = 0;
-			//double maxDst = 5.0;
-			double m, o;
+		//void buildGraph(Node* game) {
+		//	int y0, y1, y2, areaSize;
+		//	int drawOffsetY = 1;
+		//	int maxDeltaY = 0;
+		//	//double maxDst = 5.0;
+		//	double m, o;
 
-			int currentY, currentType, currentIndex, deltaY, ci, i, j, it, vx, vz, maxArea, currentArea;
-			Vector2 areasOffset;
-			Vector3 chunkOffset;
-			Point* node;
-			Chunk* chunk;
-			Area* nextArea;
-			vector<int> yValues;
+		//	int currentY, currentType, currentIndex, deltaY, ci, i, j, it, vx, vz, maxArea, currentArea;
+		//	Vector2 areasOffset;
+		//	Vector3 chunkOffset;
+		//	Point* node;
+		//	Chunk* chunk;
+		//	Area* nextArea;
+		//	vector<int> yValues;
 
-			areasOffset.x = offset.x * CHUNK_SIZE_X; // Voxel
-			areasOffset.y = offset.y * CHUNK_SIZE_Z; // Voxel
+		//	areasOffset.x = offset.x * CHUNK_SIZE_X; // Voxel
+		//	areasOffset.y = offset.y * CHUNK_SIZE_Z; // Voxel
 
-			//Godot::print(String("areasOffset: {0}").format(Array::make(areasOffset)));
-			//return;
+		//	//Godot::print(String("areasOffset: {0}").format(Array::make(areasOffset)));
+		//	//return;
 
-			int* surfaceY = getIntBufferPool().borrow();
-			memset(surfaceY, 0, INT_POOL_BUFFER_SIZE * sizeof(*surfaceY));
+		//	int* surfaceY = getIntBufferPool().borrow();
+		//	memset(surfaceY, 0, INT_POOL_BUFFER_SIZE * sizeof(*surfaceY));
 
-			int* mask = getIntBufferPool().borrow();
-			memset(mask, 0, INT_POOL_BUFFER_SIZE * sizeof(*mask));
+		//	int* mask = getIntBufferPool().borrow();
+		//	memset(mask, 0, INT_POOL_BUFFER_SIZE * sizeof(*mask));
 
-			int* types = getIntBufferPool().borrow();
-			memset(types, 0, INT_POOL_BUFFER_SIZE * sizeof(*types));
+		//	int* types = getIntBufferPool().borrow();
+		//	memset(types, 0, INT_POOL_BUFFER_SIZE * sizeof(*types));
 
-			//Godot::print(String("chunks, surfaceY and mask initialized"));
+		//	//Godot::print(String("chunks, surfaceY and mask initialized"));
 
-			const int SECTION_SIZE_CHUNKS = SECTION_SIZE * CHUNK_SIZE_X;
+		//	const int SECTION_SIZE_CHUNKS = SECTION_SIZE * CHUNK_SIZE_X;
 
-			for (it = 0; it < SECTION_CHUNKS_LEN; it++) {
-				chunk = chunks[it];
+		//	for (it = 0; it < SECTION_CHUNKS_LEN; it++) {
+		//		chunk = chunks[it];
 
-				if (!chunk) continue;
+		//		if (!chunk) continue;
 
-				chunkOffset = chunk->getOffset();				// Voxel
-				chunkOffset = fn::toChunkCoords(chunkOffset);	// Chunks
+		//		chunkOffset = chunk->getOffset();				// Voxel
+		//		chunkOffset = fn::toChunkCoords(chunkOffset);	// Chunks
 
-				//Godot::print(String("chunkOffset: {0}").format(Array::make(chunkOffset)));
+		//		//Godot::print(String("chunkOffset: {0}").format(Array::make(chunkOffset)));
 
-				for (j = 0; j < CHUNK_SIZE_Z; j++) {
-					for (i = 0; i < CHUNK_SIZE_X; i++) {
-						vx = (int)((chunkOffset.x - offset.x) * CHUNK_SIZE_X + i);
-						vz = (int)((chunkOffset.z - offset.y) * CHUNK_SIZE_Z + j);
+		//		for (j = 0; j < CHUNK_SIZE_Z; j++) {
+		//			for (i = 0; i < CHUNK_SIZE_X; i++) {
+		//				vx = (int)((chunkOffset.x - offset.x) * CHUNK_SIZE_X + i);
+		//				vz = (int)((chunkOffset.z - offset.y) * CHUNK_SIZE_Z + j);
 
-						//Godot::print(String("vPos: {0}").format(Array::make(vPos)));
+		//				//Godot::print(String("vPos: {0}").format(Array::make(vPos)));
 
-						currentY = chunk->getCurrentSurfaceY(i, j);
-						currentType = chunk->getVoxel(i, currentY, j);
-						currentIndex = fn::fi2(vx, vz, SECTION_SIZE_CHUNKS);
-						yValues.push_back(currentY);
-						surfaceY[currentIndex] = currentY;
-						types[currentIndex] = currentType;
-					}
-				}
-			}
+		//				currentY = chunk->getCurrentSurfaceY(i, j);
+		//				currentType = chunk->getVoxel(i, currentY, j);
+		//				currentIndex = fn::fi2(vx, vz, SECTION_SIZE_CHUNKS);
+		//				yValues.push_back(currentY);
+		//				surfaceY[currentIndex] = currentY;
+		//				types[currentIndex] = currentType;
+		//			}
+		//		}
+		//	}
 
-			std::sort(yValues.begin(), yValues.end(), std::greater<int>());
-			auto last = std::unique(yValues.begin(), yValues.end());
-			yValues.erase(last, yValues.end());
+		//	std::sort(yValues.begin(), yValues.end(), std::greater<int>());
+		//	auto last = std::unique(yValues.begin(), yValues.end());
+		//	yValues.erase(last, yValues.end());
 
-			//Godot::print(String("surfaceY and uniques set"));
-			int lastY = -1, nextAreaSize;
-			currentArea = 0;
-			maxArea = 0;
+		//	//Godot::print(String("surfaceY and uniques set"));
+		//	int lastY = -1, nextAreaSize;
+		//	currentArea = 0;
+		//	maxArea = 0;
 
-			for (int nextY : yValues) {
+		//	for (int nextY : yValues) {
 
-				if (lastY >= 0 && lastY - nextY <= maxDeltaY) continue;
-				lastY = nextY;
+		//		if (lastY >= 0 && lastY - nextY <= maxDeltaY) continue;
+		//		lastY = nextY;
 
-				//Godot::print(String("nextY: {0}").format(Array::make(nextY)));
+		//		//Godot::print(String("nextY: {0}").format(Array::make(nextY)));
 
-				for (i = 0; i < SECTION_SIZE_CHUNKS * SECTION_SIZE_CHUNKS; i++) {
-					deltaY = nextY - surfaceY[i];
-					currentType = types[i];
-					mask[i] = (deltaY <= maxDeltaY && deltaY >= 0 && currentType != 6) ? 1 : 0;
-					maxArea += mask[i];
-				}
+		//		for (i = 0; i < SECTION_SIZE_CHUNKS * SECTION_SIZE_CHUNKS; i++) {
+		//			deltaY = nextY - surfaceY[i];
+		//			currentType = types[i];
+		//			mask[i] = (deltaY <= maxDeltaY && deltaY >= 0 && currentType != 6) ? 1 : 0;
+		//			maxArea += mask[i];
+		//		}
 
-				do {
-					nextArea = findNextArea(mask, surfaceY);
-					nextAreaSize = nextArea->getWidth() * nextArea->getHeight();
-					currentArea += nextAreaSize;
-					for (j = (int)nextArea->getStart().y; j < (int)nextArea->getEnd().y; j++) {
-						for (i = (int)nextArea->getStart().x; i < (int)nextArea->getEnd().x; i++) {
-							mask[fn::fi2(i, j)] = 0;
-						}
-					}
+		//		do {
+		//			nextArea = findNextArea(mask, surfaceY);
+		//			nextAreaSize = nextArea->getWidth() * nextArea->getHeight();
+		//			currentArea += nextAreaSize;
+		//			for (j = (int)nextArea->getStart().y; j < (int)nextArea->getEnd().y; j++) {
+		//				for (i = (int)nextArea->getStart().x; i < (int)nextArea->getEnd().x; i++) {
+		//					mask[fn::fi2(i, j)] = 0;
+		//				}
+		//			}
 
-					//if (nextAreaSize <= 1) break;
-					nextArea->setOffset(areasOffset);
-					node = getNode(*nextArea);
-					nodes->insert(pair<std::size_t, Point>(fn::hash(*node), *node));
-				} while (currentArea < maxArea);
-				
-			}
+		//			//if (nextAreaSize <= 1) break;
+		//			nextArea->setOffset(areasOffset);
+		//			node = getNode(*nextArea);
+		//			nodes->insert(pair<std::size_t, Point>(fn::hash(*node), *node));
+		//		} while (currentArea < maxArea);
+		//		
+		//	}
 
-			getIntBufferPool().ret(surfaceY);
-			getIntBufferPool().ret(mask);
-			getIntBufferPool().ret(types);
+		//	getIntBufferPool().ret(surfaceY);
+		//	getIntBufferPool().ret(mask);
+		//	getIntBufferPool().ret(types);
 
-			vector<Point> points;
-			for (const auto& n : *nodes) {
-				points.push_back(n.second);
-			}
+		//	vector<Point> points;
+		//	for (const auto& n : *nodes) {
+		//		points.push_back(n.second);
+		//	}
 
-			if (points.empty()) return;
+		//	if (points.empty()) return;
 
-			UndirectedGraph g;
-			voronoi_diagram<double> vd;
-			construct_voronoi(points.begin(), points.end(), &vd);
+		//	UndirectedGraph g;
+		//	voronoi_diagram<double> vd;
+		//	construct_voronoi(points.begin(), points.end(), &vd);
 
-			auto geo = ImmediateGeometry::_new();
-			geo->begin(Mesh::PRIMITIVE_LINES);
-			geo->set_color(Color(0, 1, 0, 1));
+		//	auto geo = ImmediateGeometry::_new();
+		//	geo->begin(Mesh::PRIMITIVE_LINES);
+		//	geo->set_color(Color(0, 1, 0, 1));
 
-			for (const auto& vertex : vd.vertices()) {
-				std::vector<int> triangle;
-				auto edge = vertex.incident_edge();
-				do {
-					auto cell = edge->cell();
-					assert(cell->contains_point());
+		//	for (const auto& vertex : vd.vertices()) {
+		//		std::vector<int> triangle;
+		//		auto edge = vertex.incident_edge();
+		//		do {
+		//			auto cell = edge->cell();
+		//			assert(cell->contains_point());
 
-					triangle.push_back(cell->source_index());
-					if (triangle.size() == 3) {
-						// process output triangles
-						y0 = points[triangle[0]].y;
-						y1 = points[triangle[1]].y;
-						y2 = points[triangle[2]].y;
-						m = (y0 + y1 + y2) / 3.0;
-						o = ((y0 * y0 - m * m) + (y1 * y1 - m * m) + (y2 * y2 - m * m)) / 3.0;
+		//			triangle.push_back(cell->source_index());
+		//			if (triangle.size() == 3) {
+		//				// process output triangles
+		//				y0 = points[triangle[0]].y;
+		//				y1 = points[triangle[1]].y;
+		//				y2 = points[triangle[2]].y;
+		//				m = (y0 + y1 + y2) / 3.0;
+		//				o = ((y0 * y0 - m * m) + (y1 * y1 - m * m) + (y2 * y2 - m * m)) / 3.0;
 
-						if (o <= 0.25
-							/*&& points[triangle[0]].distance(points[triangle[1]]) <= maxDst
-							&& points[triangle[0]].distance(points[triangle[2]]) <= maxDst
-							&& points[triangle[1]].distance(points[triangle[2]]) <= maxDst*/) {
+		//				if (o <= 0.25) {
 
-							//buildNode(points[triangle[0]]);
-							//buildNode(points[triangle[1]]);
-							//buildNode(points[triangle[2]]);
+		//					//buildNode(points[triangle[0]]);
+		//					//buildNode(points[triangle[1]]);
+		//					//buildNode(points[triangle[2]]);
 
-							geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
-							geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
-							geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
-							geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
-							geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
-							geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
+		//					geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
+		//					geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
+		//					geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
+		//					geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
+		//					geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
+		//					geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
 
-							boost::add_edge(triangle[0], triangle[1], abs(y0 - y1), g);
-							boost::add_edge(triangle[1], triangle[2], abs(y1 - y2), g);
-							boost::add_edge(triangle[2], triangle[0], abs(y2 - y0), g);
-						}
+		//					boost::add_edge(triangle[0], triangle[1], abs(y0 - y1), g);
+		//					boost::add_edge(triangle[1], triangle[2], abs(y1 - y2), g);
+		//					boost::add_edge(triangle[2], triangle[0], abs(y2 - y0), g);
+		//				}
 
-						triangle.erase(triangle.begin() + 1);
-					}
+		//				triangle.erase(triangle.begin() + 1);
+		//			}
 
-					edge = edge->rot_next();
-				} while (edge != vertex.incident_edge());
-			}
+		//			edge = edge->rot_next();
+		//		} while (edge != vertex.incident_edge());
+		//	}
 
-			geo->end();
-			game->call_deferred("draw_debug", geo);
-			return;
-			if (boost::num_vertices(g) == 0) return;
+		//	geo->end();
+		//	game->call_deferred("draw_debug", geo);
+		//	return;
+		//	if (boost::num_vertices(g) == 0) return;
 
-			int start = 0;
-			int goal = 1;
+		//	int start = 0;
+		//	int goal = 1;
 
-			vector<vertex> p(boost::num_vertices(g));
-			vector<double> d(boost::num_vertices(g));
+		//	vector<vertex> p(boost::num_vertices(g));
+		//	vector<double> d(boost::num_vertices(g));
 
-			geo = ImmediateGeometry::_new();
-			geo->begin(Mesh::PRIMITIVE_LINES);
-			geo->set_color(Color(1, 0, 0, 1));
+		//	geo = ImmediateGeometry::_new();
+		//	geo->begin(Mesh::PRIMITIVE_LINES);
+		//	geo->set_color(Color(1, 0, 0, 1));
 
-			try {
-				// call astar named parameter interface
-				boost::astar_search_tree(g, start,
-					distance_heuristic<UndirectedGraph, double, vector<Point>>(points, goal),
-					boost::predecessor_map(boost::make_iterator_property_map(p.begin(), boost::get(boost::vertex_index, g))).
-					distance_map(boost::make_iterator_property_map(d.begin(), boost::get(boost::vertex_index, g))).
-					visitor(astar_goal_visitor<vertex>(goal)));
-			}
-			catch (found_goal fg) { // found a path to the goal
-				list<vertex> shortest_path;
-				for (vertex v = goal;; v = p[v]) {
-					shortest_path.push_front(v);
-					if (p[v] == v)
-						break;
-				}
-				list<vertex>::iterator spi = shortest_path.begin();
-				int spi_b = start;
-				for (++spi; spi != shortest_path.end(); ++spi) {
-					geo->add_vertex(Vector3(points[spi_b].x, points[spi_b].y + drawOffsetY, points[spi_b].z));
-					geo->add_vertex(Vector3(points[*spi].x, points[*spi].y + drawOffsetY, points[*spi].z));
-					spi_b = *spi;
-				}
-			}
-			
-			geo->end();
-			game->call_deferred("draw_debug", geo);
-		}
+		//	try {
+		//		// call astar named parameter interface
+		//		boost::astar_search_tree(g, start,
+		//			distance_heuristic<UndirectedGraph, double, vector<Point>>(points, goal),
+		//			boost::predecessor_map(boost::make_iterator_property_map(p.begin(), boost::get(boost::vertex_index, g))).
+		//			distance_map(boost::make_iterator_property_map(d.begin(), boost::get(boost::vertex_index, g))).
+		//			visitor(astar_goal_visitor<vertex>(goal)));
+		//	}
+		//	catch (found_goal fg) { // found a path to the goal
+		//		list<vertex> shortest_path;
+		//		for (vertex v = goal;; v = p[v]) {
+		//			shortest_path.push_front(v);
+		//			if (p[v] == v)
+		//				break;
+		//		}
+		//		list<vertex>::iterator spi = shortest_path.begin();
+		//		int spi_b = start;
+		//		for (++spi; spi != shortest_path.end(); ++spi) {
+		//			geo->add_vertex(Vector3(points[spi_b].x, points[spi_b].y + drawOffsetY, points[spi_b].z));
+		//			geo->add_vertex(Vector3(points[*spi].x, points[*spi].y + drawOffsetY, points[*spi].z));
+		//			spi_b = *spi;
+		//		}
+		//	}
+		//	
+		//	geo->end();
+		//	game->call_deferred("draw_debug", geo);
+		//}
 
 		void buildAreasByType(VoxelAssetType type) {
 			VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
@@ -460,7 +457,7 @@ namespace godot {
 			getIntBufferPool().ret(types);
 		}
 
-		void buildNode(Point p) {
+		/*void buildNode(Point p) {
 			int voxelType, vx, vy, vz, ci, cx, cz;
 			Chunk* chunk;
 			Vector2 chunkOffset;
@@ -488,9 +485,9 @@ namespace godot {
 				vx % CHUNK_SIZE_X,
 				vy % CHUNK_SIZE_Y,
 				vz % CHUNK_SIZE_Z, voxelType);
-		}
+		}*/
 
-		Point* getNode(int x, int z) {
+		/*Point* getNode(int x, int z) {
 			int vx, vy, vz, ci, cx, cz;
 			Chunk* chunk;
 			Vector2 chunkOffset;
@@ -519,7 +516,7 @@ namespace godot {
 		Point* getNode(Area area) {
 			Vector2 start = area.getStart() + area.getOffset();
 			return getNode(start.x + (area.getWidth() / 2.0), start.y + (area.getHeight() / 2.0));
-		}
+		}*/
 
 		void buildArea(Area area, VoxelAssetType type) {
 			int voxelType, vx, vy, vz, ci, cx, cz, ay = area.getY() + 1;

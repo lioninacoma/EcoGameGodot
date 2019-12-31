@@ -143,8 +143,8 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 
 								if (side == TOP && bl[1] + 1 < CHUNK_SIZE_Y) {
 									ny = bl[1];
-									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 3.0) {
-										for (nx = bl[0] + 0.5; nx < br[0]; nx += 3.0) {
+									for (nz = bl[2] + 0.5; nz <= tl[2]; nz += 2.0) {
+										for (nx = bl[0] + 0.5; nx <= br[0]; nx += 2.0) {
 											if (chunk->getVoxel((int)nx, (int)ny, (int)nz) == 0 && chunk->getVoxel((int)nx, (int)ny - 1, (int)nz) != 6) {
 												chunk->addNode(Point(offset.x + nx, offset.y + ny, offset.z + nz));
 											}

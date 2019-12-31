@@ -63,13 +63,13 @@ namespace godot {
 			return Vector2(sectionCoords.x, sectionCoords.z);
 		}
 
-		static std::size_t hash(Point p) {
+		/*static std::size_t hash(Point p) {
 			std::size_t seed = 0;
 			boost::hash_combine(seed, p.x);
 			boost::hash_combine(seed, p.y);
 			boost::hash_combine(seed, p.z);
 			return seed;
-		}
+		}*/
 
 		static std::size_t hash(Vector3 v) {
 			std::size_t seed = 0;

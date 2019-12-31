@@ -59,18 +59,22 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	geo->begin(Mesh::PRIMITIVE_LINES);
 	geo->set_color(Color(0, 1, 0, 1));
 
-	cout << vd.vertices().size() << endl;
+	//cout << vd.cells().size() << endl;
 
-	for (const auto& vertex : vd.vertices()) {
+	for (const auto& cell : vd.cells()) {
+		auto edge = cell.incident_edge();
 		std::vector<int> triangle;
-		auto edge = vertex.incident_edge();
 		do {
 			auto cell = edge->cell();
 			assert(cell->contains_point());
 
 			triangle.push_back(cell->source_index());
 			if (triangle.size() == 3) {
-				// process output triangles
+				/*cout 
+					<< "t0: (" << points[triangle[0]].x << ", " << points[triangle[0]].y << ", " << points[triangle[0]].z << "), "
+					<< "t1: (" << points[triangle[1]].x << ", " << points[triangle[1]].y << ", " << points[triangle[1]].z << "), "
+					<< "t2: (" << points[triangle[2]].x << ", " << points[triangle[2]].y << ", " << points[triangle[2]].z << ")" << endl;*/
+
 				geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
 				geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
 				geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
@@ -81,9 +85,32 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 				triangle.erase(triangle.begin() + 1);
 			}
 
-			edge = edge->rot_next();
-		} while (edge != vertex.incident_edge());
+			edge = edge->next();
+		} while (edge != cell.incident_edge());
 	}
+
+	//for (const auto& vertex : vd.vertices()) {
+	//	std::vector<int> triangle;
+	//	auto edge = vertex.incident_edge();
+	//	do {
+	//		auto cell = edge->cell();
+	//		assert(cell->contains_point());
+
+	//		triangle.push_back(cell->source_index());
+	//		if (triangle.size() == 3) {
+	//			geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
+	//			geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
+	//			geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
+	//			geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
+	//			geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
+	//			geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
+
+	//			triangle.erase(triangle.begin() + 1);
+	//		}
+
+	//		edge = edge->rot_next();
+	//	} while (edge != vertex.incident_edge());
+	//}
 
 	geo->end();
 	game->call_deferred("draw_debug", geo);
