@@ -12,6 +12,9 @@
 #include <ArrayMesh.hpp>
 #include <ImmediateGeometry.hpp>
 
+#include <set>
+#include <deque>
+#include <vector>
 #include <iostream>
 
 #include <boost/graph/adjacency_list.hpp>
