@@ -20,6 +20,7 @@
 #include "chunkbuilder.h"
 #include "voxelassetmanager.h"
 #include "section.h"
+#include "navigator.h"
 
 using namespace std;
 
@@ -30,8 +31,10 @@ namespace godot {
 	private:
 		Section** sections;
 		ChunkBuilder* chunkBuilder;
+		Navigator* navigator;
 
 		void buildSection(Section* section, Node* game);
+		void updateGraphTask(Chunk* chunk, Node* game);
 	public:
 		static void _register_methods();
 
@@ -42,6 +45,8 @@ namespace godot {
 
 		void buildSections(Vector3 center, float radius);
 		void buildChunk(Variant vChunk);
+		PoolVector3Array navigate(Vector3 startV, Vector3 goalV);
+		void updateGraph(Variant vChunk);
 	};
 
 }

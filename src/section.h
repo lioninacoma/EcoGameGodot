@@ -23,26 +23,6 @@
 #include "fn.h"
 #include "chunk.h"
 
-//namespace bg = boost::geometry;
-
-//namespace boost {
-//	namespace polygon {
-//		template <>
-//		struct geometry_concept<Point> {
-//			typedef point_concept type;
-//		};
-//
-//		template <>
-//		struct point_traits<Point> {
-//			typedef double coordinate_type;
-//
-//			static inline coordinate_type get(const Point& point, orientation_2d orient) {
-//				return (orient == HORIZONTAL) ? point.x : point.z;
-//			}
-//		};
-//	}
-//}
-
 using boost::polygon::voronoi_diagram;
 using namespace std;
 
@@ -134,8 +114,8 @@ namespace godot {
 				}
 			}
 
-			buildAreasByType(VoxelAssetType::HOUSE_6X6);
-			buildAreasByType(VoxelAssetType::HOUSE_4X4);
+			//buildAreasByType(VoxelAssetType::HOUSE_6X6);
+			//buildAreasByType(VoxelAssetType::HOUSE_4X4);
 			buildAreasByType(VoxelAssetType::PINE_TREE);
 
 			//buildGraph(game);

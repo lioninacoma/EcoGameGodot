@@ -29,6 +29,10 @@
 
 #define POOL_SIZE 8
 
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/polygon.hpp>
+#include <boost/polygon/voronoi.hpp>
+
 struct Point {
 	double x;
 	double y;
@@ -39,5 +43,23 @@ struct Point {
 		return sqrt(pow(x - o.x, 2.0) + pow(y - o.y, 2.0) + pow(z - o.z, 2.0));
 	}
 };
+
+namespace boost {
+	namespace polygon {
+		template <>
+		struct geometry_concept<Point> {
+			typedef point_concept type;
+		};
+
+		template <>
+		struct point_traits<Point> {
+			typedef double coordinate_type;
+
+			static inline coordinate_type get(const Point& point, orientation_2d orient) {
+				return (orient == HORIZONTAL) ? point.x : point.z;
+			}
+		};
+	}
+}
 
 #endif

@@ -27,117 +27,6 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	}
 
 	vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, types);
-	//cout << chunk->getAmountNodes() << endl;
-
-	auto points = chunk->getNodes();
-	int y0, y1, y2, areaSize, x, y, z;
-	double nx, ny, nz;
-	Point current, neighbour;
-	Vector3 chunkOffset;
-	int drawOffsetY = 1;
-	int maxDeltaY = 0;
-	//double maxDst = 5.0;
-	double m, o;
-
-	auto dots = ImmediateGeometry::_new();
-	dots->begin(Mesh::PRIMITIVE_POINTS);
-	dots->set_color(Color(1, 0, 0, 1));
-
-	for (auto& current : *points) {
-		//cout << "neighbour: (" << current.second.x << ", " << current.second.y << ", " << current.second.z << ")" << endl;
-		dots->add_vertex(Vector3(current.second.x, current.second.y + drawOffsetY, current.second.z));
-	}
-
-	dots->end();
-	game->call_deferred("draw_debug_dots", dots);
-
-	auto geo = ImmediateGeometry::_new();
-	geo->begin(Mesh::PRIMITIVE_LINES);
-	geo->set_color(Color(0, 1, 0, 1));
-
-	deque<size_t> queue;
-	set<size_t> ready;
-
-	while (ready.size() != points->size()) {
-	//if (!points->empty()) {
-		for (auto& current : *points) {
-			if (ready.find(current.first) == ready.end()) {
-				queue.push_back(current.first);
-				break;
-			}
-		}
-
-		while (!queue.empty()) {
-			size_t c = queue.front();
-			queue.pop_front();
-			current = points->find(c)->second;
-			ready.insert(c);
-
-			for (z = -1; z < 2; z++)
-				for (x = -1; x < 2; x++)
-					for (y = -1; y < 2; y++) {
-						if (!x && !y && !z) continue;
-
-						nx = current.x + x;
-						ny = current.y + y;
-						nz = current.z + z;
-
-						chunkOffset.x = (int)nx;
-						chunkOffset.y = (int)ny;
-						chunkOffset.z = (int)nz;
-
-						chunkOffset = fn::toChunkCoords(chunkOffset);
-						chunkOffset *= Vector3(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
-
-						if (chunkOffset != chunk->getOffset()) continue; // TODO: get neighbour chunk
-
-						//cout << "test: (" << nx << ", " << ny << ", " << nz << ")" << endl;
-
-						size_t nHash = fn::hash(Point(nx, ny, nz));
-						auto it = points->find(nHash);
-
-						if (it == points->end()) continue;
-						if (ready.find(nHash) != ready.end()) continue;
-
-						if (find(queue.begin(), queue.end(), nHash) == queue.end())
-							queue.push_back(nHash);
-
-						neighbour = it->second;
-						//cout << "neighbour: (" << neighbour.x << ", " << neighbour.y << ", " << neighbour.z << ")" << endl;
-						geo->add_vertex(Vector3(current.x, current.y + drawOffsetY, current.z));
-						geo->add_vertex(Vector3(neighbour.x, neighbour.y + drawOffsetY, neighbour.z));
-					}
-		}
-	}
-
-	geo->end();
-	game->call_deferred("draw_debug", geo);
-
-	/*voronoi_diagram<double> vd;
-	construct_voronoi(points.begin(), points.end(), &vd);
-
-	for (const auto& vertex : vd.vertices()) {
-		std::vector<int> triangle;
-		auto edge = vertex.incident_edge();
-		do {
-			auto cell = edge->cell();
-			assert(cell->contains_point());
-
-			triangle.push_back(cell->source_index());
-			if (triangle.size() == 3) {
-				geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
-				geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
-				geo->add_vertex(Vector3(points[triangle[1]].x, points[triangle[1]].y + drawOffsetY, points[triangle[1]].z));
-				geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
-				geo->add_vertex(Vector3(points[triangle[2]].x, points[triangle[2]].y + drawOffsetY, points[triangle[2]].z));
-				geo->add_vertex(Vector3(points[triangle[0]].x, points[triangle[0]].y + drawOffsetY, points[triangle[0]].z));
-
-				triangle.erase(triangle.begin() + 1);
-			}
-
-			edge = edge->rot_next();
-		} while (edge != vertex.incident_edge());
-	}*/
 
 	for (int i = 0; i < offsets.size(); i++) {
 		int offset = offsets[i];
@@ -216,6 +105,5 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 void ChunkBuilder::build(Chunk* chunk, Node* game) {
 	Worker* worker = new Worker();
 
-	
 	ThreadPool::get()->submitTask(boost::bind(&Worker::run, worker, chunk, game));
 }

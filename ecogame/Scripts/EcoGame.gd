@@ -86,6 +86,7 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 	add_child(meshInstance)
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
 	chunk.setBuilding(false)
+	Lib.updateGraph(chunk)
 
 func build_chunk_queued(chunk):
 	buildStack.push_front(chunk)
@@ -112,6 +113,7 @@ func _input(event : InputEvent) -> void:
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
 		var space_state = get_world().direct_space_state
 		var result = space_state.intersect_ray(from, to)
+		Lib.navigate(Vector3(0, 128, 0), Vector3(1024, 128, 1024))
 		
 		if result:
 			var chunk = result.collider.shape_owner_get_owner(0)

@@ -5,10 +5,13 @@ using namespace godot;
 void EcoGame::_register_methods() {
 	register_method("buildChunk", &EcoGame::buildChunk);
 	register_method("buildSections", &EcoGame::buildSections);
+	register_method("navigate", &EcoGame::navigate);
+	register_method("updateGraph", &EcoGame::updateGraph);
 }
 
 EcoGame::EcoGame() {
 	chunkBuilder = new ChunkBuilder();
+	navigator = new Navigator();
 	sections = new Section * [SECTIONS_LEN * sizeof(*sections)];
 
 	memset(sections, 0, SECTIONS_LEN * sizeof(*sections));
@@ -21,6 +24,22 @@ EcoGame::~EcoGame() {
 
 void EcoGame::_init() {
 	// initialize any variables here
+}
+
+PoolVector3Array EcoGame::navigate(Vector3 startV, Vector3 goalV) {
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	return navigator->navigate(startV, goalV, game);
+}
+
+void EcoGame::updateGraph(Variant vChunk) {
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	Chunk* chunk = as<Chunk>(vChunk.operator Object * ());
+
+	ThreadPool::get()->submitTask(boost::bind(&EcoGame::updateGraphTask, this, chunk, game));
+}
+
+void EcoGame::updateGraphTask(Chunk* chunk, Node* game) {
+	navigator->updateGraph(chunk, game);
 }
 
 void EcoGame::buildSections(Vector3 pos, float d) {

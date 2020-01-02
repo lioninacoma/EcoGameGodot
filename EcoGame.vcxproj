@@ -169,6 +169,7 @@
     <ClCompile Include="src\gdlibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\navigator.h" />
     <ClInclude Include="src\area.h" />
     <ClInclude Include="src\fn.h" />
     <ClInclude Include="src\intersection.h" />
