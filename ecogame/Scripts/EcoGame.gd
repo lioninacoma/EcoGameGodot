@@ -129,9 +129,9 @@ func _input(event : InputEvent) -> void:
 			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
 			
 			if event.button_index == 1:
-				navStart = Vector3(vx, vy, vz)
+				navStart = voxelPosition
 			elif event.button_index == 2:
-				navEnd = Vector3(vx, vy, vz)
+				navEnd = voxelPosition
 				Lib.navigate(navStart, navEnd)
 			
 #			if event.button_index == 1:

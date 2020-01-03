@@ -85,8 +85,8 @@ namespace godot {
 
 		struct OpenSetEntry {
 			size_t hash;
-			double cost;
-			OpenSetEntry(size_t hash, double cost) {
+			float cost;
+			OpenSetEntry(size_t hash, const float cost) {
 				OpenSetEntry::hash = hash;
 				OpenSetEntry::cost = cost;
 			};
@@ -129,6 +129,13 @@ namespace godot {
 			nodes->insert(pair<size_t, GraphNode*>(n->getHash(), n));
 		}
 
+		void addEdge(GraphNode* a, GraphNode* b, float cost) {
+			boost::unique_lock<boost::mutex> lock(mutex);
+			auto edge = new GraphEdge(a, b, cost);
+			a->addEdge(edge);
+			b->addEdge(edge);
+		}
+
 		GraphNode* getNode(size_t h) {
 			boost::unique_lock<boost::mutex> lock(mutex);
 			auto it = nodes->find(h);
@@ -157,9 +164,9 @@ namespace godot {
 			dots->end();
 			game->call_deferred("draw_debug_dots", dots);*/
 
-			//auto geo = ImmediateGeometry::_new();
-			//geo->begin(Mesh::PRIMITIVE_LINES);
-			//geo->set_color(Color(0, 1, 0, 1));
+			/*auto geo = ImmediateGeometry::_new();
+			geo->begin(Mesh::PRIMITIVE_LINES);
+			geo->set_color(Color(0, 1, 0, 1));*/
 
 			while (ready.size() != chunkPoints->size()) {
 				//Godot::print(String("Chunk{0}: {1}/{2}").format(Array::make(chunk->getOffset(), ready.size(), chunkPoints->size())));
@@ -179,11 +186,12 @@ namespace godot {
 					queue.pop_front();
 					queueHashes.erase(cHash);
 					current = getNode(cHash);
-					//Godot::print(String("find: {0} = {1}").format(Array::make(cHash, cIndex)));
-					if (!current) continue;
-					
-					//Godot::print(String("current: {0}").format(Array::make(Vector3(current.x, current.y, current.z))));
 					ready.insert(cHash);
+
+					//Godot::print(String("find: {0} = {1}").format(Array::make(cHash, cIndex)));
+					//Godot::print(String("current: {0}").format(Array::make(Vector3(current.x, current.y, current.z))));
+					
+					if (!current) continue;
 
 					for (z = -1; z < 2; z++)
 						for (x = -1; x < 2; x++)
@@ -216,19 +224,39 @@ namespace godot {
 									addNode(neighbour);
 								}
 
-								//geo->add_vertex(*current->getPoint());
-								//geo->add_vertex(*neighbour->getPoint());
+								/*geo->add_vertex(*current->getPoint());
+								geo->add_vertex(*neighbour->getPoint());*/
 
-								auto edge = new GraphEdge(current, neighbour, 1.0);
-								current->addEdge(edge);
-								neighbour->addEdge(edge);
+								const float cost = euclidean(current->getPoint(), neighbour->getPoint());
+								addEdge(current, neighbour, cost);
+								//addEdge(current, neighbour, 1.0);
 							}
 				}
 			}
 
 			Godot::print(String("graph at {0} updated").format(Array::make(chunk->getOffset())));
-			//geo->end();
-			//game->call_deferred("draw_debug", geo);
+			/*geo->end();
+			game->call_deferred("draw_debug", geo);*/
+		}
+
+		float manhattan(Vector3* a, Vector3* b) {
+			return abs(a->x - b->x) + abs(a->y - b->y) + abs(a->z - b->z);
+		}
+
+		float euclidean(Vector3* a, Vector3* b) {
+			return a->distance_to(*b);
+		}
+
+		float w(float distanceToGoal, float maxDistance) {
+			float x = 1.0 - (distanceToGoal / maxDistance); // [0, 1]
+			float n = MAX_WEIGHT_ROOT;
+			float w = n * x - n;
+			return w * w;
+		}
+
+		float h(GraphNode* node, GraphNode* goal, float maxDistance) {
+			float distanceToGoal = euclidean(node->getPoint(), goal->getPoint());
+			return /*w(distanceToGoal, maxDistance)MAX_WEIGHT **/ distanceToGoal;
 		}
 
 		PoolVector3Array navigate(Vector3 startV, Vector3 goalV, Node* game) {
@@ -268,30 +296,19 @@ namespace godot {
 			Godot::print(String("find path from {0} to {1}").format(Array::make(*startNode->getPoint(), *goalNode->getPoint())));
 
 			unordered_map<size_t, size_t> cameFrom;
-			unordered_map<size_t, double> gScore;
-			unordered_map<size_t, double> fScore;
+			unordered_map<size_t, float> gScore;
 			size_t cHash, nHash, sHash = startNode->getHash(), gHash = goalNode->getHash();
-			float tentativeGScore, neighbourFScore;
+			float maxDistance = euclidean(startNode->getPoint(), goalNode->getPoint());
 
 			priority_queue<OpenSetEntry, vector<OpenSetEntry>, greater<OpenSetEntry>> openSet;
-			unordered_set<size_t> openSetEntryHashes;
 
 			gScore[sHash] = 0.0;
-			fScore[sHash] = startNode->getPoint()->distance_to(*goalNode->getPoint());
-
-			openSet.push(OpenSetEntry(sHash, fScore[sHash]));
-			openSetEntryHashes.insert(sHash);
-			//Godot::print(String("openSet[start]: {0}").format(Array::make(openSet.top().cost)));
+			openSet.emplace(sHash, h(startNode, goalNode, maxDistance));
 
 			while (!openSet.empty()) {
 				cHash = openSet.top().hash;
-				//Godot::print(String("current: {0}").format(Array::make(cHash)));
-
-				currentNode = nodes->at(cHash);
-				//Godot::print(String("openSet size: {0}").format(Array::make(openSet.size())));
-
 				openSet.pop();
-				openSetEntryHashes.erase(cHash);
+				currentNode = nodes->at(cHash);
 
 				if (!currentNode) continue;
 
@@ -306,7 +323,7 @@ namespace godot {
 
 					while (true) {
 						path.append(currentPoint);
-						geo->add_vertex(currentPoint);
+						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 
 						if (cameFrom.find(cHash) == cameFrom.end()) break;
 
@@ -314,9 +331,7 @@ namespace godot {
 						currentPoint = *nodes->at(cHash)->getPoint();
 
 						path.append(currentPoint);
-						geo->add_vertex(currentPoint);
-
-						//Godot::print(String("a: {0}, b: {1}").format(Array::make(a, b)));
+						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 					}
 
 					geo->end();
@@ -326,20 +341,15 @@ namespace godot {
 				}
 
 				for (auto& edge : *currentNode->getEdges()) {
-					neighbourNode = (edge->getA()->getHash() != currentNode->getHash()) ? edge->getA() : edge->getB();
+					neighbourNode = (edge->getA()->getHash() != cHash) ? edge->getA() : edge->getB();
 					nHash = neighbourNode->getHash();
-					tentativeGScore = gScore[cHash] + currentNode->getPoint()->distance_to(*neighbourNode->getPoint()) + edge->getCost();
+					const float newCost = gScore[cHash] + edge->getCost();
 
-					if (gScore.find(nHash) == gScore.end() || tentativeGScore < gScore[nHash]) {
+					if (gScore.find(nHash) == gScore.end() || newCost < gScore[nHash]) {
+						gScore[nHash] = newCost;
+						const float priority = newCost + h(neighbourNode, goalNode, maxDistance);
+						openSet.emplace(nHash, priority);
 						cameFrom[nHash] = cHash;
-						gScore[nHash] = tentativeGScore;
-						neighbourFScore = tentativeGScore + neighbourNode->getPoint()->distance_to(*goalNode->getPoint());
-						fScore[nHash] = neighbourFScore;
-
-						if (openSetEntryHashes.find(nHash) == openSetEntryHashes.end()) {
-							openSet.push(OpenSetEntry(nHash, neighbourFScore));
-							openSetEntryHashes.insert(nHash);
-						}
 					}
 				}
 			}
