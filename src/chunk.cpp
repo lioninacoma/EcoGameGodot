@@ -31,7 +31,7 @@ void Chunk::_init() {
 	Chunk::noise = OpenSimplexNoise::_new();
 	Chunk::volume = new char[BUFFER_SIZE];
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
-	Chunk::nodes = new unordered_map<size_t, Point>();
+	Chunk::nodes = new unordered_map<size_t, Vector3*>();
 
 	memset(volume, 0, BUFFER_SIZE * sizeof(*volume));
 	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));

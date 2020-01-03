@@ -67,11 +67,11 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, meshData[0])
 		mesh.surface_set_material(surfaceIndex, WorldVariables.materials[mi])
 		
-#		polygonShape.set_faces(meshData[1])
-#		var ownerId = staticBody.create_shape_owner(chunk)
-#		staticBody.shape_owner_add_shape(ownerId, polygonShape)
-#		staticBody.name = "sb"
-#		meshInstance.add_child(staticBody)
+		polygonShape.set_faces(meshData[1])
+		var ownerId = staticBody.create_shape_owner(chunk)
+		staticBody.shape_owner_add_shape(ownerId, polygonShape)
+		staticBody.name = "sb"
+		meshInstance.add_child(staticBody)
 		
 		surfaceIndex += 1
 	
@@ -106,6 +106,9 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 	geometry.set_material_override(m)
 	add_child(geometry)
 
+var navStart : Vector3 = Vector3()
+var navEnd : Vector3 = Vector3()
+
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		var camera = $Player/Head/Camera
@@ -113,7 +116,6 @@ func _input(event : InputEvent) -> void:
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
 		var space_state = get_world().direct_space_state
 		var result = space_state.intersect_ray(from, to)
-		Lib.navigate(Vector3(0, 128, 0), Vector3(1024, 128, 1024))
 		
 		if result:
 			var chunk = result.collider.shape_owner_get_owner(0)
@@ -127,9 +129,15 @@ func _input(event : InputEvent) -> void:
 			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
 			
 			if event.button_index == 1:
-				chunk.setVoxel(
-					vx % WorldVariables.CHUNK_SIZE_X,
-					vy % WorldVariables.CHUNK_SIZE_Y,
-					vz % WorldVariables.CHUNK_SIZE_Z, 0)
-				
-				build_chunk_queued(chunk)
+				navStart = Vector3(vx, vy, vz)
+			elif event.button_index == 2:
+				navEnd = Vector3(vx, vy, vz)
+				Lib.navigate(navStart, navEnd)
+			
+#			if event.button_index == 1:
+#				chunk.setVoxel(
+#					vx % WorldVariables.CHUNK_SIZE_X,
+#					vy % WorldVariables.CHUNK_SIZE_Y,
+#					vz % WorldVariables.CHUNK_SIZE_Z, 0)
+#
+#				build_chunk_queued(chunk)
