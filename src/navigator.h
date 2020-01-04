@@ -126,6 +126,13 @@ namespace godot {
 			nodes->insert(pair<size_t, GraphNode*>(n->getHash(), n));
 		}
 
+		void addNodes(unordered_map<size_t, GraphNode*> nodeMap) {
+			boost::unique_lock<boost::mutex> lock(mutex);
+			for (auto &n : nodeMap) {
+				nodes->insert(pair<size_t, GraphNode*>(n.first, n.second));
+			}
+		}
+
 		void addEdge(GraphNode* a, GraphNode* b, float cost) {
 			boost::unique_lock<boost::mutex> lock(mutex);
 			auto edge = new GraphEdge(a, b, cost);
@@ -149,6 +156,7 @@ namespace godot {
 			deque<size_t> queue;
 			unordered_set<size_t> queueHashes;
 			unordered_set<size_t> ready;
+			unordered_map<size_t, GraphNode*> nodeCache;
 
 			/*auto dots = ImmediateGeometry::_new();
 			dots->begin(Mesh::PRIMITIVE_POINTS);
@@ -165,15 +173,21 @@ namespace godot {
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(0, 1, 0, 1));*/
 
+			// TODO: insert nodes before creating graph
+			// Merge node edges between tasks
+
+			for (auto& current : *chunkPoints) {
+				GraphNode* node = new GraphNode(current.second);
+				nodeCache[current.first] = node;
+			}
+			addNodes(nodeCache);
+
 			while (ready.size() != chunkPoints->size()) {
-				//Godot::print(String("Chunk{0}: {1}/{2}").format(Array::make(chunk->getOffset(), ready.size(), chunkPoints->size())));
 
 				for (auto &current : *chunkPoints) {
 					if (ready.find(current.first) == ready.end()) {
 						queue.push_back(current.first);
 						queueHashes.insert(current.first);
-						addNode(new GraphNode(current.second));
-						//Godot::print(String("add: {0}").format(Array::make(current.first)));
 						break;
 					}
 				}
@@ -182,11 +196,8 @@ namespace godot {
 					size_t cHash = queue.front();
 					queue.pop_front();
 					queueHashes.erase(cHash);
-					current = getNode(cHash);
+					current = nodeCache[cHash];
 					ready.insert(cHash);
-
-					//Godot::print(String("find: {0} = {1}").format(Array::make(cHash, cIndex)));
-					//Godot::print(String("current: {0}").format(Array::make(Vector3(current.x, current.y, current.z))));
 					
 					if (!current) continue;
 
@@ -202,28 +213,20 @@ namespace godot {
 								size_t nHash = fn::hash(Vector3(nx, ny, nz));
 								auto it = chunkPoints->find(nHash);
 
-								//if (it == chunkPoints->end()) continue;
 								if (it == chunkPoints->end()) {
 									// pre existing neighbour node
 									neighbour = getNode(nHash);
 									if (!neighbour) continue;
 								}
-								else if (ready.find(nHash) == ready.end() && queueHashes.find(nHash) == queueHashes.end()) {
-									queue.push_back(nHash);
-									queueHashes.insert(nHash);
-
-									neighbour = new GraphNode(it->second);
-									addNode(neighbour);
-								}
 								else {
-									neighbour = getNode(nHash);
+									if (ready.find(nHash) == ready.end() && queueHashes.find(nHash) == queueHashes.end()) {
+										queue.push_back(nHash);
+										queueHashes.insert(nHash);
+									}
+									
+									neighbour = nodeCache[nHash];
 								}
 
-								/*geo->add_vertex(*current->getPoint());
-								geo->add_vertex(*neighbour->getPoint());*/
-
-								const float cost = manhattan(current->getPoint(), neighbour->getPoint());
-								//addEdge(current, neighbour, cost);
 								addEdge(current, neighbour, 1.0);
 							}
 				}
@@ -260,8 +263,6 @@ namespace godot {
 
 			GraphNode* startNode = NULL;
 			GraphNode* goalNode = NULL;
-
-			//Godot::print(String("startP: {0}, goalP: {1}").format(Array::make(Vector3(startP.x, startP.y, startP.z), Vector3(goalP.x, goalP.y, goalP.z))));
 
 			float minDistanceStart = numeric_limits<float>::max();
 			float minDistanceGoal = numeric_limits<float>::max();
