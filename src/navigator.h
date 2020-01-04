@@ -31,6 +31,27 @@ namespace godot {
 		GODOT_CLASS(Navigator, Reference)
 
 	private:
+		template<typename T, typename priority_t>
+		struct PriorityQueue {
+			typedef std::pair<priority_t, T> PQElement;
+			std::priority_queue<PQElement, std::vector<PQElement>,
+				std::greater<PQElement>> elements;
+
+			inline bool empty() const {
+				return elements.empty();
+			}
+
+			inline void put(T item, priority_t priority) {
+				elements.emplace(priority, item);
+			}
+
+			T get() {
+				T best_item = elements.top().second;
+				elements.pop();
+				return best_item;
+			}
+		};
+
 		class GraphNode;
 
 		class GraphEdge {
@@ -57,13 +78,13 @@ namespace godot {
 
 		class GraphNode {
 		private:
-			Vector3* point;
+			Vector3 point;
 			vector<GraphEdge*>* edges;
 			size_t hash;
 		public:
-			GraphNode(Vector3* point) {
+			GraphNode(Vector3 point) {
 				GraphNode::point = point;
-				GraphNode::hash = fn::hash(*point);
+				GraphNode::hash = fn::hash(point);
 				edges = new vector<GraphEdge*>();
 			};
 			void addEdge(GraphEdge* edge) {
@@ -72,7 +93,7 @@ namespace godot {
 			vector<GraphEdge*>* getEdges() {
 				return edges;
 			};
-			Vector3* getPoint() {
+			Vector3 getPoint() {
 				return point;
 			};
 			size_t getHash() {
@@ -80,30 +101,6 @@ namespace godot {
 			};
 			bool operator == (const GraphNode& o) const {
 				return hash == o.hash;
-			};
-		};
-
-		struct OpenSetEntry {
-			size_t hash;
-			float cost;
-			OpenSetEntry(size_t hash, const float cost) {
-				OpenSetEntry::hash = hash;
-				OpenSetEntry::cost = cost;
-			};
-			bool operator < (const OpenSetEntry& o) const {
-				return cost < o.cost;
-			};
-			bool operator <= (const OpenSetEntry& o) const {
-				return cost <= o.cost;
-			};
-			bool operator == (const OpenSetEntry& o) const {
-				return cost == o.cost && hash == o.hash;
-			};
-			bool operator > (const OpenSetEntry& o) const {
-				return cost > o.cost;
-			};
-			bool operator >= (const OpenSetEntry& o) const {
-				return cost >= o.cost;
 			};
 		};
 
@@ -155,10 +152,10 @@ namespace godot {
 
 			/*auto dots = ImmediateGeometry::_new();
 			dots->begin(Mesh::PRIMITIVE_POINTS);
-			dots->set_color(Color(1, 0, 0, 1));
+			dots->set_color(Color(1, 0, 1, 1));
 
 			for (auto &current : *chunkPoints) {
-				dots->add_vertex(*current.second);
+				dots->add_vertex(current.second);
 			}
 
 			dots->end();
@@ -198,9 +195,9 @@ namespace godot {
 							for (y = -1; y < 2; y++) {
 								if (!x && !y && !z) continue;
 
-								nx = current->getPoint()->x + x;
-								ny = current->getPoint()->y + y;
-								nz = current->getPoint()->z + z;
+								nx = current->getPoint().x + x;
+								ny = current->getPoint().y + y;
+								nz = current->getPoint().z + z;
 
 								size_t nHash = fn::hash(Vector3(nx, ny, nz));
 								auto it = chunkPoints->find(nHash);
@@ -212,9 +209,7 @@ namespace godot {
 									if (!neighbour) continue;
 								}
 								else {
-									if (ready.find(nHash) != ready.end()) continue;
-
-									if (queueHashes.find(nHash) == queueHashes.end()) {
+									if (ready.find(nHash) == ready.end() && queueHashes.find(nHash) == queueHashes.end()) {
 										queue.push_back(nHash);
 										queueHashes.insert(nHash);
 									}
@@ -227,9 +222,9 @@ namespace godot {
 								/*geo->add_vertex(*current->getPoint());
 								geo->add_vertex(*neighbour->getPoint());*/
 
-								const float cost = euclidean(current->getPoint(), neighbour->getPoint());
-								addEdge(current, neighbour, cost);
-								//addEdge(current, neighbour, 1.0);
+								const float cost = manhattan(current->getPoint(), neighbour->getPoint());
+								//addEdge(current, neighbour, cost);
+								addEdge(current, neighbour, 1.0);
 							}
 				}
 			}
@@ -239,24 +234,24 @@ namespace godot {
 			game->call_deferred("draw_debug", geo);*/
 		}
 
-		float manhattan(Vector3* a, Vector3* b) {
-			return abs(a->x - b->x) + abs(a->y - b->y) + abs(a->z - b->z);
+		float manhattan(Vector3 a, Vector3 b) {
+			return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z);
 		}
 
-		float euclidean(Vector3* a, Vector3* b) {
-			return a->distance_to(*b);
+		float euclidean(Vector3 a, Vector3 b) {
+			return a.distance_to(b);
 		}
 
 		float w(float distanceToGoal, float maxDistance) {
 			float x = 1.0 - (distanceToGoal / maxDistance); // [0, 1]
 			float n = MAX_WEIGHT_ROOT;
 			float w = n * x - n;
-			return w * w;
+			return 1 + w * w;
 		}
 
 		float h(GraphNode* node, GraphNode* goal, float maxDistance) {
-			float distanceToGoal = euclidean(node->getPoint(), goal->getPoint());
-			return /*w(distanceToGoal, maxDistance)MAX_WEIGHT **/ distanceToGoal;
+			float distanceToGoal = manhattan(node->getPoint(), goal->getPoint());
+			return w(distanceToGoal, maxDistance) * distanceToGoal;
 		}
 
 		PoolVector3Array navigate(Vector3 startV, Vector3 goalV, Node* game) {
@@ -274,8 +269,8 @@ namespace godot {
 			float currDistanceGoal;
 
 			for (auto& current : *nodes) {
-				currDistanceStart = current.second->getPoint()->distance_to(startV);
-				currDistanceGoal = current.second->getPoint()->distance_to(goalV);
+				currDistanceStart = current.second->getPoint().distance_to(startV);
+				currDistanceGoal = current.second->getPoint().distance_to(goalV);
 
 				if (currDistanceStart < minDistanceStart) {
 					minDistanceStart = currDistanceStart;
@@ -293,21 +288,19 @@ namespace godot {
 			GraphNode* currentNode;
 			GraphNode* neighbourNode;
 
-			Godot::print(String("find path from {0} to {1}").format(Array::make(*startNode->getPoint(), *goalNode->getPoint())));
+			Godot::print(String("find path from {0} to {1}").format(Array::make(startNode->getPoint(), goalNode->getPoint())));
 
 			unordered_map<size_t, size_t> cameFrom;
-			unordered_map<size_t, float> gScore;
+			unordered_map<size_t, float> costSoFar;
 			size_t cHash, nHash, sHash = startNode->getHash(), gHash = goalNode->getHash();
-			float maxDistance = euclidean(startNode->getPoint(), goalNode->getPoint());
+			float maxDistance = manhattan(startNode->getPoint(), goalNode->getPoint());
 
-			priority_queue<OpenSetEntry, vector<OpenSetEntry>, greater<OpenSetEntry>> openSet;
+			PriorityQueue<size_t, float> frontier;
+			frontier.put(sHash, 0);
+			costSoFar[sHash] = 0;
 
-			gScore[sHash] = 0.0;
-			openSet.emplace(sHash, h(startNode, goalNode, maxDistance));
-
-			while (!openSet.empty()) {
-				cHash = openSet.top().hash;
-				openSet.pop();
+			while (!frontier.empty()) {
+				cHash = frontier.get();
 				currentNode = nodes->at(cHash);
 
 				if (!currentNode) continue;
@@ -319,7 +312,7 @@ namespace godot {
 					geo->begin(Mesh::PRIMITIVE_LINES);
 					geo->set_color(Color(1, 0, 0, 1));
 
-					Vector3 currentPoint = *currentNode->getPoint();
+					Vector3 currentPoint = currentNode->getPoint();
 
 					while (true) {
 						path.append(currentPoint);
@@ -328,7 +321,7 @@ namespace godot {
 						if (cameFrom.find(cHash) == cameFrom.end()) break;
 
 						cHash = cameFrom[cHash];
-						currentPoint = *nodes->at(cHash)->getPoint();
+						currentPoint = nodes->at(cHash)->getPoint();
 
 						path.append(currentPoint);
 						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
@@ -340,15 +333,15 @@ namespace godot {
 					return path;
 				}
 
-				for (auto& edge : *currentNode->getEdges()) {
-					neighbourNode = (edge->getA()->getHash() != cHash) ? edge->getA() : edge->getB();
+				for (auto& next : *currentNode->getEdges()) {
+					neighbourNode = (next->getA()->getHash() != cHash) ? next->getA() : next->getB();
 					nHash = neighbourNode->getHash();
-					const float newCost = gScore[cHash] + edge->getCost();
-
-					if (gScore.find(nHash) == gScore.end() || newCost < gScore[nHash]) {
-						gScore[nHash] = newCost;
-						const float priority = newCost + h(neighbourNode, goalNode, maxDistance);
-						openSet.emplace(nHash, priority);
+					float newCost = costSoFar[cHash] + next->getCost();
+					if (costSoFar.find(nHash) == costSoFar.end()
+						|| newCost < costSoFar[nHash]) {
+						costSoFar[nHash] = newCost;
+						float priority = newCost + h(neighbourNode, goalNode, maxDistance);
+						frontier.put(nHash, priority);
 						cameFrom[nHash] = cHash;
 					}
 				}

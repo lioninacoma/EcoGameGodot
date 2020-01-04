@@ -30,8 +30,7 @@
 #define POOL_SIZE 8
 
 // navigator
-#define MAX_WEIGHT 3.0
+#define MAX_WEIGHT 5.0
 #define MAX_WEIGHT_ROOT sqrt(MAX_WEIGHT)
-#define MAX_WEIGHT_DISTANCE 120.0
 
 #endif
