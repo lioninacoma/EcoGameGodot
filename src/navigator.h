@@ -208,15 +208,15 @@ namespace godot {
 									neighbour = getNode(nHash);
 									if (!neighbour) continue;
 								}
-								else {
-									if (ready.find(nHash) == ready.end() && queueHashes.find(nHash) == queueHashes.end()) {
-										queue.push_back(nHash);
-										queueHashes.insert(nHash);
-									}
+								else if (ready.find(nHash) == ready.end() && queueHashes.find(nHash) == queueHashes.end()) {
+									queue.push_back(nHash);
+									queueHashes.insert(nHash);
 
-									// neighbour node in new mesh
 									neighbour = new GraphNode(it->second);
 									addNode(neighbour);
+								}
+								else {
+									neighbour = getNode(nHash);
 								}
 
 								/*geo->add_vertex(*current->getPoint());
