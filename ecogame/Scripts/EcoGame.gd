@@ -133,11 +133,10 @@ func _input(event : InputEvent) -> void:
 			elif event.button_index == 2:
 				navEnd = voxelPosition
 				Lib.navigate(navStart, navEnd)
-			
-#			if event.button_index == 1:
-#				chunk.setVoxel(
-#					vx % WorldVariables.CHUNK_SIZE_X,
-#					vy % WorldVariables.CHUNK_SIZE_Y,
-#					vz % WorldVariables.CHUNK_SIZE_Z, 0)
-#
-#				build_chunk_queued(chunk)
+			elif event.button_index == 3:
+				chunk.setVoxel(
+					vx % WorldVariables.CHUNK_SIZE_X,
+					vy % WorldVariables.CHUNK_SIZE_Y + 1,
+					vz % WorldVariables.CHUNK_SIZE_Z, 1)
+
+				build_chunk_queued(chunk)

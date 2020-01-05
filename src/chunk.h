@@ -23,7 +23,6 @@ namespace godot {
 
 	class Chunk : public Reference {
 		GODOT_CLASS(Chunk, Reference)
-
 	private:
 		OpenSimplexNoise* noise;
 		Vector3 offset;
@@ -32,6 +31,7 @@ namespace godot {
 		int meshInstanceId = 0;
 		char* volume;
 		int* surfaceY;
+		unordered_map<size_t, bool>* nodeChanges;
 		unordered_map<size_t, Vector3>* nodes;
 		bool volumeBuilt = false;
 		bool building = false;
@@ -78,6 +78,9 @@ namespace godot {
 		int getAmountNodes() {
 			return Chunk::nodes->size();
 		};
+		unordered_map<size_t, bool>* getNodeChanges() {
+			return nodeChanges;
+		};
 
 		// setter
 		void setOffset(Vector3 offset) {
@@ -95,7 +98,15 @@ namespace godot {
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
 		void addNode(Vector3 p) {
-			Chunk::nodes->insert(pair<size_t, Vector3>(fn::hash(p), p));
+			size_t hash = fn::hash(p);
+			Chunk::nodes->insert(pair<size_t, Vector3>(hash, p));
+			Chunk::nodeChanges->emplace(hash, 1);
+		};
+		void removeNode(Vector3 p) {
+			size_t hash = fn::hash(p);
+			if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
+			Chunk::nodes->erase(hash);
+			Chunk::nodeChanges->emplace(hash, 0);
 		};
 	};
 

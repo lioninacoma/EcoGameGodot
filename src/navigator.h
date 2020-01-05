@@ -79,18 +79,33 @@ namespace godot {
 		class GraphNode {
 		private:
 			Vector3 point;
-			vector<GraphEdge*>* edges;
+			unordered_map<size_t, GraphEdge*> edges;
 			size_t hash;
 		public:
 			GraphNode(Vector3 point) {
 				GraphNode::point = point;
 				GraphNode::hash = fn::hash(point);
-				edges = new vector<GraphEdge*>();
 			};
 			void addEdge(GraphEdge* edge) {
-				edges->push_back(edge);
+				size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
+				edges[nHash] = edge;
 			};
-			vector<GraphEdge*>* getEdges() {
+			void removeEdgeWithNode(size_t nHash) {
+				auto it = edges.find(nHash);
+				if (it == edges.end()) return;
+				edges.erase(nHash);
+			};
+			GraphEdge* getEdgeWithNode(size_t nHash) {
+				auto it = edges.find(nHash);
+				if (it == edges.end()) return NULL;
+				return it->second;
+			};
+			GraphNode* getNeighbour(size_t nHash) {
+				GraphEdge* edge = getEdgeWithNode(nHash);
+				if (!edge) return NULL;
+				return (edge->getA()->getHash() != hash) ? edge->getA() : edge->getB();
+			};
+			unordered_map<size_t, GraphEdge*> getEdges() {
 				return edges;
 			};
 			Vector3 getPoint() {
@@ -140,6 +155,18 @@ namespace godot {
 			b->addEdge(edge);
 		}
 
+		void removeNode(GraphNode* node) {
+			size_t hash = node->getHash();
+			GraphNode* neighbour;
+
+			for (auto& next : node->getEdges()) {
+				neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
+				neighbour->removeEdgeWithNode(hash);
+			}
+
+			nodes->erase(hash);
+		}
+
 		GraphNode* getNode(size_t h) {
 			boost::unique_lock<boost::mutex> lock(mutex);
 			auto it = nodes->find(h);
@@ -150,87 +177,86 @@ namespace godot {
 		void updateGraph(Chunk* chunk, Node* game) {
 			int x, y, z, drawOffsetY = 1;
 			float nx, ny, nz;
+			Vector3 chunkOffset;
 			GraphNode *current, *neighbour;
 			auto chunkPoints = chunk->getNodes();
+			auto nodeChanges = chunk->getNodeChanges();
 
-			deque<size_t> queue;
-			unordered_set<size_t> queueHashes;
-			unordered_set<size_t> ready;
 			unordered_map<size_t, GraphNode*> nodeCache;
 
 			/*auto dots = ImmediateGeometry::_new();
 			dots->begin(Mesh::PRIMITIVE_POINTS);
 			dots->set_color(Color(1, 0, 1, 1));
-
 			for (auto &current : *chunkPoints) {
 				dots->add_vertex(current.second);
 			}
-
 			dots->end();
 			game->call_deferred("draw_debug_dots", dots);*/
+
+			mutex.lock();
+			GraphNode* node;
+			for (auto& current : *chunkPoints) {
+				if (nodeChanges->find(current.first) != nodeChanges->end()) {
+					node = new GraphNode(current.second);
+					nodeCache[current.first] = node;
+					nodes->insert(pair<size_t, GraphNode*>(current.first, node));;
+				}
+				else {
+					auto it = nodes->find(current.first);
+					if (it == nodes->end()) continue;
+					node = it->second;
+					nodeCache[current.first] = node;
+				}
+			}
+			for (auto& change : *nodeChanges) {
+				if (change.second) continue;
+				auto it = nodes->find(change.first);
+				if (it == nodes->end()) continue;
+				node = it->second;
+				removeNode(node);
+			}
+			mutex.unlock();
 
 			/*auto geo = ImmediateGeometry::_new();
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(0, 1, 0, 1));*/
 
-			// TODO: insert nodes before creating graph
-			// Merge node edges between tasks
+			for (auto& change : *nodeChanges) {
+				if (!change.second) continue;
+				current = nodeCache[change.first];
 
-			for (auto& current : *chunkPoints) {
-				GraphNode* node = new GraphNode(current.second);
-				nodeCache[current.first] = node;
-			}
-			addNodes(nodeCache);
+				for (z = -1; z < 2; z++)
+					for (x = -1; x < 2; x++)
+						for (y = -1; y < 2; y++) {
+							if (!x && !y && !z) continue;
 
-			while (ready.size() != chunkPoints->size()) {
+							nx = current->getPoint().x + x;
+							ny = current->getPoint().y + y;
+							nz = current->getPoint().z + z;
 
-				for (auto &current : *chunkPoints) {
-					if (ready.find(current.first) == ready.end()) {
-						queue.push_back(current.first);
-						queueHashes.insert(current.first);
-						break;
-					}
-				}
+							size_t nHash = fn::hash(Vector3(nx, ny, nz));
+							auto it = chunkPoints->find(nHash);
 
-				while (!queue.empty()) {
-					size_t cHash = queue.front();
-					queue.pop_front();
-					queueHashes.erase(cHash);
-					current = nodeCache[cHash];
-					ready.insert(cHash);
-					
-					if (!current) continue;
-
-					for (z = -1; z < 2; z++)
-						for (x = -1; x < 2; x++)
-							for (y = -1; y < 2; y++) {
-								if (!x && !y && !z) continue;
-
-								nx = current->getPoint().x + x;
-								ny = current->getPoint().y + y;
-								nz = current->getPoint().z + z;
-
-								size_t nHash = fn::hash(Vector3(nx, ny, nz));
-								auto it = chunkPoints->find(nHash);
-
-								if (it == chunkPoints->end()) {
-									// pre existing neighbour node
-									neighbour = getNode(nHash);
-									if (!neighbour) continue;
-								}
-								else {
-									if (ready.find(nHash) == ready.end() && queueHashes.find(nHash) == queueHashes.end()) {
-										queue.push_back(nHash);
-										queueHashes.insert(nHash);
-									}
-									
-									neighbour = nodeCache[nHash];
-								}
-
-								addEdge(current, neighbour, 1.0);
+							if (it == chunkPoints->end()) {
+								// pre existing neighbour node
+								chunkOffset.x = nx;
+								chunkOffset.y = ny;
+								chunkOffset.z = nz;
+								chunkOffset = fn::toChunkCoords(chunkOffset);
+								chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+								if (chunk->getOffset() == chunkOffset) continue;
+								neighbour = getNode(nHash);
+								if (!neighbour) continue;
 							}
-				}
+							else {
+								neighbour = nodeCache[nHash];
+							}
+
+							addEdge(current, neighbour, 1.0);
+						}
 			}
+
+			nodeChanges->clear();
 
 			Godot::print(String("graph at {0} updated").format(Array::make(chunk->getOffset())));
 			/*geo->end();
@@ -322,7 +348,8 @@ namespace godot {
 						if (cameFrom.find(cHash) == cameFrom.end()) break;
 
 						cHash = cameFrom[cHash];
-						currentPoint = nodes->at(cHash)->getPoint();
+						currentNode = currentNode->getNeighbour(cHash);
+						currentPoint = currentNode->getPoint();
 
 						path.append(currentPoint);
 						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
@@ -334,10 +361,10 @@ namespace godot {
 					return path;
 				}
 
-				for (auto& next : *currentNode->getEdges()) {
-					neighbourNode = (next->getA()->getHash() != cHash) ? next->getA() : next->getB();
+				for (auto& next : currentNode->getEdges()) {
+					neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
 					nHash = neighbourNode->getHash();
-					float newCost = costSoFar[cHash] + next->getCost();
+					float newCost = costSoFar[cHash] + next.second->getCost();
 					if (costSoFar.find(nHash) == costSoFar.end()
 						|| newCost < costSoFar[nHash]) {
 						costSoFar[nHash] = newCost;

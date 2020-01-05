@@ -32,6 +32,7 @@ void Chunk::_init() {
 	Chunk::volume = new char[BUFFER_SIZE];
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
 	Chunk::nodes = new unordered_map<size_t, Vector3>();
+	Chunk::nodeChanges = new unordered_map<size_t, bool>();
 
 	memset(volume, 0, BUFFER_SIZE * sizeof(*volume));
 	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
@@ -126,18 +127,50 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	
 	volume[fn::fi3(x, y, z)] = (char)v;
 	int dy = surfaceY[fn::fi2(x, z)];
+	
+	if (v == 0) {
+		if (meshInstanceId) {
+			Vector3 node = offset + Vector3(x + 0.5, y + 1, z + 0.5);
+			size_t hash = fn::hash(node);
 
-	if (v == 0 && dy == y) {
-		for (int i = y - 1; i >= 0; i--) {
-			surfaceY[fn::fi2(x, z)]--;
-			if (getVoxel(x, i, z)) {
-				break;
+			if (nodes->find(hash) != nodes->end()) {
+				removeNode(node);
+			}
+
+			int voxelBelow = getVoxel(x, y - 1, z);
+			if (voxelBelow && voxelBelow != 6) {
+				Vector3 newNode = node + Vector3(0, -1, 0);
+				addNode(newNode);
 			}
 		}
+
+		if (dy == y) {
+			for (int i = y - 1; i >= 0; i--) {
+				surfaceY[fn::fi2(x, z)]--;
+				if (getVoxel(x, i, z)) {
+					break;
+				}
+			}
+		}
+
 		amountVoxel--;
 		amountVoxel = max(amountVoxel, 0);
 	}
 	else {
+		if (meshInstanceId) {
+			Vector3 node = offset + Vector3(x + 0.5, y, z + 0.5);
+			size_t hash = fn::hash(node);
+
+			if (nodes->find(hash) != nodes->end()) {
+				removeNode(node);
+			}
+
+			if (y + 1 < CHUNK_SIZE_Y && !getVoxel(x, y + 1, z) && v != 6) {
+				Vector3 newNode = node + Vector3(0, 1, 0);
+				addNode(newNode);
+			}
+		}
+
 		surfaceY[fn::fi2(x, z)] = max(dy, y);
 		amountVoxel++;
 	}

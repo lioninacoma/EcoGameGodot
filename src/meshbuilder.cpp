@@ -12,12 +12,12 @@ MeshBuilder::~MeshBuilder() {
 
 vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffersLen) {
 	//Godot::print(String("offset: {0}, volume[0]: {1}, volume[1]: {2}").format(Array::make(offset, (*volume)[0], (*volume)[1])));
-
 	Vector3 offset = chunk->getOffset();
 
 	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj;
 	float nx, ny, nz;
 	bool backFace, b, done = false;
+	bool initializeNodes = chunk->getNodeChanges()->empty();
 
 	vector<int> vertexOffsets;
 	vertexOffsets.resize(buffersLen);
@@ -141,12 +141,13 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 								idx = mask[n] - 1;
 								vertexOffsets[idx] = quad(offset, bl, tl, tr, br, buffers[idx], side, mask[n], vertexOffsets[idx]);
 
-								if (side == TOP && bl[1] + 1 < CHUNK_SIZE_Y) {
+								if (initializeNodes && side == TOP && bl[1] + 1 < CHUNK_SIZE_Y) {
 									ny = bl[1];
 									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 1.0) {
 										for (nx = bl[0] + 0.5; nx < br[0]; nx += 1.0) {
 											if (chunk->getVoxel((int)nx, (int)ny, (int)nz) == 0 && chunk->getVoxel((int)nx, (int)ny - 1, (int)nz) != 6) {
-												chunk->addNode(Vector3(offset.x + nx, offset.y + ny, offset.z + nz));
+												Vector3 p = offset + Vector3(nx, ny, nz);
+												chunk->addNode(p);
 											}
 										}
 									}
