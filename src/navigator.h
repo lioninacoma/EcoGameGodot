@@ -165,6 +165,7 @@ namespace godot {
 			}
 
 			nodes->erase(hash);
+			delete node;
 		}
 
 		GraphNode* getNode(size_t h) {
@@ -194,26 +195,25 @@ namespace godot {
 			game->call_deferred("draw_debug_dots", dots);*/
 
 			mutex.lock();
-			GraphNode* node;
-			for (auto& current : *chunkPoints) {
-				if (nodeChanges->find(current.first) != nodeChanges->end()) {
-					node = new GraphNode(current.second);
-					nodeCache[current.first] = node;
-					nodes->insert(pair<size_t, GraphNode*>(current.first, node));;
+			for (auto& point : *chunkPoints) {
+				if (nodeChanges->find(point.first) != nodeChanges->end()) {
+					current = new GraphNode(point.second);
+					nodes->insert(pair<size_t, GraphNode*>(point.first, current));;
 				}
 				else {
-					auto it = nodes->find(current.first);
+					auto it = nodes->find(point.first);
 					if (it == nodes->end()) continue;
-					node = it->second;
-					nodeCache[current.first] = node;
+					current = it->second;
 				}
+
+				nodeCache[point.first] = current;
 			}
 			for (auto& change : *nodeChanges) {
 				if (change.second) continue;
 				auto it = nodes->find(change.first);
 				if (it == nodes->end()) continue;
-				node = it->second;
-				removeNode(node);
+				current = it->second;
+				removeNode(current);
 			}
 			mutex.unlock();
 
@@ -238,13 +238,14 @@ namespace godot {
 							auto it = chunkPoints->find(nHash);
 
 							if (it == chunkPoints->end()) {
-								// pre existing neighbour node
 								chunkOffset.x = nx;
 								chunkOffset.y = ny;
 								chunkOffset.z = nz;
 								chunkOffset = fn::toChunkCoords(chunkOffset);
 								chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 								if (chunk->getOffset() == chunkOffset) continue;
+
+								// node from another chunk
 								neighbour = getNode(nHash);
 								if (!neighbour) continue;
 							}
