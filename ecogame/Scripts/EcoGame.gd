@@ -35,7 +35,7 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		var player = $Player
 		var pos = player.translation
-		var d = 128
+		var d = 256
 		Lib.buildSections(pos, d)
 		# Reset timer
 		time = 0

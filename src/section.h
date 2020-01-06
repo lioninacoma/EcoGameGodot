@@ -65,8 +65,8 @@ namespace godot {
 				}
 			}
 
-			//buildAreasByType(VoxelAssetType::HOUSE_6X6);
-			//buildAreasByType(VoxelAssetType::HOUSE_4X4);
+			buildAreasByType(VoxelAssetType::HOUSE_6X6);
+			buildAreasByType(VoxelAssetType::HOUSE_4X4);
 			buildAreasByType(VoxelAssetType::PINE_TREE);
 			
 			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
