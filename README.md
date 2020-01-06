@@ -5,6 +5,7 @@ GDNative
 ```
 cd godot-cpp
 scons platform=windows generate_bindings=yes bits=64
+use target=release for release build
 ```
 
 boost

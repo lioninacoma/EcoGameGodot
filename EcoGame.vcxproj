@@ -88,9 +88,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\ecogame\bin\$(Platform)</OutDir>
-    <IncludePath>C:\Users\Frederick\source\repos\EcoGame\godot-cpp\godot_headers;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\include\gen;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\include\core;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Frederick\source\repos\EcoGame\lib;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\Users\Frederick\source\repos\EcoGame\godot-cpp\src;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\src\gen;C:\Users\Frederick\source\repos\EcoGame\godot-cpp\src\core;C:\Users\Frederick\source\repos\EcoGame\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(SolutionDir)\godot-cpp\godot_headers;$(SolutionDir)\godot-cpp\include\gen;$(SolutionDir)\godot-cpp\include\core;$(SolutionDir)\godot-cpp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program Files\boost\boost_1_71_0\stage\lib;$(SolutionDir)\godot-cpp\bin;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(SolutionDir)\godot-cpp\src;$(SolutionDir)\godot-cpp\src\gen;$(SolutionDir)\godot-cpp\src\core;$(SolutionDir)\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -151,6 +151,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;ECOGAME_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Program Files\boost\boost_1_71_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,7 +159,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>libgodot-cpp.windows.debug.64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libgodot-cpp.windows.release.64.lib;libboost_thread-vc142-mt-x64-1_71.lib;libboost_fiber-vc142-mt-x64-1_71.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
