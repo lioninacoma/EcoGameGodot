@@ -259,7 +259,7 @@ namespace godot {
 
 			nodeChanges->clear();
 
-			Godot::print(String("graph at {0} updated").format(Array::make(chunk->getOffset())));
+			Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset(), nodes->size())));
 			/*geo->end();
 			game->call_deferred("draw_debug", geo);*/
 		}

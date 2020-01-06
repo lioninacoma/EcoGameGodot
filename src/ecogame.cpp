@@ -27,6 +27,7 @@ void EcoGame::_init() {
 }
 
 PoolVector3Array EcoGame::navigate(Vector3 startV, Vector3 goalV) {
+	Godot::print(String("navigate from {0} to {1}").format(Array::make(startV, goalV)));
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	return navigator->navigate(startV, goalV, game);
 }

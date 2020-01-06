@@ -138,7 +138,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 			}
 
 			int voxelBelow = getVoxel(x, y - 1, z);
-			if (voxelBelow && voxelBelow != 6) {
+			if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
 				Vector3 newNode = node + Vector3(0, -1, 0);
 				addNode(newNode);
 			}
