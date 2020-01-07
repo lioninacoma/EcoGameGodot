@@ -7,6 +7,7 @@ onready var fpsLabel = get_node('FPSLabel')
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
 
 var Lib = load("res://bin/EcoGame.gdns").new()
+var Actor : PackedScene = load("res://Actor.tscn")
 
 # build thread variables
 const TIME_PERIOD = 0.2 # 200ms
@@ -106,8 +107,7 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 	geometry.set_material_override(m)
 	add_child(geometry)
 
-var navStart : Vector3 = Vector3()
-var navEnd : Vector3 = Vector3()
+var actor : Actor
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
@@ -129,14 +129,25 @@ func _input(event : InputEvent) -> void:
 			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
 			
 			if event.button_index == 1:
-				navStart = voxelPosition
+				pass
 			elif event.button_index == 2:
-				navEnd = voxelPosition
-				Lib.navigate(navStart, navEnd)
+				
+				if actor:
+					var navStart = actor.global_transform.origin
+					var navEnd = voxelPosition
+					var path : PoolVector3Array = Lib.navigate(navStart, navEnd)
+					actor.follow_path(path)
+			
 			elif event.button_index == 3:
-				chunk.setVoxel(
-					vx % WorldVariables.CHUNK_SIZE_X,
-					vy % WorldVariables.CHUNK_SIZE_Y + 1,
-					vz % WorldVariables.CHUNK_SIZE_Z, 1)
-
-				build_chunk_queued(chunk)
+				actor = Actor.instance()
+				add_child(actor)
+				actor.global_transform.origin.x = vx + 0.5
+				actor.global_transform.origin.y = vy + 1
+				actor.global_transform.origin.z = vz + 0.5
+				
+#				chunk.setVoxel(
+#					vx % WorldVariables.CHUNK_SIZE_X,
+#					vy % WorldVariables.CHUNK_SIZE_Y + 1,
+#					vz % WorldVariables.CHUNK_SIZE_Z, 1)
+#
+#				build_chunk_queued(chunk)

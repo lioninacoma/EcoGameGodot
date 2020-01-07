@@ -343,7 +343,7 @@ namespace godot {
 					Vector3 currentPoint = currentNode->getPoint();
 
 					while (true) {
-						path.append(currentPoint);
+						path.insert(0, currentPoint);
 						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 
 						if (cameFrom.find(cHash) == cameFrom.end()) break;
@@ -352,7 +352,7 @@ namespace godot {
 						currentNode = currentNode->getNeighbour(cHash);
 						currentPoint = currentNode->getPoint();
 
-						path.append(currentPoint);
+						path.insert(0, currentPoint);
 						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 					}
 
