@@ -1,5 +1,7 @@
 extends KinematicBody
 
+onready var WorldVariables : Node = get_node("/root/WorldVariables")
+
 var camera_angle_y = 0
 var camera_angle_x = 0
 var mouse_sensitivity = 0.3
@@ -46,6 +48,10 @@ func _physics_process(delta):
 	
 	if Input.is_action_just_pressed("switch_rts"):
 		is_rts = !is_rts
+		if (is_rts):
+			WorldVariables.PICK_DISTANCE = 200
+		else:
+			WorldVariables.PICK_DISTANCE = 10
 	
 	if Input.is_action_just_pressed("switch_col"):
 		$Capsule.disabled = !$Capsule.disabled

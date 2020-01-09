@@ -9,7 +9,7 @@ var acceleration = Vector3()
 
 # walk variables
 var gravity = Vector3(0, -9.8, 0)
-const MAX_SPEED = 12
+const MAX_SPEED = 6
 const ACCEL = 2
 
 func _ready():
@@ -19,10 +19,10 @@ func _process(delta : float) -> void:
 	var friction = velocity
 	friction *= -1
 	friction = friction.normalized()
-	friction *= 0.25
+	friction *= 0.1
 	
-	self.applyForce(friction)
-	self.applyForce(gravity)
+#	self.applyForce(friction)
+#	self.applyForce(gravity)
 	
 	self.move_to_waypoint()
 	self.update()
@@ -36,7 +36,7 @@ func update() -> void:
 	if velocity.length() >= MAX_SPEED:
 		velocity = velocity.normalized()
 		velocity *= MAX_SPEED
-	velocity = move_and_slide(velocity, Vector3(0, 1, 0))
+	move_and_slide(velocity, Vector3(0, 1, 0))
 	acceleration *= 0
 
 func move_to_waypoint():
@@ -44,14 +44,14 @@ func move_to_waypoint():
 		return
 	var direction = waypoint - global_transform.origin
 	direction = direction.normalized()
-	applyForce(direction * ACCEL)
-	print(global_transform.origin.distance_to(waypoint))
-	if global_transform.origin.distance_to(waypoint) <= 1.025:
+	velocity = direction * MAX_SPEED
+	if global_transform.origin.distance_to(waypoint) <= 0.6:
 		if path.size() > 0:
 			waypoint = path[0]
 			path.remove(0)
-			print (waypoint)
 		else:
+			velocity *= 0
+			acceleration *= 0
 			path = null
 			waypoint = null
 
@@ -61,4 +61,3 @@ func follow_path(path : PoolVector3Array) -> void:
 	self.path = path
 	waypoint = path[0]
 	path.remove(0)
-	print (waypoint)
