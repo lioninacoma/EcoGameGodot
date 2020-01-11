@@ -10,6 +10,7 @@
 #include "constants.h"
 #include "objectpool.h"
 #include "chunk.h"
+#include "voxelasset.h"
 
 namespace bpt = boost::posix_time;
 using namespace std;
@@ -45,6 +46,7 @@ namespace godot {
 		~MeshBuilder();
 
 		vector<int> buildVertices(Chunk* chunk, float** buffers, int buffersLen);
+		vector<int> buildVertices(VoxelAsset* asset, float** buffers, int buffersLen);
 	};
 
 }

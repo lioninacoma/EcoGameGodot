@@ -12,6 +12,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_types.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
 
 #include <deque>
 #include <queue>
@@ -78,13 +80,16 @@ namespace godot {
 
 		class GraphNode {
 		private:
-			Vector3 point;
+			Vector3 point, offset;
 			unordered_map<size_t, GraphEdge*> edges;
 			size_t hash;
+			int type;
 		public:
-			GraphNode(Vector3 point) {
+			GraphNode(Vector3 point, Vector3 offset) {
 				GraphNode::point = point;
+				GraphNode::offset = offset;
 				GraphNode::hash = fn::hash(point);
+				GraphNode::type = 0;
 			};
 			void addEdge(GraphEdge* edge) {
 				size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
@@ -95,6 +100,9 @@ namespace godot {
 				if (it == edges.end()) return;
 				edges.erase(nHash);
 			};
+			void setType(int type) {
+				GraphNode::type = type;
+			}
 			GraphEdge* getEdgeWithNode(size_t nHash) {
 				auto it = edges.find(nHash);
 				if (it == edges.end()) return NULL;
@@ -111,16 +119,24 @@ namespace godot {
 			Vector3 getPoint() {
 				return point;
 			};
+			Vector3 getOffset() {
+				return offset;
+			}
 			size_t getHash() {
 				return hash;
 			};
+			int getType() {
+				return type;
+			}
 			bool operator == (const GraphNode& o) const {
 				return hash == o.hash;
 			};
 		};
 
 		unordered_map<size_t, GraphNode*>* nodes;
+		unordered_map<int, vector<GraphNode*>*>* areas;
 		boost::mutex mutex;
+		int currentType = 1;
 	public:
 		static void _register_methods() {
 			register_method("updateGraph", &Navigator::updateGraph);
@@ -129,6 +145,7 @@ namespace godot {
 
 		Navigator() {
 			nodes = new unordered_map<size_t, GraphNode*>();
+			areas = new unordered_map<int, vector<GraphNode*>*>();
 		};
 		~Navigator() {};
 
@@ -175,6 +192,12 @@ namespace godot {
 			return it->second;
 		}
 
+		int getNextType() {
+			int type = currentType;
+			currentType++;
+			return type;
+		}
+
 		void updateGraph(Chunk* chunk, Node* game) {
 			int x, y, z, drawOffsetY = 1;
 			float nx, ny, nz;
@@ -197,7 +220,7 @@ namespace godot {
 			mutex.lock();
 			for (auto& point : *chunkPoints) {
 				if (nodeChanges->find(point.first) != nodeChanges->end()) {
-					current = new GraphNode(point.second);
+					current = new GraphNode(point.second, chunk->getOffset());
 					nodes->insert(pair<size_t, GraphNode*>(point.first, current));;
 				}
 				else {
@@ -221,40 +244,123 @@ namespace godot {
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(0, 1, 0, 1));*/
 
+			deque<size_t> queue, volume;
+			unordered_set<size_t> inque, ready;
+			unordered_set<int> neighbourTypes;
+			vector<GraphNode*>* area = new vector<GraphNode*>();
+			size_t cHash, nHash;
+			int type;
+
 			for (auto& change : *nodeChanges) {
 				if (!change.second) continue;
-				current = nodeCache[change.first];
+				volume.push_back(change.first);
+			}
 
-				for (z = -1; z < 2; z++)
-					for (x = -1; x < 2; x++)
-						for (y = -1; y < 2; y++) {
-							if (!x && !y && !z) continue;
+			while (true) {
+				while (!volume.empty()) {
+					cHash = volume.front();
+					volume.pop_front();
+					if (ready.find(cHash) == ready.end()) {
+						queue.push_back(cHash);
+						inque.insert(cHash);
+						break;
+					}
+				}
+				if (queue.empty()) {
+					break;
+				}
 
-							nx = current->getPoint().x + x;
-							ny = current->getPoint().y + y;
-							nz = current->getPoint().z + z;
+				neighbourTypes.clear();
 
-							size_t nHash = fn::hash(Vector3(nx, ny, nz));
-							auto it = chunkPoints->find(nHash);
+				while (!queue.empty()) {
+					cHash = queue.front();
+					queue.pop_front();
+					inque.erase(cHash);
 
-							if (it == chunkPoints->end()) {
-								chunkOffset.x = nx;
-								chunkOffset.y = ny;
-								chunkOffset.z = nz;
-								chunkOffset = fn::toChunkCoords(chunkOffset);
-								chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
-								if (chunk->getOffset() == chunkOffset) continue;
+					current = nodeCache[cHash];
+					ready.insert(cHash);
+					area->push_back(current);
 
-								// node from another chunk
-								neighbour = getNode(nHash);
-								if (!neighbour) continue;
+					for (z = -1; z < 2; z++)
+						for (x = -1; x < 2; x++)
+							for (y = -1; y < 2; y++) {
+								if (!x && !y && !z) continue;
+
+								nx = current->getPoint().x + x;
+								ny = current->getPoint().y + y;
+								nz = current->getPoint().z + z;
+
+								nHash = fn::hash(Vector3(nx, ny, nz));
+
+								if (chunkPoints->find(nHash) == chunkPoints->end()) {
+									chunkOffset.x = nx;
+									chunkOffset.y = ny;
+									chunkOffset.z = nz;
+									chunkOffset = fn::toChunkCoords(chunkOffset);
+									chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+									if (chunk->getOffset() == chunkOffset) continue;
+									neighbour = getNode(nHash);
+									if (!neighbour) continue;
+								
+									mutex.lock();
+									int neighbourType = neighbour->getType();
+									if (neighbourType) {
+										neighbourTypes.insert(neighbourType);
+									}
+									mutex.unlock();
+								}
+								else {
+									neighbour = nodeCache[nHash];
+									if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
+										queue.push_back(nHash);
+										inque.insert(nHash);
+									}
+								}
+
+								addEdge(current, neighbour, 1.0);
 							}
-							else {
-								neighbour = nodeCache[nHash];
-							}
+				}
+				
+				mutex.lock();
+				if (neighbourTypes.empty()) {
+					type = getNextType();
+					for (auto node : *area) {
+						node->setType(type);
+					}
 
-							addEdge(current, neighbour, 1.0);
+					areas->emplace(type, area);
+					area = new vector<GraphNode*>();
+				}
+				else {
+					type = (*neighbourTypes.begin());
+					
+					for (int neighbourType : neighbourTypes)
+						type = min(type, neighbourType);
+
+					neighbourTypes.erase(type);
+					auto areaBefore = areas->at(type);
+
+					for (auto node : *area) {
+						node->setType(type);
+						areaBefore->push_back(node);
+					}
+
+					area->clear();
+
+					for (int neighbourType : neighbourTypes) {
+						if (areas->find(neighbourType) == areas->end()) continue;
+						auto neighbourArea = areas->at(neighbourType);
+
+						for (auto node : *neighbourArea) {
+							node->setType(type);
+							areaBefore->push_back(node);
 						}
+
+						neighbourArea->clear();
+						// TODO: delete neighbourArea from areas
+					}
+				}
+				mutex.unlock();
 			}
 
 			nodeChanges->clear();
@@ -312,6 +418,10 @@ namespace godot {
 			}
 
 			if (!startNode || !goalNode) return path;
+			if (startNode->getType() != goalNode->getType()) {
+				Godot::print(String("path from {0} to {1} not found").format(Array::make(startNode->getPoint(), goalNode->getPoint())));
+				return path;
+			}
 
 			GraphNode* currentNode;
 			GraphNode* neighbourNode;
