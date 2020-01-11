@@ -53,7 +53,6 @@ material/0 = null
 shape = SubResource( 4 )
 
 [node name="Player" type="KinematicBody" parent="."]
-editor/display_folded = true
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 100, -5 )
 script = ExtResource( 3 )
 

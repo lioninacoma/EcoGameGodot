@@ -28,11 +28,11 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 	vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES);
 
-	for (int i = 0; i < offsets.size(); i++) {
-		int offset = offsets[i];
+	for (int o = 0; o < offsets.size(); o++) {
+		int offset = offsets[o];
 		if (offset <= 0) continue;
 
-		float* vertices = buffers[i];
+		float* vertices = buffers[o];
 		int amountVertices = offset / VERTEX_SIZE;
 		int amountIndices = amountVertices / 2 * 3;
 
@@ -85,7 +85,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 		meshData.push_back(meshArrays);
 		meshData.push_back(collisionArray);
-		meshData.push_back(i + 1);
+		meshData.push_back(o + 1);
 		meshData.push_back(offset);
 
 		meshes.push_back(meshData);

@@ -73,7 +73,7 @@ func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	
 	var meshInstance = MeshInstance.new()
 	var mesh = ArrayMesh.new()
-	var surfaceIndex = 0
+	var surfaceIndex : int = 0
 	
 	for meshData in meshes:
 		var mi = meshData[2] - 1
@@ -87,7 +87,7 @@ func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 		polygonShape.set_faces(meshData[1])
 		var ownerId = staticBody.create_shape_owner(owner)
 		staticBody.shape_owner_add_shape(ownerId, polygonShape)
-		staticBody.name = "sb"
+		staticBody.name = "sb%s"%[surfaceIndex]
 		meshInstance.add_child(staticBody)
 		
 		surfaceIndex += 1
@@ -113,10 +113,12 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 	geometry.set_material_override(m)
 	add_child(geometry)
 
-var actor : Actor
+var actor : Actor = null
+var asset : MeshInstance = null
+var assetBodies: Array
 
 func _input(event : InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
+	if event is InputEventMouseMotion and asset:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
@@ -125,9 +127,32 @@ func _input(event : InputEvent) -> void:
 		
 		if result:
 			var chunk = result.collider.shape_owner_get_owner(0)
-			var offset = chunk.getOffset()
-			var voxelPosition = result.position
+			if not chunk: return
 			
+			var voxelPosition = result.position
+			var normal = result.normal
+			var b = 0.1
+			var vx = int(voxelPosition.x - (b if normal.x > 0 else 0))
+			var vy = int(voxelPosition.y - (b if normal.y > 0 else 0))
+			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
+			var w = asset.get_aabb().end.x - asset.get_aabb().position.x
+			var d = asset.get_aabb().end.z - asset.get_aabb().position.z
+			
+			asset.global_transform.origin.x = vx - int(w / 2)
+			asset.global_transform.origin.y = vy + 1
+			asset.global_transform.origin.z = vz - int(d / 2)
+	elif event is InputEventMouseButton and event.pressed:
+		var camera = $Player/Head/Camera
+		var from = camera.project_ray_origin(event.position)
+		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
+		var space_state = get_world().direct_space_state
+		var result = space_state.intersect_ray(from, to)
+		
+		if result:
+			var chunk = result.collider.shape_owner_get_owner(0)
+			if !chunk: return
+			
+			var voxelPosition = result.position
 			var normal = result.normal
 			var b = 0.1
 			var vx = int(voxelPosition.x - (b if normal.x > 0 else 0))
@@ -135,12 +160,34 @@ func _input(event : InputEvent) -> void:
 			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
 			
 			if event.button_index == BUTTON_LEFT:
-				var meshes = Lib.buildVoxelAsset(2)
-				var meshInstance : MeshInstance = build_mesh_instance(meshes, null)
-				add_child(meshInstance)
-				meshInstance.global_transform.origin.x = vx
-				meshInstance.global_transform.origin.y = vy + 1
-				meshInstance.global_transform.origin.z = vz
+				if asset:
+					for i in range(asset.get_surface_material_count()):
+						asset.add_child(assetBodies[i])
+						var material = asset.mesh.surface_get_material(i)
+						material.set_blend_mode(0)
+						material.albedo_color = Color(1, 1, 1)
+					
+					asset = null
+					assetBodies.clear()
+				else:
+					var meshes = Lib.buildVoxelAsset(2)
+					asset = build_mesh_instance(meshes, null)
+					
+					for i in range(asset.get_surface_material_count()):
+						var body = asset.get_node("sb%s"%[i])
+						assetBodies.push_back(body)
+						asset.remove_child(body)
+						var material = asset.mesh.surface_get_material(i).duplicate(true)
+						material.set_blend_mode(1)
+						material.albedo_color = Color(0, 1, 0)
+						asset.mesh.surface_set_material(i, material)
+					
+					add_child(asset)
+					var w = asset.get_aabb().end.x - asset.get_aabb().position.x
+					var d = asset.get_aabb().end.z - asset.get_aabb().position.z
+					asset.global_transform.origin.x = vx - int(w / 2)
+					asset.global_transform.origin.y = vy + 1
+					asset.global_transform.origin.z = vz - int(d / 2)
 			elif event.button_index == BUTTON_RIGHT:
 				if actor:
 					var navStart = actor.global_transform.origin
@@ -153,15 +200,15 @@ func _input(event : InputEvent) -> void:
 				actor.global_transform.origin.x = vx + 0.5
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
-			elif event.button_index == BUTTON_WHEEL_DOWN:
-				chunk.setVoxel(
-					vx % WorldVariables.CHUNK_SIZE_X,
-					vy % WorldVariables.CHUNK_SIZE_Y,
-					vz % WorldVariables.CHUNK_SIZE_Z, 0)
-				build_chunk_queued(chunk)
-			elif event.button_index == BUTTON_WHEEL_UP:
-				chunk.setVoxel(
-					vx % WorldVariables.CHUNK_SIZE_X,
-					vy % WorldVariables.CHUNK_SIZE_Y + 1,
-					vz % WorldVariables.CHUNK_SIZE_Z, 1)
-				build_chunk_queued(chunk)
+#			elif event.button_index == BUTTON_WHEEL_DOWN:
+#				chunk.setVoxel(
+#					vx % WorldVariables.CHUNK_SIZE_X,
+#					vy % WorldVariables.CHUNK_SIZE_Y,
+#					vz % WorldVariables.CHUNK_SIZE_Z, 0)
+#				build_chunk_queued(chunk)
+#			elif event.button_index == BUTTON_WHEEL_UP:
+#				chunk.setVoxel(
+#					vx % WorldVariables.CHUNK_SIZE_X,
+#					vy % WorldVariables.CHUNK_SIZE_Y + 1,
+#					vz % WorldVariables.CHUNK_SIZE_Z, 1)
+#				build_chunk_queued(chunk)

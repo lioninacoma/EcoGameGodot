@@ -112,11 +112,11 @@ Array EcoGame::buildVoxelAsset(int type) {
 
 	vector<int> offsets = meshBuilder.buildVertices(vat, buffers, TYPES);
 
-	for (int i = 0; i < offsets.size(); i++) {
-		int offset = offsets[i];
+	for (int o = 0; o < offsets.size(); o++) {
+		int offset = offsets[o];
 		if (offset <= 0) continue;
 
-		float* vertices = buffers[i];
+		float* vertices = buffers[o];
 		int amountVertices = offset / VERTEX_SIZE;
 		int amountIndices = amountVertices / 2 * 3;
 
@@ -169,10 +169,16 @@ Array EcoGame::buildVoxelAsset(int type) {
 
 		meshData.push_back(meshArrays);
 		meshData.push_back(collisionArray);
-		meshData.push_back(i + 1);
+		meshData.push_back(o + 1);
 		meshData.push_back(offset);
 
 		meshes.push_back(meshData);
-		return meshes;
 	}
+
+	for (int i = 0; i < TYPES; i++) {
+		delete [] buffers[i];
+	}
+	delete[] buffers;
+
+	return meshes;
 }

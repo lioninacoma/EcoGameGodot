@@ -311,7 +311,7 @@ namespace godot {
 									}
 								}
 
-								addEdge(current, neighbour, 1.0);
+								addEdge(current, neighbour, euclidean(current->getPoint(), neighbour->getPoint()));
 							}
 				}
 				
