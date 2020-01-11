@@ -10,6 +10,7 @@
 #include "constants.h"
 #include "objectpool.h"
 #include "chunk.h"
+#include "voxelassetmanager.h"
 #include "voxelasset.h"
 
 namespace bpt = boost::posix_time;
@@ -25,7 +26,6 @@ namespace godot {
 		const int WEST = 3;
 		const int TOP = 4;
 		const int BOTTOM = 5;
-		const int DIMS[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
 
 		static ObjectPool<int, BUFFER_SIZE, POOL_SIZE>& getMaskPool() {
 			static ObjectPool<int, BUFFER_SIZE, POOL_SIZE> pool;
@@ -41,12 +41,14 @@ namespace godot {
 		int createRight(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
+
+		vector<int> buildVertices(VoxelData* volume, Chunk* chunk, const int DIMS[3], float** buffers, int buffersLen);
 	public:
 		MeshBuilder();
 		~MeshBuilder();
 
 		vector<int> buildVertices(Chunk* chunk, float** buffers, int buffersLen);
-		vector<int> buildVertices(VoxelAsset* asset, float** buffers, int buffersLen);
+		vector<int> buildVertices(VoxelAssetType type, float** buffers, int buffersLen);
 	};
 
 }

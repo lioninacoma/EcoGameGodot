@@ -21,6 +21,7 @@
 #include "voxelassetmanager.h"
 #include "section.h"
 #include "navigator.h"
+#include "meshbuilder.h"
 
 using namespace std;
 
@@ -45,6 +46,7 @@ namespace godot {
 
 		void buildSections(Vector3 center, float radius);
 		void buildChunk(Variant vChunk);
+		Array buildVoxelAsset(int type);
 		PoolVector3Array navigate(Vector3 startV, Vector3 goalV);
 		void updateGraph(Variant vChunk);
 	};

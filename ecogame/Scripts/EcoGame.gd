@@ -51,12 +51,28 @@ func process_build_stack() -> void:
 		chunk.setBuilding(true)
 		Lib.buildChunk(chunk, self)
 
-func build_mesh_instance(meshes : Array, chunk) -> void:
+func build_chunk(meshes : Array, chunk) -> void:
 	if (!meshes || !chunk): return
+	var oldMeshInstanceId = chunk.getMeshInstanceId()
+	
+	if oldMeshInstanceId != 0:
+		var oldMeshInstance = instance_from_id(oldMeshInstanceId)
+		if oldMeshInstance:
+			remove_child(oldMeshInstance)
+			oldMeshInstance.free()
+	
+	var meshInstance = build_mesh_instance(meshes, chunk)
+	add_child(meshInstance)
+	
+	chunk.setMeshInstanceId(meshInstance.get_instance_id())
+	chunk.setBuilding(false)
+	Lib.updateGraph(chunk)
+
+func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
+	if (!meshes): return null
 	
 	var meshInstance = MeshInstance.new()
 	var mesh = ArrayMesh.new()
-	var oldMeshInstanceId = chunk.getMeshInstanceId()
 	var surfaceIndex = 0
 	
 	for meshData in meshes:
@@ -69,7 +85,7 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 		mesh.surface_set_material(surfaceIndex, WorldVariables.materials[mi])
 		
 		polygonShape.set_faces(meshData[1])
-		var ownerId = staticBody.create_shape_owner(chunk)
+		var ownerId = staticBody.create_shape_owner(owner)
 		staticBody.shape_owner_add_shape(ownerId, polygonShape)
 		staticBody.name = "sb"
 		meshInstance.add_child(staticBody)
@@ -77,17 +93,7 @@ func build_mesh_instance(meshes : Array, chunk) -> void:
 		surfaceIndex += 1
 	
 	meshInstance.mesh = mesh
-	
-	if oldMeshInstanceId != 0:
-		var oldMeshInstance = instance_from_id(oldMeshInstanceId)
-		if oldMeshInstance:
-			remove_child(oldMeshInstance)
-			oldMeshInstance.free()
-	
-	add_child(meshInstance)
-	chunk.setMeshInstanceId(meshInstance.get_instance_id())
-	chunk.setBuilding(false)
-	Lib.updateGraph(chunk)
+	return meshInstance
 
 func build_chunk_queued(chunk):
 	buildStack.push_front(chunk)
@@ -128,26 +134,34 @@ func _input(event : InputEvent) -> void:
 			var vy = int(voxelPosition.y - (b if normal.y > 0 else 0))
 			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
 			
-			if event.button_index == 1:
-				pass
-			elif event.button_index == 2:
-				
+			if event.button_index == BUTTON_LEFT:
+				var meshes = Lib.buildVoxelAsset(2)
+				var meshInstance : MeshInstance = build_mesh_instance(meshes, null)
+				add_child(meshInstance)
+				meshInstance.global_transform.origin.x = vx
+				meshInstance.global_transform.origin.y = vy + 1
+				meshInstance.global_transform.origin.z = vz
+			elif event.button_index == BUTTON_RIGHT:
 				if actor:
 					var navStart = actor.global_transform.origin
 					var navEnd = voxelPosition
 					var path : PoolVector3Array = Lib.navigate(navStart, navEnd)
 					actor.follow_path(path)
-			
-			elif event.button_index == 3:
+			elif event.button_index == BUTTON_MIDDLE:
 				actor = Actor.instance()
 				add_child(actor)
 				actor.global_transform.origin.x = vx + 0.5
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
-				
-#				chunk.setVoxel(
-#					vx % WorldVariables.CHUNK_SIZE_X,
-#					vy % WorldVariables.CHUNK_SIZE_Y + 1,
-#					vz % WorldVariables.CHUNK_SIZE_Z, 1)
-#
-#				build_chunk_queued(chunk)
+			elif event.button_index == BUTTON_WHEEL_DOWN:
+				chunk.setVoxel(
+					vx % WorldVariables.CHUNK_SIZE_X,
+					vy % WorldVariables.CHUNK_SIZE_Y,
+					vz % WorldVariables.CHUNK_SIZE_Z, 0)
+				build_chunk_queued(chunk)
+			elif event.button_index == BUTTON_WHEEL_UP:
+				chunk.setVoxel(
+					vx % WorldVariables.CHUNK_SIZE_X,
+					vy % WorldVariables.CHUNK_SIZE_Y + 1,
+					vz % WorldVariables.CHUNK_SIZE_Z, 1)
+				build_chunk_queued(chunk)

@@ -6,14 +6,8 @@
 #include <Vector3.hpp>
 #include <ImmediateGeometry.hpp>
 
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/polygon.hpp>
-#include <boost/graph/astar_search.hpp>
-#include <boost/graph/adjacency_list.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_types.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/thread.hpp>
 
 #include <deque>
 #include <queue>
@@ -134,7 +128,7 @@ namespace godot {
 		};
 
 		unordered_map<size_t, GraphNode*>* nodes;
-		unordered_map<int, vector<GraphNode*>*>* areas;
+		unordered_map<int, unordered_map<size_t, GraphNode*>*>* areas;
 		boost::mutex mutex;
 		int currentType = 1;
 	public:
@@ -145,7 +139,7 @@ namespace godot {
 
 		Navigator() {
 			nodes = new unordered_map<size_t, GraphNode*>();
-			areas = new unordered_map<int, vector<GraphNode*>*>();
+			areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
 		};
 		~Navigator() {};
 
@@ -207,6 +201,12 @@ namespace godot {
 			auto nodeChanges = chunk->getNodeChanges();
 
 			unordered_map<size_t, GraphNode*> nodeCache;
+			deque<size_t> queue, volume;
+			unordered_set<size_t> inque, ready;
+			unordered_set<int> neighbourTypes;
+			unordered_map<size_t, GraphNode*>* area = new unordered_map<size_t, GraphNode*>();
+			size_t cHash, nHash;
+			int type;
 
 			/*auto dots = ImmediateGeometry::_new();
 			dots->begin(Mesh::PRIMITIVE_POINTS);
@@ -236,6 +236,7 @@ namespace godot {
 				auto it = nodes->find(change.first);
 				if (it == nodes->end()) continue;
 				current = it->second;
+				areas->at(current->getType())->erase(change.first);
 				removeNode(current);
 			}
 			mutex.unlock();
@@ -243,13 +244,6 @@ namespace godot {
 			/*auto geo = ImmediateGeometry::_new();
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(0, 1, 0, 1));*/
-
-			deque<size_t> queue, volume;
-			unordered_set<size_t> inque, ready;
-			unordered_set<int> neighbourTypes;
-			vector<GraphNode*>* area = new vector<GraphNode*>();
-			size_t cHash, nHash;
-			int type;
 
 			for (auto& change : *nodeChanges) {
 				if (!change.second) continue;
@@ -279,7 +273,7 @@ namespace godot {
 
 					current = nodeCache[cHash];
 					ready.insert(cHash);
-					area->push_back(current);
+					area->emplace(cHash, current);
 
 					for (z = -1; z < 2; z++)
 						for (x = -1; x < 2; x++)
@@ -325,11 +319,11 @@ namespace godot {
 				if (neighbourTypes.empty()) {
 					type = getNextType();
 					for (auto node : *area) {
-						node->setType(type);
+						node.second->setType(type);
 					}
 
 					areas->emplace(type, area);
-					area = new vector<GraphNode*>();
+					area = new unordered_map<size_t, GraphNode*>();
 				}
 				else {
 					type = (*neighbourTypes.begin());
@@ -341,22 +335,22 @@ namespace godot {
 					auto areaBefore = areas->at(type);
 
 					for (auto node : *area) {
-						node->setType(type);
-						areaBefore->push_back(node);
+						node.second->setType(type);
+						areaBefore->insert(node);
 					}
 
 					area->clear();
 
 					for (int neighbourType : neighbourTypes) {
-						if (areas->find(neighbourType) == areas->end()) continue;
 						auto neighbourArea = areas->at(neighbourType);
 
 						for (auto node : *neighbourArea) {
-							node->setType(type);
-							areaBefore->push_back(node);
+							node.second->setType(type);
+							areaBefore->insert(node);
 						}
 
 						neighbourArea->clear();
+						//areas->erase(neighbourType);
 						// TODO: delete neighbourArea from areas
 					}
 				}

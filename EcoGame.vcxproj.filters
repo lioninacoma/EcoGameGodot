@@ -89,5 +89,8 @@
     <ClInclude Include="src\navigator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\voxeldata.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

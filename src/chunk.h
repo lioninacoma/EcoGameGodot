@@ -16,6 +16,7 @@
 #include "fn.h"
 #include "intersection.h"
 #include "voxel.h"
+#include "voxeldata.h"
 
 using namespace std;
 
@@ -29,7 +30,7 @@ namespace godot {
 		int amountNodes = 0;
 		int amountVoxel = 0;
 		int meshInstanceId = 0;
-		char* volume;
+		VoxelData* volume;
 		int* surfaceY;
 		unordered_map<size_t, bool>* nodeChanges;
 		unordered_map<size_t, Vector3>* nodes;
@@ -53,7 +54,7 @@ namespace godot {
 		Vector3 getOffset() {
 			return offset;
 		}
-		char* getVolume() {
+		VoxelData* getVolume() {
 			return volume;
 		}
 		int getMeshInstanceId() {

@@ -3,7 +3,7 @@ extends Node
 # world building variables
 const WORLD_SIZE : int = 64;
 const CHUNK_SIZE_X : int = 32
-const CHUNK_SIZE_Y : int = 128
+const CHUNK_SIZE_Y : int = 96
 const CHUNK_SIZE_Z : int = 32
 var PICK_DISTANCE : int = 10
 const BUILD_DISTANCE : int = 128

@@ -10,22 +10,25 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, float** buffers, int buffersLen) {
-
+vector<int> MeshBuilder::buildVertices(VoxelAssetType type, float** buffers, int buffersLen) {
+	VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
+	const int DIMS[3] = { voxelAsset->getWidth(), voxelAsset->getHeight(), voxelAsset->getDepth() };
+	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, DIMS, buffers, buffersLen);
 }
 
 vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffersLen) {
-
+	const int DIMS[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
+	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffersLen) {
-	//Godot::print(String("offset: {0}, volume[0]: {1}, volume[1]: {2}").format(Array::make(offset, (*volume)[0], (*volume)[1])));
-	Vector3 offset = chunk->getOffset();
+vector<int> MeshBuilder::buildVertices(VoxelData* volume, Chunk* chunk, const int DIMS[3], float** buffers, int buffersLen) {
+	Vector3 offset = (chunk) ? chunk->getOffset() : Vector3(0, 0, 0);
 
 	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj;
 	float nx, ny, nz;
-	bool backFace, b, done = false;
-	bool initializeNodes = chunk->getNodeChanges()->empty();
+	bool backFace, b, done = false, initializeNodes = false;
+
+	if (chunk) initializeNodes = chunk->getNodeChanges()->empty();
 
 	vector<int> vertexOffsets;
 	vertexOffsets.resize(buffersLen);
@@ -35,7 +38,6 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 	}
 
 	int* mask = MeshBuilder::getMaskPool().borrow();
-	//int* mask = new int[BUFFER_SIZE];
 	memset(mask, -1, BUFFER_SIZE * sizeof(*mask));
 
 	int bl[3];
@@ -78,8 +80,8 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 				n = 0;
 				for (x[v] = 0; x[v] < DIMS[v]; x[v]++) {
 					for (x[u] = 0; x[u] < DIMS[u]; x[u]++) {
-						v0 = (0 <= x[d]) ? chunk->getVoxel(x[0], x[1], x[2]) : -1;
-						v1 = (x[d] < DIMS[d] - 1) ? chunk->getVoxel(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
+						v0 = (0 <= x[d]) ? volume->get(x[0], x[1], x[2]) : -1;
+						v1 = (x[d] < DIMS[d] - 1) ? volume->get(x[0] + q[0], x[1] + q[1], x[2] + q[2]) : -1;
 						mask[n++] = (v0 != -1 && v0 == v1) ? -1 : backFace ? v1 : v0;
 					}
 				}
@@ -149,21 +151,15 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 								idx = mask[n] - 1;
 								vertexOffsets[idx] = quad(offset, bl, tl, tr, br, buffers[idx], side, mask[n], vertexOffsets[idx]);
 
-								if (initializeNodes && side == TOP && bl[1] + 1 < CHUNK_SIZE_Y) {
+								if (chunk && initializeNodes && side == TOP && bl[1] + 1 < DIMS[1]) {
 									ny = bl[1];
 									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 1.0) {
 										for (nx = bl[0] + 0.5; nx < br[0]; nx += 1.0) {
 											if (chunk->getVoxel((int)nx, (int)ny, (int)nz) == 0 && chunk->getVoxel((int)nx, (int)ny - 1, (int)nz) != 6) {
-												Vector3 p = offset + Vector3(nx, ny, nz);
-												chunk->addNode(p);
+												chunk->addNode(offset + Vector3(nx, ny, nz));
 											}
 										}
 									}
-
-									/*nx = bl[0] + (abs(bl[0] - br[0]) / 2.0);
-									ny = bl[1];
-									nz = bl[2] + (abs(bl[2] - tl[2]) / 2.0);*/
-									
 								}
 							}
 
@@ -189,7 +185,6 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 	}
 
 	MeshBuilder::getMaskPool().ret(mask);
-	//delete[] mask;
 	return vertexOffsets;
 }
 

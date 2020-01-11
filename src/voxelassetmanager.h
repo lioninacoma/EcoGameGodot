@@ -6,6 +6,7 @@
 #include <iterator> 
 
 #include "voxel.h"
+#include "voxeldata.h"
 #include "voxelasset_house4x4.h"
 #include "voxelasset_house6x6.h"
 #include "voxelasset_pinetree.h"
@@ -22,7 +23,6 @@ namespace godot {
 
 	class VoxelAssetManager {
 	private:
-		std::map<VoxelAssetType, vector<Voxel>*> voxelCache;
 		std::map<VoxelAssetType, VoxelAsset*> assets;
 
 		VoxelAssetManager() {
@@ -37,34 +37,15 @@ namespace godot {
 		}
 
 		VoxelAsset* getVoxelAsset(VoxelAssetType type) {
-			auto pos = assets.find(type);
-
-			if (pos == assets.end()) {
-				return NULL;
-			}
-			else {
-				return pos->second;
-			}
+			return assets[type];
 		}
 
 		vector<Voxel>* getVoxels(VoxelAssetType type) {
-			auto posC = voxelCache.find(type);
+			return assets[type]->getVoxels();
+		}
 
-			if (posC == voxelCache.end()) {
-				auto posV = assets.find(type);
-
-				if (posV == assets.end()) {
-					return NULL;
-				}
-				else {
-					auto assets = posV->second->getVoxels();
-					voxelCache.insert(std::pair<VoxelAssetType, vector<Voxel>*>(type, assets));
-					return assets;
-				}
-			}
-			else {
-				return posC->second;
-			}
+		VoxelData* getVolume(VoxelAssetType type) {
+			return assets[type]->getVolume();
 		}
 	};
 }

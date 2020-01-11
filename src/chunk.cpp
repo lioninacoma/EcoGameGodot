@@ -29,12 +29,11 @@ Chunk::~Chunk() {
 
 void Chunk::_init() {
 	Chunk::noise = OpenSimplexNoise::_new();
-	Chunk::volume = new char[BUFFER_SIZE];
+	Chunk::volume = new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
 	Chunk::nodes = new unordered_map<size_t, Vector3>();
 	Chunk::nodeChanges = new unordered_map<size_t, bool>();
 
-	memset(volume, 0, BUFFER_SIZE * sizeof(*volume));
 	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
 
 	Chunk::noise->set_seed(NOISE_SEED);
@@ -47,7 +46,7 @@ int Chunk::getVoxel(int x, int y, int z) {
 	if (x < 0 || x >= CHUNK_SIZE_X) return 0;
 	if (y < 0 || y >= CHUNK_SIZE_Y) return 0;
 	if (z < 0 || z >= CHUNK_SIZE_Z) return 0;
-	return (int) volume[fn::fi3(x, y, z)];
+	return (int) volume->get(x, y, z);
 }
 
 int Chunk::getVoxelY(int x, int z) {
@@ -125,7 +124,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	if (y < 0 || y >= CHUNK_SIZE_Y) return;
 	if (z < 0 || z >= CHUNK_SIZE_Z) return;
 	
-	volume[fn::fi3(x, y, z)] = (char)v;
+	volume->set(x, y, z, v);
 	int dy = surfaceY[fn::fi2(x, z)];
 	
 	if (v == 0) {

@@ -189,6 +189,7 @@
     <ClInclude Include="src\voxelasset_pinetree.h" />
     <ClInclude Include="src\voxelasset_house4x4.h" />
     <ClInclude Include="src\voxelasset_house6x6.h" />
+    <ClInclude Include="src\voxeldata.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
