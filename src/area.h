@@ -17,6 +17,7 @@ namespace godot {
 			Area::start = start;
 			Area::end = end;
 			Area::y = y;
+			Area::offset = Vector2(0, 0);
 		}
 
 		void setOffset(Vector2 offset) {

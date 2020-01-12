@@ -5,6 +5,7 @@
 #include <Reference.hpp>
 #include <Vector3.hpp>
 #include <Texture.hpp>
+#include <OpenSimplexNoise.hpp>
 
 #include <iostream>
 #include <string>
@@ -25,6 +26,9 @@ namespace godot {
 	private:
 		Chunk** chunks;
 		Vector2 offset;
+		int sectionSize;
+		int sectionChunksLen;
+		OpenSimplexNoise* noise;
 	public:
 		static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 4>& getIntBufferPool() {
 			static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 4> pool;
@@ -36,12 +40,21 @@ namespace godot {
 		}
 
 		Section() : Section(Vector2()) {};
-		Section(Vector2 offset) {
+		Section(Vector2 offset) : Section(offset, SECTION_SIZE) {};
+		Section(Vector2 offset, int sectionSize) {
 			Section::offset = offset;
-			chunks = new Chunk * [SECTION_CHUNKS_LEN * sizeof(*chunks)];
+			Section::sectionSize = sectionSize;
+			Section::sectionChunksLen = sectionSize * sectionSize;
+			chunks = new Chunk * [sectionChunksLen * sizeof(*chunks)];
 
-			memset(chunks, 0, SECTION_CHUNKS_LEN * sizeof(*chunks));
-		}
+			memset(chunks, 0, sectionChunksLen * sizeof(*chunks));
+
+			Section::noise = OpenSimplexNoise::_new();
+			Section::noise->set_seed(NOISE_SEED);
+			Section::noise->set_octaves(3);
+			Section::noise->set_period(60.0);
+			Section::noise->set_persistence(0.5);
+		};
 
 		~Section() {
 			delete[] chunks;
@@ -52,24 +65,128 @@ namespace godot {
 
 		}
 
+		float getVoxelAssetChance(int x, int y, float scale) {
+			return noise->get_noise_2d(
+				(x + offset.x * CHUNK_SIZE_X) * scale,
+				(y + offset.y * CHUNK_SIZE_Z) * scale) / 2.0 + 0.5;
+		}
+
+		void addVoxelAsset(Vector3 startV, VoxelAssetType type, ChunkBuilder* builder, Node* game) {
+			VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
+			int i, areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
+			Chunk* chunk;
+			Vector2 start = Vector2(startV.x, startV.z);
+			Vector2 end = start + Vector2(areaSize, areaSize);
+			Area area = Area(start, end, startV.y);
+
+			buildArea(area, type);
+
+			for (i = 0; i < sectionChunksLen; i++) {
+				chunk = chunks[i];
+				if (!chunk) continue;
+				builder->build(chunk, game);
+			}
+		}
+
+		bool voxelAssetFits(Vector3 start, VoxelAssetType type) {
+			VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
+			int maxDeltaY = voxelAsset->getMaxDeltaY();
+			int areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
+			int x, y, z, cx, cz, ci, dy;
+			Chunk* chunk;
+			Vector2 chunkOffset, end = Vector2(start.x, start.z) + Vector2(areaSize, areaSize);
+			y = (int)start.y;
+			
+			for (z = start.z; z < end.y; z++) {
+				for (x = start.x; x < end.x; x++) {
+					chunkOffset.x = x;
+					chunkOffset.y = z;
+					chunkOffset = fn::toChunkCoords(chunkOffset);
+					cx = (int)(chunkOffset.x - offset.x);
+					cz = (int)(chunkOffset.y - offset.y);
+					ci = fn::fi2(cx, cz, sectionSize);
+
+					if (ci < 0 || ci >= sectionChunksLen) continue;
+
+					chunk = chunks[ci];
+					
+					if (!chunk) continue;
+
+					if (abs(chunk->getCurrentSurfaceY(
+						x % CHUNK_SIZE_X,
+						z % CHUNK_SIZE_Z) - y) > maxDeltaY) {
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+
+		void fill(Section** sections, int sectionsLen, int sectionSize, int sectionsSize) {
+			int xS, xE, zS, zE, x, z, sx, sy, cx, cz, ci;
+			Section* section;
+			Chunk* chunk;
+			Vector3 tl, br, chunkOffset;
+
+			tl = Vector3(offset.x, 0, offset.y);
+			br = tl + Vector3(Section::sectionSize, 0, Section::sectionSize);
+
+			xS = int(tl.x);
+			xS = max(0, xS);
+
+			xE = int(br.x);
+			xE = min(sectionsSize - 1, xE);
+
+			zS = int(tl.z);
+			zS = max(0, zS);
+
+			zE = int(br.z);
+			zE = min(sectionsSize - 1, zE);
+
+			for (z = zS; z <= zE; z++) {
+				for (x = xS; x <= xE; x++) {
+					section = sections[fn::fi2(x, z, sectionsSize)];
+					if (!section) continue;
+
+					for (sy = 0; sy < sectionSize; sy++) {
+						for (sx = 0; sx < sectionSize; sx++) {
+							chunk = section->chunks[fn::fi2(sx, sy, sectionSize)];
+							if (!chunk) continue;
+							chunkOffset = chunk->getOffset();
+							chunkOffset = fn::toChunkCoords(chunkOffset);
+
+							if (chunkOffset.x >= xS && chunkOffset.z >= zS && chunkOffset.x < xE && chunkOffset.z < zE) {
+								cx = (int)(chunkOffset.x - offset.x);
+								cz = (int)(chunkOffset.z - offset.y);
+								ci = fn::fi2(cx, cz, Section::sectionSize);
+								chunks[ci] = chunk;
+							}
+						}
+					}
+				}
+			}
+		}
+
 		void build(ChunkBuilder* builder, Node* game) {
 			int x, y, i;
 			Chunk* chunk;
 
-			for (y = 0; y < SECTION_SIZE; y++) {
-				for (x = 0; x < SECTION_SIZE; x++) {
+			for (y = 0; y < sectionSize; y++) {
+				for (x = 0; x < sectionSize; x++) {
 					chunk = Chunk::_new();
 					chunk->setOffset(Vector3((x + offset.x) * CHUNK_SIZE_X, 0, (y + offset.y) * CHUNK_SIZE_Z));
-					chunks[fn::fi2(x, y, SECTION_SIZE)] = chunk;
+					chunks[fn::fi2(x, y, sectionSize)] = chunk;
 					chunk->buildVolume();
 				}
 			}
 
-			//buildAreasByType(VoxelAssetType::HOUSE_6X6);
-			//buildAreasByType(VoxelAssetType::HOUSE_4X4);
-			//buildAreasByType(VoxelAssetType::PINE_TREE);
+			buildAreasByType(VoxelAssetType::PINE_TREE);
+			buildAreasByType(VoxelAssetType::HOUSE_6X6);
+			buildAreasByType(VoxelAssetType::HOUSE_4X4);
 			
-			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
+			
+			for (i = 0; i < sectionChunksLen; i++) {
 				chunk = chunks[i];
 				if (!chunk) continue;
 				builder->build(chunk, game);
@@ -81,13 +198,13 @@ namespace godot {
 		}
 
 		Chunk* getChunk(int x, int y) {
-			if (x < 0 || x >= SECTION_SIZE) return NULL;
-			if (y < 0 || y >= SECTION_SIZE) return NULL;
-			return chunks[fn::fi2(x, y, SECTION_SIZE)];
+			if (x < 0 || x >= sectionSize) return NULL;
+			if (y < 0 || y >= sectionSize) return NULL;
+			return chunks[fn::fi2(x, y, sectionSize)];
 		}
 
 		Chunk* getChunk(int i) {
-			if (i < 0 || i >= SECTION_CHUNKS_LEN) return NULL;
+			if (i < 0 || i >= sectionChunksLen) return NULL;
 			return chunks[i];
 		}
 
@@ -95,8 +212,11 @@ namespace godot {
 			VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 			int maxDeltaY = voxelAsset->getMaxDeltaY();
 			int areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
+			float assetNoiseChance = voxelAsset->getNoiseChance();
+			float assetNoiseOffset = voxelAsset->getNoiseOffset();
+			float assetNoiseScale = voxelAsset->getNoiseScale();
 			int currentY, currentType, currentIndex, deltaY, lastY = -1, ci, i, j, it, vx, vz;
-			Vector2 areasOffset;
+			Vector2 areasOffset, start;
 			Vector3 chunkOffset;
 			Chunk* chunk;
 			vector<Area> areas;
@@ -119,9 +239,9 @@ namespace godot {
 
 			//Godot::print(String("chunks, surfaceY and mask initialized"));
 
-			const int SECTION_SIZE_CHUNKS = SECTION_SIZE * CHUNK_SIZE_X;
+			const int SECTION_SIZE_CHUNKS = sectionSize * CHUNK_SIZE_X;
 
-			for (it = 0; it < SECTION_CHUNKS_LEN; it++) {
+			for (it = 0; it < sectionChunksLen; it++) {
 				chunk = chunks[it];
 
 				if (!chunk) continue;
@@ -170,7 +290,9 @@ namespace godot {
 				areas = findAreasOfSize(areaSize, mask, surfaceY);
 
 				for (Area area : areas) {
+					start = area.getStart();
 					area.setOffset(areasOffset);
+					if (getVoxelAssetChance(start.x + assetNoiseOffset, start.y + assetNoiseOffset, assetNoiseScale) > assetNoiseChance) continue;
 					buildArea(area, type);
 					//Godot::print(String("area start: {0}, end: {1}").format(Array::make(area.getStart(), area.getEnd())));
 				}
@@ -203,9 +325,9 @@ namespace godot {
 				chunkOffset = fn::toChunkCoords(chunkOffset);
 				cx = (int)(chunkOffset.x - offset.x);
 				cz = (int)(chunkOffset.y - offset.y);
-				ci = fn::fi2(cx, cz, SECTION_SIZE);
+				ci = fn::fi2(cx, cz, sectionSize);
 
-				if (ci < 0 || ci >= SECTION_CHUNKS_LEN) continue;
+				if (ci < 0 || ci >= sectionChunksLen) continue;
 
 				chunk = chunks[ci];
 
@@ -225,7 +347,7 @@ namespace godot {
 		}
 
 		Area* findNextArea(int* mask, int* surfaceY) {
-			const int SECTION_SIZE_CHUNKS = SECTION_SIZE * CHUNK_SIZE_X;
+			const int SECTION_SIZE_CHUNKS = sectionSize * CHUNK_SIZE_X;
 			int i, j, x0, x1, y0, y1;
 			int max_of_s, max_i, max_j;
 
@@ -281,7 +403,7 @@ namespace godot {
 			int i, j, x, y, x0, x1, y0, y1, areaY, currentSize, meanY = 0, count = 0;
 			vector<Area> areas;
 
-			const int SECTION_SIZE_CHUNKS = SECTION_SIZE * CHUNK_SIZE_X;
+			const int SECTION_SIZE_CHUNKS = sectionSize * CHUNK_SIZE_X;
 
 			int* sub = getIntBufferPool().borrow();
 			memset(sub, 0, INT_POOL_BUFFER_SIZE * sizeof(*sub));

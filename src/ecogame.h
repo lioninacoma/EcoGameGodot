@@ -46,7 +46,9 @@ namespace godot {
 
 		void buildSections(Vector3 center, float radius);
 		void buildChunk(Variant vChunk);
+		void addVoxelAsset(Vector3 start, int type);
 		Array buildVoxelAsset(int type);
+		bool voxelAssetFits(Vector3 start, int type);
 		PoolVector3Array navigate(Vector3 startV, Vector3 goalV);
 		void updateGraph(Variant vChunk);
 	};

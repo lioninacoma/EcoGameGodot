@@ -101,29 +101,29 @@ namespace godot {
 		void addNode(Vector3 p) {
 			size_t hash = fn::hash(p);
 			Chunk::nodes->insert(pair<size_t, Vector3>(hash, p));
-			Chunk::nodeChanges->emplace(hash, 1);
+			//Chunk::nodeChanges->emplace(hash, 1);
 
-			/*auto it = Chunk::nodeChanges->find(hash);
+			auto it = Chunk::nodeChanges->find(hash);
 			if (it == Chunk::nodeChanges->end()) {
 				Chunk::nodeChanges->emplace(hash, 1);
 			}
 			else if (!it->second) {
 				Chunk::nodeChanges->erase(hash);
-			}*/
+			}
 		};
 		void removeNode(Vector3 p) {
 			size_t hash = fn::hash(p);
 			if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
 			Chunk::nodes->erase(hash);
-			Chunk::nodeChanges->emplace(hash, 0);
+			//Chunk::nodeChanges->emplace(hash, 0);
 
-			/*auto it = Chunk::nodeChanges->find(hash);
+			auto it = Chunk::nodeChanges->find(hash);
 			if (it == Chunk::nodeChanges->end()) {
 				Chunk::nodeChanges->emplace(hash, 0);
 			}
 			else if (it->second) {
 				Chunk::nodeChanges->erase(hash);
-			}*/
+			}
 		};
 	};
 

@@ -5,6 +5,8 @@ using namespace godot;
 void EcoGame::_register_methods() {
 	register_method("buildChunk", &EcoGame::buildChunk);
 	register_method("buildVoxelAsset", &EcoGame::buildVoxelAsset);
+	register_method("addVoxelAsset", &EcoGame::addVoxelAsset);
+	register_method("voxelAssetFits", &EcoGame::voxelAssetFits);
 	register_method("buildSections", &EcoGame::buildSections);
 	register_method("navigate", &EcoGame::navigate);
 	register_method("updateGraph", &EcoGame::updateGraph);
@@ -92,6 +94,60 @@ void EcoGame::buildChunk(Variant vChunk) {
 	Chunk* chunk = as<Chunk>(vChunk.operator Object * ());
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	chunkBuilder->build(chunk, game);
+}
+
+bool EcoGame::voxelAssetFits(Vector3 startV, int type) {
+	VoxelAssetType vat = (VoxelAssetType)type;
+	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
+	float width = asset->getWidth();
+	float depth = asset->getDepth();
+	Section* section;
+	int w2 = (int)(width / 2.0);
+	int d2 = (int)(depth / 2.0);
+
+	Vector3 start = startV - Vector3(w2, 0, d2);
+	Vector3 end = startV + Vector3(w2, 0, d2);
+	Vector3 tl = start;
+	Vector3 br = end;
+
+	tl = fn::toSectionCoords(tl);
+	br = fn::toSectionCoords(br);
+
+	Vector2 offset = Vector2(tl.x, tl.z);
+	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+
+	section = new Section(offset, sectionSize);
+	section->fill(sections, SECTIONS_LEN, SECTION_SIZE, SECTIONS_SIZE);
+	bool fits = section->voxelAssetFits(start, vat);
+	delete section;
+	return fits;
+}
+
+void EcoGame::addVoxelAsset(Vector3 startV, int type) {
+	VoxelAssetType vat = (VoxelAssetType)type;
+	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	float width = asset->getWidth();
+	float depth = asset->getDepth();
+	Section* section;
+	int w2 = (int)(width / 2.0);
+	int d2 = (int)(depth / 2.0);
+
+	Vector3 start = startV - Vector3(w2, 0, d2);
+	Vector3 end = startV + Vector3(w2, 0, d2);
+	Vector3 tl = start;
+	Vector3 br = end;
+
+	tl = fn::toSectionCoords(tl);
+	br = fn::toSectionCoords(br);
+
+	Vector2 offset = Vector2(tl.x, tl.z);
+	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+
+	section = new Section(offset, sectionSize);
+	section->fill(sections, SECTIONS_LEN, SECTION_SIZE, SECTIONS_SIZE);
+	section->addVoxelAsset(start, vat, chunkBuilder, game);
+	delete section;
 }
 
 Array EcoGame::buildVoxelAsset(int type) {
@@ -182,3 +238,4 @@ Array EcoGame::buildVoxelAsset(int type) {
 
 	return meshes;
 }
+

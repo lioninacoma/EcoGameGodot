@@ -10,11 +10,15 @@ namespace godot {
 
 	class VoxelAsset_PineTree : public VoxelAsset {
 	public:
-		VoxelAsset_PineTree() : VoxelAsset(5, 6, 5, 2) {
+		VoxelAsset_PineTree() : VoxelAsset(6, 6, 6, 3) {
+			VoxelAsset::noiseChance = 0.5;
+			VoxelAsset::noiseOffset = 0.0;
+			VoxelAsset::noiseScale = 1.2;
+
 			const int w = getWidth();
 			const int h = getHeight();
 			const int d = getDepth();
-			int y;
+			int x, y, z;
 
 			// trunk
 			setVoxel(2, 0, 2, 4);
@@ -25,9 +29,9 @@ namespace godot {
 			int xw = 0;
 
 			// leaves
-			for (int y = 3; y < h; y++) {
-				for (int z = zd; z < d - zd; z++) {
-					for (int x = xw; x < w - xw; x++) {
+			for (y = 3; y < h; y++) {
+				for (z = zd; z < d - zd; z++) {
+					for (x = xw; x < w - xw; x++) {
 						setVoxel(x, y, z, 5);
 					}
 				}

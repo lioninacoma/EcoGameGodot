@@ -11,6 +11,10 @@ namespace godot {
 	class VoxelAsset_House4x4 : public VoxelAsset {
 	public:
 		VoxelAsset_House4x4() : VoxelAsset(4, 4, 4, 0) {
+			VoxelAsset::noiseChance = 0.35;
+			VoxelAsset::noiseOffset = 200.0;
+			VoxelAsset::noiseScale = 0.2;
+
 			const int w = getWidth();
 			const int h = getHeight();
 			const int z = getDepth();

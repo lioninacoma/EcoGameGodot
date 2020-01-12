@@ -28,7 +28,6 @@ Chunk::~Chunk() {
 }
 
 void Chunk::_init() {
-	Chunk::noise = OpenSimplexNoise::_new();
 	Chunk::volume = new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
 	Chunk::nodes = new unordered_map<size_t, Vector3>();
@@ -36,6 +35,7 @@ void Chunk::_init() {
 
 	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
 
+	Chunk::noise = OpenSimplexNoise::_new();
 	Chunk::noise->set_seed(NOISE_SEED);
 	Chunk::noise->set_octaves(3);
 	Chunk::noise->set_period(60.0);

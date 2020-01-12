@@ -11,6 +11,10 @@ namespace godot {
 	class VoxelAsset_House6x6 : public VoxelAsset {
 	public:
 		VoxelAsset_House6x6() : VoxelAsset(6, 6, 6, 0) {
+			VoxelAsset::noiseChance = 0.35;
+			VoxelAsset::noiseOffset = 220.0;
+			VoxelAsset::noiseScale = 0.2;
+
 			const int w = getWidth();
 			const int h = getHeight();
 			const int z = getDepth();

@@ -115,7 +115,7 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 
 var actor : Actor = null
 var asset : MeshInstance = null
-var assetBodies: Array
+var assetType : int = -1
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseMotion and asset:
@@ -141,6 +141,17 @@ func _input(event : InputEvent) -> void:
 			asset.global_transform.origin.x = vx - int(w / 2)
 			asset.global_transform.origin.y = vy + 1
 			asset.global_transform.origin.z = vz - int(d / 2)
+			
+			var fits = Lib.voxelAssetFits(Vector3(vx, vy, vz), assetType)
+			for i in range(asset.get_surface_material_count()):
+				var material = asset.mesh.surface_get_material(i)
+				var color : Color
+				if fits:
+					color = Color(0, 1, 0)
+				else:
+					color = Color(1, 0, 0)
+				material.set_blend_mode(1)
+				material.albedo_color = color
 	elif event is InputEventMouseButton and event.pressed:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
@@ -161,21 +172,19 @@ func _input(event : InputEvent) -> void:
 			
 			if event.button_index == BUTTON_LEFT:
 				if asset:
-					for i in range(asset.get_surface_material_count()):
-						asset.add_child(assetBodies[i])
-						var material = asset.mesh.surface_get_material(i)
-						material.set_blend_mode(0)
-						material.albedo_color = Color(1, 1, 1)
-					
+					var fits = Lib.voxelAssetFits(Vector3(vx, vy, vz), assetType)
+					if !fits: return
+					Lib.addVoxelAsset(Vector3(vx, vy, vz), assetType)
+					asset.queue_free()
 					asset = null
-					assetBodies.clear()
+					assetType = -1
 				else:
-					var meshes = Lib.buildVoxelAsset(2)
+					assetType = 2
+					var meshes = Lib.buildVoxelAsset(assetType)
 					asset = build_mesh_instance(meshes, null)
 					
 					for i in range(asset.get_surface_material_count()):
 						var body = asset.get_node("sb%s"%[i])
-						assetBodies.push_back(body)
 						asset.remove_child(body)
 						var material = asset.mesh.surface_get_material(i).duplicate(true)
 						material.set_blend_mode(1)
