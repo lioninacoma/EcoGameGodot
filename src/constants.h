@@ -3,7 +3,7 @@
 
 #define WORLD_SIZE 64	// Chunks
 #define CHUNK_SIZE_X 32 // Voxels
-#define CHUNK_SIZE_Y 96 // Voxels
+#define CHUNK_SIZE_Y 128 // Voxels
 #define CHUNK_SIZE_Z 32 // Voxels
 #define VERTEX_SIZE 8
 #define BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z
@@ -20,10 +20,10 @@
 #define TEXTURE_ATLAS_LEN 3
 
 #define NOISE_SEED 123
-#define WATER_LEVEL 25
-#define VOXEL_CHANCE_T 0.7
+#define WATER_LEVEL 56
+#define VOXEL_CHANCE_T 1.0
 #define VOXEL_CHANCE_NOISE_SCALE 1.0
-#define VOXEL_Y_NOISE_SCALE 0.33
+#define VOXEL_Y_NOISE_SCALE 1.0
 
 #define MAX_BUILD_AREAS 64
 

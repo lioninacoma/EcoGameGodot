@@ -37,9 +37,14 @@ void Chunk::_init() {
 
 	Chunk::noise = OpenSimplexNoise::_new();
 	Chunk::noise->set_seed(NOISE_SEED);
-	Chunk::noise->set_octaves(3);
-	Chunk::noise->set_period(60.0);
+	Chunk::noise->set_octaves(5);
 	Chunk::noise->set_persistence(0.5);
+
+	Chunk::noiseP = OpenSimplexNoise::_new();
+	Chunk::noiseP->set_seed(NOISE_SEED);
+	Chunk::noiseP->set_octaves(3);
+	Chunk::noiseP->set_period(360.0);
+	Chunk::noiseP->set_persistence(0.5);
 }
 
 int Chunk::getVoxel(int x, int y, int z) {
@@ -50,6 +55,9 @@ int Chunk::getVoxel(int x, int y, int z) {
 }
 
 int Chunk::getVoxelY(int x, int z) {
+	noise->set_period((noiseP->get_noise_2d(
+		(x + offset.x) * VOXEL_Y_NOISE_SCALE,
+		(z + offset.z) * VOXEL_Y_NOISE_SCALE) / 2.0 + 0.5) * 120.0 + 240.0);
 	float y = noise->get_noise_2d(
 		(x + offset.x) * VOXEL_Y_NOISE_SCALE,
 		(z + offset.z) * VOXEL_Y_NOISE_SCALE) / 2.0 + 0.5;

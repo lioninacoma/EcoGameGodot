@@ -25,7 +25,7 @@ namespace godot {
 	class Chunk : public Reference {
 		GODOT_CLASS(Chunk, Reference)
 	private:
-		OpenSimplexNoise* noise;
+		OpenSimplexNoise* noise,* noiseP;
 		Vector3 offset;
 		int amountNodes = 0;
 		int amountVoxel = 0;
