@@ -2,21 +2,21 @@ extends Spatial
 class_name EcoGame
 
 onready var fpsLabel = get_node('FPSLabel')
-
-# globals
 onready var WorldVariables : Node = get_node("/root/WorldVariables")
 
 var Lib = load("res://bin/EcoGame.gdns").new()
 var Actor : PackedScene = load("res://Actor.tscn")
 
 # build thread variables
-const TIME_PERIOD = 0.2 # 200ms
-var time = 0
-var buildStack : Array = []
-var maxChunksBuild : int = 16
+const TIME_PERIOD = 0.4 # 400ms
+const MAX_ADD_MESH = 12
+const MAX_BUILD_CHUNK = 12
 
 # config
 var mouseModeCaptured : bool = false
+var time = 0
+var buildStack : Array = []
+var meshStack : Array = []
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -36,20 +36,33 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		var player = $Player
 		var pos = player.translation
-		var d = 256
-		Lib.buildSections(pos, d)
+		Lib.buildSections(pos, WorldVariables.BUILD_DISTANCE)
+		meshStack.sort_custom(MeshSorter, "sort")
+		process_mesh_stack()
 		# Reset timer
 		time = 0
 	
 	# starts ChunkBuilder jobs
 	process_build_stack()
 
+func process_mesh_stack():
+	for i in range(min(meshStack.size(), MAX_ADD_MESH)):
+		var m = meshStack.pop_front()
+		add_child(m[1])
+		Lib.updateGraph(m[0])
+
 func process_build_stack() -> void:
-	for i in range(min(buildStack.size(), maxChunksBuild)):
+	for i in range(min(buildStack.size(), MAX_BUILD_CHUNK)):
 		var chunk = buildStack.pop_front()
 		if chunk == null: continue
 		chunk.setBuilding(true)
 		Lib.buildChunk(chunk, self)
+
+class MeshSorter:
+	static func sort(a, b):
+		if a[0].getOffset().distance_to(b[2].global_transform.origin) < b[0].getOffset().distance_to(b[2].global_transform.origin):
+			return true
+		return false
 
 func build_chunk(meshes : Array, chunk) -> void:
 	if (!meshes || !chunk): return
@@ -62,11 +75,12 @@ func build_chunk(meshes : Array, chunk) -> void:
 			oldMeshInstance.free()
 	
 	var meshInstance = build_mesh_instance(meshes, chunk)
-	add_child(meshInstance)
+	meshStack.push_back([chunk, meshInstance, $Player])
+#	add_child(meshInstance)
 	
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
 	chunk.setBuilding(false)
-	Lib.updateGraph(chunk)
+#	Lib.updateGraph(chunk)
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
@@ -83,7 +97,7 @@ func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 		
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, meshData[0])
 		mesh.surface_set_material(surfaceIndex, WorldVariables.materials[mi])
-		
+
 		polygonShape.set_faces(meshData[1])
 		var ownerId = staticBody.create_shape_owner(owner)
 		staticBody.shape_owner_add_shape(ownerId, polygonShape)

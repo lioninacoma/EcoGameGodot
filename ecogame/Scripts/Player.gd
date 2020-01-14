@@ -11,7 +11,7 @@ var direction = Vector3()
 var zoom_pos = Vector2()
 
 # fly variables
-const FLY_SPEED = 40
+const FLY_SPEED = 60
 const FLY_ACCEL = 4
 
 # walk variables
@@ -112,7 +112,7 @@ func rts(delta):
 	direction.y = 0
 	direction = direction.normalized()
 	
-	global_translate(direction * delta * MOVE_SPEED)
+	global_translate(direction * delta * FLY_SPEED)
 
 func walk(delta):
 	# reset direction of the player
