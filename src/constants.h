@@ -1,7 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define WORLD_SIZE 32	 // Chunks
+#define WORLD_SIZE 64	 // Chunks
 #define CHUNK_SIZE_X 32  // Voxels
 #define CHUNK_SIZE_Y 96 // Voxels
 #define CHUNK_SIZE_Z 32  // Voxels

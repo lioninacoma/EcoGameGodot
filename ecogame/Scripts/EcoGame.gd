@@ -9,8 +9,9 @@ var Actor : PackedScene = load("res://Actor.tscn")
 
 # build thread variables
 const TIME_PERIOD = 0.4 # 400ms
-const MAX_ADD_MESH = 12
-const MAX_BUILD_CHUNK = 12
+const MAX_ADD_MESH = 1
+const MAX_BUILD_CHUNKS = 12
+const MAX_MESH_STACK_SIZE = 12
 
 # config
 var mouseModeCaptured : bool = false
@@ -36,9 +37,9 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		var player = $Player
 		var pos = player.translation
-		Lib.buildSections(pos, WorldVariables.BUILD_DISTANCE)
-		meshStack.sort_custom(MeshSorter, "sort")
-		process_mesh_stack()
+		Lib.buildSections(pos, WorldVariables.BUILD_DISTANCE, 12)
+#		meshStack.sort_custom(MeshSorter, "sort")
+#		process_mesh_stack()
 		# Reset timer
 		time = 0
 	
@@ -52,7 +53,7 @@ func process_mesh_stack():
 		Lib.updateGraph(m[0])
 
 func process_build_stack() -> void:
-	for i in range(min(buildStack.size(), MAX_BUILD_CHUNK)):
+	for i in range(min(buildStack.size(), MAX_BUILD_CHUNKS)):
 		var chunk = buildStack.pop_front()
 		if chunk == null: continue
 		chunk.setBuilding(true)
@@ -75,12 +76,12 @@ func build_chunk(meshes : Array, chunk) -> void:
 			oldMeshInstance.free()
 	
 	var meshInstance = build_mesh_instance(meshes, chunk)
-	meshStack.push_back([chunk, meshInstance, $Player])
-#	add_child(meshInstance)
+#	meshStack.push_back([chunk, meshInstance, $Player])
+	add_child(meshInstance)
 	
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
 	chunk.setBuilding(false)
-#	Lib.updateGraph(chunk)
+	Lib.updateGraph(chunk)
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null

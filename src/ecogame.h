@@ -44,7 +44,7 @@ namespace godot {
 
 		void _init();
 
-		void buildSections(Vector3 center, float radius);
+		void buildSections(Vector3 center, float radius, int maxSectionsBuilt);
 		void buildChunk(Variant vChunk);
 		void addVoxelAsset(Vector3 start, int type);
 		Array buildVoxelAsset(int type);

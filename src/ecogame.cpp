@@ -46,44 +46,65 @@ void EcoGame::updateGraphTask(Chunk* chunk, Node* game) {
 	navigator->updateGraph(chunk, game);
 }
 
-void EcoGame::buildSections(Vector3 pos, float d) {
-	int xS, xE, zS, zE, x, z;
+void EcoGame::buildSections(Vector3 pos, float d, int maxSectionsBuilt) {
+	int /*xS, xE, zS, zE, */x, z;
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	Section* section;
-	Vector3 tl = Vector3(pos.x - d, 0, pos.z - d);
-	Vector3 br = Vector3(pos.x + d, 0, pos.z + d);
+	/*Vector3 tl = Vector3(pos.x - d, 0, pos.z - d);
+	Vector3 br = Vector3(pos.x + d, 0, pos.z + d);*/
+	Vector3 p = Vector3(pos.x, 0, pos.z);
 
-	tl = fn::toSectionCoords(tl);
-	br = fn::toSectionCoords(br);
+	p = fn::toSectionCoords(p);
+	//tl = fn::toSectionCoords(tl);
+	//br = fn::toSectionCoords(br);
 
 	//Godot::print(String("tl: {0}, br: {1}").format(Array::make(tl, br)));
 
-	xS = int(tl.x);
-	xS = max(0, xS);
+	//xS = int(tl.x);
+	//xS = max(0, xS);
 
-	xE = int(br.x);
-	xE = min(SECTIONS_SIZE - 1, xE);
+	//xE = int(br.x);
+	//xE = min(SECTIONS_SIZE - 1, xE);
 
-	zS = int(tl.z);
-	zS = max(0, zS);
+	//zS = int(tl.z);
+	//zS = max(0, zS);
 
-	zE = int(br.z);
-	zE = min(SECTIONS_SIZE - 1, zE);
+	//zE = int(br.z);
+	//zE = min(SECTIONS_SIZE - 1, zE);
 
-	for (z = zS; z <= zE; z++) {
-		for (x = xS; x <= xE; x++) {
-			if (sections[fn::fi2(x, z, SECTIONS_SIZE)]) {
-				section = sections[fn::fi2(x, z, SECTIONS_SIZE)];
-				
-				continue;
+	int dist = 1;
+	int sectionsBuilt = 0;
+
+	while (sectionsBuilt < maxSectionsBuilt) {
+		for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
+			for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
+				if (sections[fn::fi2(x, z, SECTIONS_SIZE)])
+					continue;
+
+				if (x >= 0 && z >= 0 && x < SECTIONS_SIZE - 1 && z < SECTIONS_SIZE - 1) {
+					//Godot::print(String("section({0}, {1})").format(Array::make(x, z)));
+					section = new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE));
+					sections[fn::fi2(x, z, SECTIONS_SIZE)] = section;
+					ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildSection, this, section, game));
+				}
+				sectionsBuilt++;
+				if (sectionsBuilt >= maxSectionsBuilt) {
+					return;
+				}
 			}
+		}
+		dist++;
+	}
 
-			//Godot::print(String("section offset: {0}").format(Array::make(Vector2(x * SECTION_SIZE, z * SECTION_SIZE))));
+	/*for (z = zS; z <= zE; z++) {
+		for (x = xS; x <= xE; x++) {
+			if (sections[fn::fi2(x, z, SECTIONS_SIZE)])
+				continue;
 			section = new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE));
 			sections[fn::fi2(x, z, SECTIONS_SIZE)] = section;
 			ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildSection, this, section, game));
 		}
-	}
+	}*/
 }
 
 void EcoGame::buildSection(Section* section, Node* game) {
