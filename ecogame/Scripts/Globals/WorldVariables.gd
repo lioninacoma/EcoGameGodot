@@ -1,10 +1,10 @@
 extends Node
 
 # world building variables
-const CHUNK_SIZE_X : int = 32
-const CHUNK_SIZE_Z : int = 32
+const CHUNK_SIZE_X : int = 64
+const CHUNK_SIZE_Z : int = 64
 var PICK_DISTANCE : int = 10
-const BUILD_DISTANCE : int = 512
+const BUILD_DISTANCE : int = 48
 
 var materials : Array = []
 var grassMaterial : SpatialMaterial = SpatialMaterial.new()

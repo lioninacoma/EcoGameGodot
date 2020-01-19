@@ -6,6 +6,7 @@ void Chunk::_register_methods() {
 	register_method("isBuilding", &Chunk::isBuilding);
 	register_method("isAssetsBuilt", &Chunk::isAssetsBuilt);
 	register_method("isReady", &Chunk::isReady);
+	register_method("doUpdateGraph", &Chunk::doUpdateGraph);
 	register_method("getOffset", &Chunk::getOffset);
 	register_method("getVolume", &Chunk::getVolume);
 	register_method("getVoxel", &Chunk::getVoxel);
@@ -138,7 +139,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	int dy = surfaceY[fn::fi2(x, z)];
 	
 	if (v == 0) {
-		if (meshInstanceId) {
+		if (navigatable) {
 			Vector3 node = offset + Vector3(x + 0.5, y + 1, z + 0.5);
 			size_t hash = fn::hash(node);
 
@@ -166,7 +167,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 		amountVoxel = max(amountVoxel, 0);
 	}
 	else {
-		if (meshInstanceId) {
+		if (navigatable) {
 			Vector3 node = offset + Vector3(x + 0.5, y, z + 0.5);
 			size_t hash = fn::hash(node);
 

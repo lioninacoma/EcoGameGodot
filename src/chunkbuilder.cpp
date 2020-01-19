@@ -18,7 +18,6 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 
 	Array meshes;
 	float** buffers;
-	const int TYPES = 6;
 
 	buffers = Worker::getVerticesPool().borrow(TYPES);
 

@@ -32,7 +32,6 @@ namespace godot {
 	private:
 		Section** sections;
 		ChunkBuilder* chunkBuilder;
-		Navigator* navigator;
 
 		void buildSection(Section* section, Node* game);
 		void updateGraphTask(Chunk* chunk, Node* game);
@@ -51,6 +50,7 @@ namespace godot {
 		bool voxelAssetFits(Vector3 start, int type);
 		PoolVector3Array navigate(Vector3 startV, Vector3 goalV);
 		void updateGraph(Variant vChunk);
+		void updateGraphs(Vector3 center, float radius);
 	};
 
 }

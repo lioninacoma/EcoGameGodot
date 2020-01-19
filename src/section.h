@@ -30,8 +30,8 @@ namespace godot {
 		int sectionChunksLen;
 		OpenSimplexNoise* noise;
 	public:
-		static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 4>& getIntBufferPool() {
-			static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 4> pool;
+		static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 2>& getIntBufferPool() {
+			static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 2> pool;
 			return pool;
 		};
 
@@ -123,11 +123,11 @@ namespace godot {
 			return true;
 		}
 
-		void fill(Section** sections, int sectionsLen, int sectionSize, int sectionsSize) {
+		void fill(Section** sections, int sectionSize, int sectionsSize) {
 			int xS, xE, zS, zE, x, z, sx, sy, cx, cz, ci;
 			Section* section;
 			Chunk* chunk;
-			Vector3 tl, br, chunkOffset;
+			Vector3 tl, br, chunkCoords;
 
 			tl = Vector3(offset.x, 0, offset.y);
 			br = tl + Vector3(Section::sectionSize, 0, Section::sectionSize);
@@ -136,16 +136,16 @@ namespace godot {
 			xS = max(0, xS);
 
 			xE = int(br.x);
-			xE = min(sectionsSize - 1, xE);
+			xE = min(WORLD_SIZE - 1, xE);
 
 			zS = int(tl.z);
 			zS = max(0, zS);
 
 			zE = int(br.z);
-			zE = min(sectionsSize - 1, zE);
+			zE = min(WORLD_SIZE - 1, zE);
 
-			for (z = zS; z <= zE; z++) {
-				for (x = xS; x <= xE; x++) {
+			for (z = (int)(zS / sectionSize); z <= (int)(zE / sectionSize); z++) {
+				for (x = (int)(xS / sectionSize); x <= (int)(xE / sectionSize); x++) {
 					section = sections[fn::fi2(x, z, sectionsSize)];
 					if (!section) continue;
 
@@ -153,12 +153,13 @@ namespace godot {
 						for (sx = 0; sx < sectionSize; sx++) {
 							chunk = section->chunks[fn::fi2(sx, sy, sectionSize)];
 							if (!chunk) continue;
-							chunkOffset = chunk->getOffset();
-							chunkOffset = fn::toChunkCoords(chunkOffset);
+							
+							chunkCoords = chunk->getOffset();
+							chunkCoords = fn::toChunkCoords(chunkCoords);
 
-							if (chunkOffset.x >= xS && chunkOffset.z >= zS && chunkOffset.x < xE && chunkOffset.z < zE) {
-								cx = (int)(chunkOffset.x - offset.x);
-								cz = (int)(chunkOffset.z - offset.y);
+							if (chunkCoords.x >= xS && chunkCoords.z >= zS && chunkCoords.x < xE && chunkCoords.z < zE) {
+								cx = (int)(chunkCoords.x - offset.x);
+								cz = (int)(chunkCoords.z - offset.y);
 								ci = fn::fi2(cx, cz, Section::sectionSize);
 								chunks[ci] = chunk;
 							}

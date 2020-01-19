@@ -37,6 +37,7 @@ namespace godot {
 		bool volumeBuilt = false;
 		bool building = false;
 		bool assetsBuilt = false;
+		bool navigatable = false;
 
 		int getVoxelY(int x, int z);
 		float getVoxelChance(int x, int y, int z);
@@ -68,6 +69,9 @@ namespace godot {
 		}
 		bool isReady() {
 			return Chunk::volumeBuilt && !Chunk::building && Chunk::meshInstanceId > 0;
+		}
+		bool doUpdateGraph() {
+			return navigatable && !nodeChanges->empty();
 		}
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
@@ -125,6 +129,9 @@ namespace godot {
 				Chunk::nodeChanges->erase(hash);
 			}
 		};
+		void setNavigatable() {
+			navigatable = true;
+		}
 	};
 
 }

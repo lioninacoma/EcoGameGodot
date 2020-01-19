@@ -10,11 +10,11 @@ void EcoGame::_register_methods() {
 	register_method("buildSections", &EcoGame::buildSections);
 	register_method("navigate", &EcoGame::navigate);
 	register_method("updateGraph", &EcoGame::updateGraph);
+	register_method("updateGraphs", &EcoGame::updateGraphs);
 }
 
 EcoGame::EcoGame() {
 	chunkBuilder = new ChunkBuilder();
-	navigator = new Navigator();
 	sections = new Section * [SECTIONS_LEN * sizeof(*sections)];
 
 	memset(sections, 0, SECTIONS_LEN * sizeof(*sections));
@@ -32,7 +32,7 @@ void EcoGame::_init() {
 PoolVector3Array EcoGame::navigate(Vector3 startV, Vector3 goalV) {
 	Godot::print(String("navigate from {0} to {1}").format(Array::make(startV, goalV)));
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	return navigator->navigate(startV, goalV, game);
+	return Navigator::get()->navigate(startV, goalV, game);
 }
 
 void EcoGame::updateGraph(Variant vChunk) {
@@ -43,68 +43,63 @@ void EcoGame::updateGraph(Variant vChunk) {
 }
 
 void EcoGame::updateGraphTask(Chunk* chunk, Node* game) {
-	navigator->updateGraph(chunk, game);
+	Navigator::get()->updateGraph(chunk, game);
+}
+
+void EcoGame::updateGraphs(Vector3 center, float radius) {
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	int x, z, i;
+	int dist = radius / (SECTION_SIZE * CHUNK_SIZE_X);
+	Vector3 p = Vector3(center.x, 0, center.z);
+	Section* section;
+	
+	p = fn::toSectionCoords(p);
+
+	for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
+		for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
+			if (x < 0 || z < 0 || x >= SECTIONS_SIZE - 1 || z >= SECTIONS_SIZE - 1) continue;
+			if (p.distance_to(Vector3(x, 0, z)) > dist + 1) continue;
+			if (!sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
+
+			section = sections[fn::fi2(x, z, SECTIONS_SIZE)];
+			
+			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
+				ThreadPool::get()->submitTask(boost::bind(&EcoGame::updateGraphTask, this, section->getChunk(i), game));
+			}
+		}
+	}
 }
 
 void EcoGame::buildSections(Vector3 pos, float d, int maxSectionsBuilt) {
-	int /*xS, xE, zS, zE, */x, z;
+	int x, z;
+	int dist = 1;
+	int sectionsBuilt = 0;
+	int it = 0;
+	int maxIt = (int)((Math_PI * d * d) / (CHUNK_SIZE_X * SECTION_CHUNKS_LEN));
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	Section* section;
-	/*Vector3 tl = Vector3(pos.x - d, 0, pos.z - d);
-	Vector3 br = Vector3(pos.x + d, 0, pos.z + d);*/
 	Vector3 p = Vector3(pos.x, 0, pos.z);
 
 	p = fn::toSectionCoords(p);
-	//tl = fn::toSectionCoords(tl);
-	//br = fn::toSectionCoords(br);
-
-	//Godot::print(String("tl: {0}, br: {1}").format(Array::make(tl, br)));
-
-	//xS = int(tl.x);
-	//xS = max(0, xS);
-
-	//xE = int(br.x);
-	//xE = min(SECTIONS_SIZE - 1, xE);
-
-	//zS = int(tl.z);
-	//zS = max(0, zS);
-
-	//zE = int(br.z);
-	//zE = min(SECTIONS_SIZE - 1, zE);
-
-	int dist = 1;
-	int sectionsBuilt = 0;
+	//Godot::print(String("maxIt: {0}, maxSectionsBuilt: {1})").format(Array::make(maxIt, maxSectionsBuilt)));
 
 	while (sectionsBuilt < maxSectionsBuilt) {
 		for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
 			for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
-				if (sections[fn::fi2(x, z, SECTIONS_SIZE)])
-					continue;
+				if (++it >= maxIt) return;
+				if (x < 0 || z < 0 || x >= SECTIONS_SIZE - 1 || z >= SECTIONS_SIZE - 1) continue;
+				if (p.distance_to(Vector3(x, 0, z)) > dist + 1) continue;
+				if (sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
 
-				if (x >= 0 && z >= 0 && x < SECTIONS_SIZE - 1 && z < SECTIONS_SIZE - 1) {
-					//Godot::print(String("section({0}, {1})").format(Array::make(x, z)));
-					section = new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE));
-					sections[fn::fi2(x, z, SECTIONS_SIZE)] = section;
-					ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildSection, this, section, game));
-				}
-				sectionsBuilt++;
-				if (sectionsBuilt >= maxSectionsBuilt) {
-					return;
-				}
+				section = new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE));
+				sections[fn::fi2(x, z, SECTIONS_SIZE)] = section;
+				ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildSection, this, section, game));
+
+				if (++sectionsBuilt >= maxSectionsBuilt) return;
 			}
 		}
 		dist++;
 	}
-
-	/*for (z = zS; z <= zE; z++) {
-		for (x = xS; x <= xE; x++) {
-			if (sections[fn::fi2(x, z, SECTIONS_SIZE)])
-				continue;
-			section = new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE));
-			sections[fn::fi2(x, z, SECTIONS_SIZE)] = section;
-			ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildSection, this, section, game));
-		}
-	}*/
 }
 
 void EcoGame::buildSection(Section* section, Node* game) {
@@ -131,14 +126,14 @@ bool EcoGame::voxelAssetFits(Vector3 startV, int type) {
 	Vector3 tl = start;
 	Vector3 br = end;
 
-	tl = fn::toSectionCoords(tl);
-	br = fn::toSectionCoords(br);
+	tl = fn::toChunkCoords(tl);
+	br = fn::toChunkCoords(br);
 
 	Vector2 offset = Vector2(tl.x, tl.z);
 	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
 	section = new Section(offset, sectionSize);
-	section->fill(sections, SECTIONS_LEN, SECTION_SIZE, SECTIONS_SIZE);
+	section->fill(sections, SECTION_SIZE, SECTIONS_SIZE);
 	bool fits = section->voxelAssetFits(start, vat);
 	delete section;
 	return fits;
@@ -159,14 +154,14 @@ void EcoGame::addVoxelAsset(Vector3 startV, int type) {
 	Vector3 tl = start;
 	Vector3 br = end;
 
-	tl = fn::toSectionCoords(tl);
-	br = fn::toSectionCoords(br);
+	tl = fn::toChunkCoords(tl);
+	br = fn::toChunkCoords(br);
 
 	Vector2 offset = Vector2(tl.x, tl.z);
 	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
 	section = new Section(offset, sectionSize);
-	section->fill(sections, SECTIONS_LEN, SECTION_SIZE, SECTIONS_SIZE);
+	section->fill(sections, SECTION_SIZE, SECTIONS_SIZE);
 	section->addVoxelAsset(start, vat, chunkBuilder, game);
 	delete section;
 }
@@ -179,7 +174,6 @@ Array EcoGame::buildVoxelAsset(int type) {
 
 	const int BUFFER = asset->getWidth() * asset->getHeight() * asset->getDepth();
 	const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
-	const int TYPES = 6;
 	float** buffers = new float*[TYPES];
 
 	for (int i = 0; i < TYPES; i++) {

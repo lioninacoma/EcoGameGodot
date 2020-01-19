@@ -2,8 +2,9 @@
 #define NAVIGATOR_H
 
 #include <Godot.hpp>
-#include <Reference.hpp>
 #include <Vector3.hpp>
+#include <Mesh.hpp>
+#include <Texture.hpp>
 #include <ImmediateGeometry.hpp>
 
 #include <boost/thread/mutex.hpp>
@@ -23,8 +24,7 @@ using namespace std;
 
 namespace godot {
 
-	class Navigator : public Reference {
-		GODOT_CLASS(Navigator, Reference)
+	class Navigator {
 
 	private:
 		template<typename T, typename priority_t>
@@ -132,20 +132,16 @@ namespace godot {
 		boost::mutex mutex;
 		int currentType = 1;
 	public:
-		static void _register_methods() {
-			register_method("updateGraph", &Navigator::updateGraph);
-			register_method("navigate", &Navigator::navigate);
-		}
+		static Navigator* get() {
+			static Navigator* navigator = new Navigator();
+			return navigator;
+		};
 
 		Navigator() {
 			nodes = new unordered_map<size_t, GraphNode*>();
 			areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
 		};
 		~Navigator() {};
-
-		void _init() {
-			
-		}
 
 		void addNode(GraphNode* n) {
 			boost::unique_lock<boost::mutex> lock(mutex);
@@ -358,6 +354,7 @@ namespace godot {
 			}
 
 			nodeChanges->clear();
+			chunk->setNavigatable();
 
 			Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset(), nodes->size())));
 			/*geo->end();

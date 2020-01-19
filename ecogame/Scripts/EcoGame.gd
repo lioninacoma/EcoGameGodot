@@ -8,16 +8,14 @@ var Lib = load("res://bin/EcoGame.gdns").new()
 var Actor : PackedScene = load("res://Actor.tscn")
 
 # build thread variables
-const TIME_PERIOD = 0.4 # 400ms
-const MAX_ADD_MESH = 1
-const MAX_BUILD_CHUNKS = 12
-const MAX_MESH_STACK_SIZE = 12
+const TIME_PERIOD = 1.0 # 1000ms
+const MAX_BUILD_CHUNKS = 24
+const MAX_BUILD_SECTIONS = 8
 
 # config
 var mouseModeCaptured : bool = false
 var time = 0
 var buildStack : Array = []
-var meshStack : Array = []
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -37,20 +35,12 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		var player = $Player
 		var pos = player.translation
-		Lib.buildSections(pos, WorldVariables.BUILD_DISTANCE, 12)
-#		meshStack.sort_custom(MeshSorter, "sort")
-#		process_mesh_stack()
+		Lib.buildSections(pos, WorldVariables.BUILD_DISTANCE, MAX_BUILD_SECTIONS)
 		# Reset timer
 		time = 0
 	
 	# starts ChunkBuilder jobs
 	process_build_stack()
-
-func process_mesh_stack():
-	for i in range(min(meshStack.size(), MAX_ADD_MESH)):
-		var m = meshStack.pop_front()
-		add_child(m[1])
-		Lib.updateGraph(m[0])
 
 func process_build_stack() -> void:
 	for i in range(min(buildStack.size(), MAX_BUILD_CHUNKS)):
@@ -58,12 +48,6 @@ func process_build_stack() -> void:
 		if chunk == null: continue
 		chunk.setBuilding(true)
 		Lib.buildChunk(chunk, self)
-
-class MeshSorter:
-	static func sort(a, b):
-		if a[0].getOffset().distance_to(b[2].global_transform.origin) < b[0].getOffset().distance_to(b[2].global_transform.origin):
-			return true
-		return false
 
 func build_chunk(meshes : Array, chunk) -> void:
 	if (!meshes || !chunk): return
@@ -76,12 +60,12 @@ func build_chunk(meshes : Array, chunk) -> void:
 			oldMeshInstance.free()
 	
 	var meshInstance = build_mesh_instance(meshes, chunk)
-#	meshStack.push_back([chunk, meshInstance, $Player])
 	add_child(meshInstance)
 	
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
 	chunk.setBuilding(false)
-	Lib.updateGraph(chunk)
+	if chunk.doUpdateGraph():
+		Lib.updateGraph(chunk)
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
@@ -224,6 +208,7 @@ func _input(event : InputEvent) -> void:
 				actor.global_transform.origin.x = vx + 0.5
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
+				Lib.updateGraphs(Vector3(vx, vy, vz), 128)
 #			elif event.button_index == BUTTON_WHEEL_DOWN:
 #				chunk.setVoxel(
 #					vx % WorldVariables.CHUNK_SIZE_X,
