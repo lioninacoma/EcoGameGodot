@@ -12,6 +12,10 @@ var gravity = Vector3(0, -9.8, 0)
 const MAX_SPEED = 6
 const ACCEL = 2
 
+var Lib
+func init(Lib):
+	self.Lib = Lib
+
 func _ready():
 	pass
 

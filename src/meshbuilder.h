@@ -27,8 +27,8 @@ namespace godot {
 		const int TOP = 4;
 		const int BOTTOM = 5;
 
-		static ObjectPool<int, BUFFER_SIZE, POOL_SIZE>& getMaskPool() {
-			static ObjectPool<int, BUFFER_SIZE, POOL_SIZE> pool;
+		static ObjectPool<int, BUFFER_SIZE, MAX_CHUNKS_BUILT_ASYNCH>& getMaskPool() {
+			static ObjectPool<int, BUFFER_SIZE, MAX_CHUNKS_BUILT_ASYNCH> pool;
 			return pool;
 		};
 

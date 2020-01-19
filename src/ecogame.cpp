@@ -7,6 +7,8 @@ void EcoGame::_register_methods() {
 	register_method("buildVoxelAsset", &EcoGame::buildVoxelAsset);
 	register_method("addVoxelAsset", &EcoGame::addVoxelAsset);
 	register_method("voxelAssetFits", &EcoGame::voxelAssetFits);
+	register_method("findVoxels", &EcoGame::findVoxels);
+	register_method("findClosestVoxel", &EcoGame::findClosestVoxel);
 	register_method("buildSections", &EcoGame::buildSections);
 	register_method("navigate", &EcoGame::navigate);
 	register_method("updateGraph", &EcoGame::updateGraph);
@@ -27,6 +29,38 @@ EcoGame::~EcoGame() {
 
 void EcoGame::_init() {
 	// initialize any variables here
+}
+
+Vector3 EcoGame::findClosestVoxel(Vector3 pos, int type) {
+	PoolVector3Array voxels = findVoxels(pos, type, 2, true);
+	return (voxels.size() > 0) ? voxels[0] : Vector3(-1, -1, -1);
+}
+
+PoolVector3Array EcoGame::findVoxels(Vector3 pos, int type, int maxDist, bool first) {
+	PoolVector3Array voxels;
+	int x, z;
+	int dist = 0;
+	Section* section;
+
+	Vector3 p = pos;
+	p = fn::toSectionCoords(p);
+
+	while (dist < maxDist) {
+		for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
+			for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
+				if (x > -dist + (int)p.x && x < dist + (int)p.x && z > -dist + (int)p.z && z < dist + (int)p.z) continue;
+				if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
+				if (!sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
+				section = sections[fn::fi2(x, z, SECTIONS_SIZE)];
+				voxels.append_array(section->findVoxels(pos, type, SECTION_SIZE, first));
+				if (first && voxels.size() > 0)
+					return voxels;
+			}
+		}
+		dist++;
+	}
+
+	return voxels;
 }
 
 PoolVector3Array EcoGame::navigate(Vector3 startV, Vector3 goalV) {
@@ -57,7 +91,7 @@ void EcoGame::updateGraphs(Vector3 center, float radius) {
 
 	for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
 		for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
-			if (x < 0 || z < 0 || x >= SECTIONS_SIZE - 1 || z >= SECTIONS_SIZE - 1) continue;
+			if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
 			if (p.distance_to(Vector3(x, 0, z)) > dist + 1) continue;
 			if (!sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
 
@@ -72,7 +106,7 @@ void EcoGame::updateGraphs(Vector3 center, float radius) {
 
 void EcoGame::buildSections(Vector3 pos, float d, int maxSectionsBuilt) {
 	int x, z;
-	int dist = 1;
+	int dist = 0;
 	int sectionsBuilt = 0;
 	int it = 0;
 	int maxIt = (int)((Math_PI * d * d) / (CHUNK_SIZE_X * SECTION_CHUNKS_LEN));
@@ -87,10 +121,11 @@ void EcoGame::buildSections(Vector3 pos, float d, int maxSectionsBuilt) {
 		for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
 			for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
 				if (++it >= maxIt) return;
-				if (x < 0 || z < 0 || x >= SECTIONS_SIZE - 1 || z >= SECTIONS_SIZE - 1) continue;
+				if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
 				if (p.distance_to(Vector3(x, 0, z)) > dist + 1) continue;
 				if (sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
 
+				Godot::print(String("section {0} building ...").format(Array::make(Vector2(x * SECTION_SIZE, z * SECTION_SIZE))));
 				section = new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE));
 				sections[fn::fi2(x, z, SECTIONS_SIZE)] = section;
 				ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildSection, this, section, game));

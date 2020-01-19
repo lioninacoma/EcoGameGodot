@@ -17,15 +17,12 @@ namespace godot {
 	public:
 		static void _register_methods() {
 			register_method("getPosition", &Voxel::getPosition);
-			register_method("getChunkOffset", &Voxel::getChunkOffset);
-			register_method("getType", &Voxel::getChunkOffset);
+			register_method("getType", &Voxel::getType);
 		}
 
-		Voxel() : Voxel(Vector3(), Vector3(), 0) {}
-		Voxel(Vector3 position, char type) : Voxel(position, Vector3(), type) {}
-		Voxel(Vector3 position, Vector3 chunkOffset, char type) {
+		Voxel() : Voxel(Vector3(), 0) {}
+		Voxel(Vector3 position, char type) {
 			Voxel::position = position;
-			Voxel::chunkOffset = chunkOffset;
 			Voxel::type = type;
 		}
 
@@ -40,10 +37,6 @@ namespace godot {
 
 		Vector3 getPosition() {
 			return position;
-		}
-
-		Vector3 getChunkOffset() {
-			return chunkOffset;
 		}
 
 		char getType() {

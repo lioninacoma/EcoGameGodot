@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <limits>
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -33,7 +34,7 @@ namespace godot {
 		VoxelData* volume;
 		int* surfaceY;
 		unordered_map<size_t, bool>* nodeChanges;
-		unordered_map<size_t, Vector3>* nodes;
+		unordered_map<size_t, Voxel>* nodes;
 		bool volumeBuilt = false;
 		bool building = false;
 		bool assetsBuilt = false;
@@ -77,7 +78,7 @@ namespace godot {
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
-		unordered_map<size_t, Vector3>* getNodes() {
+		unordered_map<size_t, Voxel>* getNodes() {
 			return Chunk::nodes;
 		};
 		int getAmountNodes() {
@@ -102,9 +103,9 @@ namespace godot {
 		};
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
-		void addNode(Vector3 p) {
-			size_t hash = fn::hash(p);
-			Chunk::nodes->insert(pair<size_t, Vector3>(hash, p));
+		void addNode(Voxel p) {
+			size_t hash = fn::hash(p.getPosition());
+			Chunk::nodes->insert(pair<size_t, Voxel>(hash, p));
 			//Chunk::nodeChanges->emplace(hash, 1);
 
 			auto it = Chunk::nodeChanges->find(hash);
@@ -128,6 +129,29 @@ namespace godot {
 			else if (it->second) {
 				Chunk::nodeChanges->erase(hash);
 			}
+		};
+		PoolVector3Array findVoxels(int type) {
+			PoolVector3Array voxels;
+			for (auto& current : *nodes) {
+				if ((int)current.second.getType() == type) {
+					voxels.push_back(current.second.getPosition());
+				}
+			}
+			return voxels;
+		};
+		Vector3* findClosestVoxel(Vector3 pos, int type) {
+			Vector3* closest = NULL;
+			float minDistance = numeric_limits<float>::max();
+			float distance;
+
+			for (auto& current : *nodes) {
+				distance = current.second.getPosition().distance_to(pos);
+				if ((int)current.second.getType() == type && distance < minDistance) {
+					closest = &current.second.getPosition();
+					minDistance = distance;
+				}
+			}
+			return closest;
 		};
 		void setNavigatable() {
 			navigatable = true;

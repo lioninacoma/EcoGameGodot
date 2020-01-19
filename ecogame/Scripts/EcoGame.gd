@@ -10,7 +10,7 @@ var Actor : PackedScene = load("res://Actor.tscn")
 # build thread variables
 const TIME_PERIOD = 1.0 # 1000ms
 const MAX_BUILD_CHUNKS = 24
-const MAX_BUILD_SECTIONS = 8
+const MAX_BUILD_SECTIONS = 1
 
 # config
 var mouseModeCaptured : bool = false
@@ -64,7 +64,7 @@ func build_chunk(meshes : Array, chunk) -> void:
 	
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
 	chunk.setBuilding(false)
-	if chunk.doUpdateGraph():
+	if true or chunk.doUpdateGraph():
 		Lib.updateGraph(chunk)
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
@@ -200,15 +200,34 @@ func _input(event : InputEvent) -> void:
 				if actor:
 					var navStart = actor.global_transform.origin
 					var navEnd = voxelPosition
-					var path : PoolVector3Array = Lib.navigate(navStart, navEnd)
+					var path = Lib.navigate(navStart, navEnd)
 					actor.follow_path(path)
 			elif event.button_index == BUTTON_MIDDLE:
 				actor = Actor.instance()
+				actor.init(Lib)
 				add_child(actor)
 				actor.global_transform.origin.x = vx + 0.5
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
-				Lib.updateGraphs(Vector3(vx, vy, vz), 128)
+#				Lib.updateGraphs(Vector3(vx, vy, vz), 128)
+
+				var voxels : PoolVector3Array = Lib.findVoxels(Vector3(vx, vy, vz), 5, 1, false)
+				var nodes = []
+				for v in voxels:
+					nodes.push_back([v, Vector3(vx, vy, vz)])
+				nodes.sort_custom(NodeSorter, "sort")
+				var navStart = actor.global_transform.origin
+				var it = 0
+				var maxIt = 16
+				for n in nodes:
+					var path = Lib.navigate(navStart, n[0])
+					if path.size() > 0:
+						actor.follow_path(path)
+						break
+					it += 1
+					if it > maxIt:
+						break
+						print("path not found")
 #			elif event.button_index == BUTTON_WHEEL_DOWN:
 #				chunk.setVoxel(
 #					vx % WorldVariables.CHUNK_SIZE_X,
@@ -221,3 +240,8 @@ func _input(event : InputEvent) -> void:
 #					vy % WorldVariables.CHUNK_SIZE_Y + 1,
 #					vz % WorldVariables.CHUNK_SIZE_Z, 1)
 #				build_chunk_queued(chunk)
+class NodeSorter:
+    static func sort(a, b):
+        if a[0].distance_to(a[1]) < b[0].distance_to(b[1]):
+            return true
+        return false

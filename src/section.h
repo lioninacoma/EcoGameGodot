@@ -30,8 +30,8 @@ namespace godot {
 		int sectionChunksLen;
 		OpenSimplexNoise* noise;
 	public:
-		static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 2>& getIntBufferPool() {
-			static ObjectPool<int, INT_POOL_BUFFER_SIZE, POOL_SIZE * 2> pool;
+		static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4>& getIntBufferPool() {
+			static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4> pool;
 			return pool;
 		};
 
@@ -121,6 +121,42 @@ namespace godot {
 			}
 
 			return true;
+		}
+
+		PoolVector3Array findVoxels(Vector3 pos, int type, int maxDist, bool first) {
+			PoolVector3Array voxels;
+			int x, z;
+			int dist = 0;
+			Chunk* chunk;
+
+			Vector3 p = pos;
+			p = fn::toChunkCoords(p);
+			p -= Vector3(offset.x, 0, offset.y);
+
+			while (dist < maxDist) {
+				for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
+					for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
+						if (x > -dist + (int)p.x && x < dist + (int)p.x && z > -dist + (int)p.z && z < dist + (int)p.z) continue;
+						if (x < 0 || z < 0 || x >= SECTION_SIZE || z >= SECTION_SIZE) continue;
+						if (!chunks[fn::fi2(x, z, SECTION_SIZE)]) continue;
+						chunk = chunks[fn::fi2(x, z, SECTION_SIZE)];
+
+						if (first) {
+							Vector3* closest = chunk->findClosestVoxel(pos, type);
+							if (closest) {
+								voxels.push_back(*closest);
+								return voxels;
+							}
+						}
+						else {
+							voxels.append_array(chunk->findVoxels(type));
+						}
+					}
+				}
+				dist++;
+			}
+
+			return voxels;
 		}
 
 		void fill(Section** sections, int sectionSize, int sectionsSize) {
@@ -226,19 +262,15 @@ namespace godot {
 			areasOffset.x = offset.x * CHUNK_SIZE_X; // Voxel
 			areasOffset.y = offset.y * CHUNK_SIZE_Z; // Voxel
 
-			//Godot::print(String("areasOffset: {0}").format(Array::make(areasOffset)));
-			//return;
+			int** buffers = getIntBufferPool().borrow(4);
 
-			int* surfaceY = getIntBufferPool().borrow();
-			memset(surfaceY, 0, INT_POOL_BUFFER_SIZE * sizeof(*surfaceY));
+			for (int i = 0; i < 4; i++)
+				memset(buffers[i], 0, INT_POOL_BUFFER_SIZE * sizeof(*buffers[i]));
 
-			int* mask = getIntBufferPool().borrow();
-			memset(mask, 0, INT_POOL_BUFFER_SIZE * sizeof(*mask));
-
-			int* types = getIntBufferPool().borrow();
-			memset(types, 0, INT_POOL_BUFFER_SIZE * sizeof(*types));
-
-			//Godot::print(String("chunks, surfaceY and mask initialized"));
+			int* surfaceY = buffers[0];
+			int* mask = buffers[1];
+			int* types = buffers[2];
+			int* sub = buffers[3];
 
 			const int SECTION_SIZE_CHUNKS = sectionSize * CHUNK_SIZE_X;
 
@@ -288,7 +320,7 @@ namespace godot {
 					mask[i] = (deltaY <= maxDeltaY && deltaY >= 0 && currentType != 6) ? 1 : 0;
 				}
 
-				areas = findAreasOfSize(areaSize, mask, surfaceY);
+				areas = findAreasOfSize(areaSize, mask, surfaceY, sub);
 
 				for (Area area : areas) {
 					start = area.getStart();
@@ -299,9 +331,7 @@ namespace godot {
 				}
 			}
 
-			getIntBufferPool().ret(surfaceY);
-			getIntBufferPool().ret(mask);
-			getIntBufferPool().ret(types);
+			getIntBufferPool().ret(buffers, 4);
 		}
 
 		void buildArea(Area area, VoxelAssetType type) {
@@ -400,14 +430,11 @@ namespace godot {
 			return new Area(Vector2(x0, y0), Vector2(x1, y1), surfaceY[fn::fi2(x0, y0)]);
 		}
 
-		vector<Area> findAreasOfSize(int size, int* mask, int* surfaceY) {
+		vector<Area> findAreasOfSize(int size, int* mask, int* surfaceY, int* sub) {
 			int i, j, x, y, x0, x1, y0, y1, areaY, currentSize, meanY = 0, count = 0;
 			vector<Area> areas;
 
 			const int SECTION_SIZE_CHUNKS = sectionSize * CHUNK_SIZE_X;
-
-			int* sub = getIntBufferPool().borrow();
-			memset(sub, 0, INT_POOL_BUFFER_SIZE * sizeof(*sub));
 
 			for (i = 0; i < SECTION_SIZE_CHUNKS; i++)
 				sub[fn::fi2(i, 0, SECTION_SIZE_CHUNKS)] = mask[fn::fi2(i, 0, SECTION_SIZE_CHUNKS)];
@@ -452,7 +479,6 @@ namespace godot {
 				}
 			}
 
-			getIntBufferPool().ret(sub);
 			return areas;
 		}
 	};

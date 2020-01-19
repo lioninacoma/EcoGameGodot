@@ -31,7 +31,7 @@ Chunk::~Chunk() {
 void Chunk::_init() {
 	Chunk::volume = new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
-	Chunk::nodes = new unordered_map<size_t, Vector3>();
+	Chunk::nodes = new unordered_map<size_t, Voxel>();
 	Chunk::nodeChanges = new unordered_map<size_t, bool>();
 
 	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
@@ -39,14 +39,8 @@ void Chunk::_init() {
 	Chunk::noise = OpenSimplexNoise::_new();
 	Chunk::noise->set_seed(NOISE_SEED);
 	Chunk::noise->set_octaves(4);
-	Chunk::noise->set_period(256.0);
+	Chunk::noise->set_period(320.0);
 	Chunk::noise->set_persistence(0.5);
-
-	/*Chunk::noiseP = OpenSimplexNoise::_new();
-	Chunk::noiseP->set_seed(NOISE_SEED);
-	Chunk::noiseP->set_octaves(5);
-	Chunk::noiseP->set_period(360.0);
-	Chunk::noiseP->set_persistence(0.5);*/
 }
 
 int Chunk::getVoxel(int x, int y, int z) {
@@ -57,14 +51,11 @@ int Chunk::getVoxel(int x, int y, int z) {
 }
 
 int Chunk::getVoxelY(int x, int z) {
-	/*noise->set_period((noiseP->get_noise_2d(
-		(x + offset.x) * VOXEL_Y_NOISE_SCALE,
-		(z + offset.z) * VOXEL_Y_NOISE_SCALE) / 2.0 + 0.5) * 120.0 + 240.0);*/
 	float y = noise->get_noise_2d(
 		(x + offset.x) * VOXEL_Y_NOISE_SCALE,
 		(z + offset.z) * VOXEL_Y_NOISE_SCALE) / 2.0 + 0.5;
 	y *= CHUNK_SIZE_Y;
-	/*int yi = (int) y;
+	int yi = (int) y;
 
 	for (int i = yi; i >= 0; i--) {
 		float c = getVoxelChance(x, i, z);
@@ -73,8 +64,7 @@ int Chunk::getVoxelY(int x, int z) {
 		}
 	}
 
-	return 0;*/
-	return y;
+	return 0;
 }
 
 float Chunk::getVoxelChance(int x, int y, int z) {
@@ -150,7 +140,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 			int voxelBelow = getVoxel(x, y - 1, z);
 			if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
 				Vector3 newNode = node + Vector3(0, -1, 0);
-				addNode(newNode);
+				addNode(Voxel(newNode, v));
 			}
 		}
 
@@ -177,7 +167,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 
 			if (y + 1 < CHUNK_SIZE_Y && !getVoxel(x, y + 1, z) && v != 6) {
 				Vector3 newNode = node + Vector3(0, 1, 0);
-				addNode(newNode);
+				addNode(Voxel(newNode, v));
 			}
 		}
 

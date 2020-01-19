@@ -216,7 +216,7 @@ namespace godot {
 			mutex.lock();
 			for (auto& point : *chunkPoints) {
 				if (nodeChanges->find(point.first) != nodeChanges->end()) {
-					current = new GraphNode(point.second, chunk->getOffset());
+					current = new GraphNode(point.second.getPosition(), chunk->getOffset());
 					nodes->insert(pair<size_t, GraphNode*>(point.first, current));;
 				}
 				else {
@@ -356,7 +356,7 @@ namespace godot {
 			nodeChanges->clear();
 			chunk->setNavigatable();
 
-			Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset(), nodes->size())));
+			Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset())));
 			/*geo->end();
 			game->call_deferred("draw_debug", geo);*/
 		}
