@@ -130,10 +130,12 @@ namespace godot {
 				Chunk::nodeChanges->erase(hash);
 			}
 		};
-		PoolVector3Array findVoxels(int type) {
+		PoolVector3Array findVoxels(Vector3 pos, int type, float distance) {
 			PoolVector3Array voxels;
+			float dist;
 			for (auto& current : *nodes) {
-				if ((int)current.second.getType() == type) {
+				dist = current.second.getPosition().distance_to(pos);
+				if ((int)current.second.getType() == type && dist < distance) {
 					voxels.push_back(current.second.getPosition());
 				}
 			}
@@ -142,13 +144,13 @@ namespace godot {
 		Vector3* findClosestVoxel(Vector3 pos, int type) {
 			Vector3* closest = NULL;
 			float minDistance = numeric_limits<float>::max();
-			float distance;
+			float dist;
 
 			for (auto& current : *nodes) {
-				distance = current.second.getPosition().distance_to(pos);
-				if ((int)current.second.getType() == type && distance < minDistance) {
+				dist = current.second.getPosition().distance_to(pos);
+				if ((int)current.second.getType() == type && dist < minDistance) {
 					closest = &current.second.getPosition();
-					minDistance = distance;
+					minDistance = dist;
 				}
 			}
 			return closest;

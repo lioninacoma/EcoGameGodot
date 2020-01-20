@@ -7,10 +7,9 @@ void EcoGame::_register_methods() {
 	register_method("buildVoxelAsset", &EcoGame::buildVoxelAsset);
 	register_method("addVoxelAsset", &EcoGame::addVoxelAsset);
 	register_method("voxelAssetFits", &EcoGame::voxelAssetFits);
-	register_method("findVoxels", &EcoGame::findVoxels);
-	register_method("findClosestVoxel", &EcoGame::findClosestVoxel);
 	register_method("buildSections", &EcoGame::buildSections);
 	register_method("navigate", &EcoGame::navigate);
+	register_method("navigateToClosestVoxel", &EcoGame::navigateToClosestVoxel);
 	register_method("updateGraph", &EcoGame::updateGraph);
 	register_method("updateGraphs", &EcoGame::updateGraphs);
 }
@@ -31,42 +30,14 @@ void EcoGame::_init() {
 	// initialize any variables here
 }
 
-Vector3 EcoGame::findClosestVoxel(Vector3 pos, int type) {
-	PoolVector3Array voxels = findVoxels(pos, type, 2, true);
-	return (voxels.size() > 0) ? voxels[0] : Vector3(-1, -1, -1);
-}
-
-PoolVector3Array EcoGame::findVoxels(Vector3 pos, int type, int maxDist, bool first) {
-	PoolVector3Array voxels;
-	int x, z;
-	int dist = 0;
-	Section* section;
-
-	Vector3 p = pos;
-	p = fn::toSectionCoords(p);
-
-	while (dist < maxDist) {
-		for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
-			for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
-				if (x > -dist + (int)p.x && x < dist + (int)p.x && z > -dist + (int)p.z && z < dist + (int)p.z) continue;
-				if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
-				if (!sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
-				section = sections[fn::fi2(x, z, SECTIONS_SIZE)];
-				voxels.append_array(section->findVoxels(pos, type, SECTION_SIZE, first));
-				if (first && voxels.size() > 0)
-					return voxels;
-			}
-		}
-		dist++;
-	}
-
-	return voxels;
-}
-
 PoolVector3Array EcoGame::navigate(Vector3 startV, Vector3 goalV) {
-	Godot::print(String("navigate from {0} to {1}").format(Array::make(startV, goalV)));
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	return Navigator::get()->navigate(startV, goalV, game);
+}
+
+PoolVector3Array EcoGame::navigateToClosestVoxel(Vector3 startV, int voxel) {
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	return Navigator::get()->navigateToClosestVoxel(startV, voxel, game);
 }
 
 void EcoGame::updateGraph(Variant vChunk) {

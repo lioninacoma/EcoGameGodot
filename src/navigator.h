@@ -78,12 +78,14 @@ namespace godot {
 			unordered_map<size_t, GraphEdge*> edges;
 			size_t hash;
 			int type;
+			int voxel;
 		public:
-			GraphNode(Vector3 point, Vector3 offset) {
+			GraphNode(Vector3 point, Vector3 offset, char voxel) {
 				GraphNode::point = point;
 				GraphNode::offset = offset;
 				GraphNode::hash = fn::hash(point);
 				GraphNode::type = 0;
+				GraphNode::voxel = voxel;
 			};
 			void addEdge(GraphEdge* edge) {
 				size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
@@ -121,7 +123,10 @@ namespace godot {
 			};
 			int getType() {
 				return type;
-			}
+			};
+			int getVoxel() {
+				return voxel;
+			};
 			bool operator == (const GraphNode& o) const {
 				return hash == o.hash;
 			};
@@ -129,6 +134,7 @@ namespace godot {
 
 		unordered_map<size_t, GraphNode*>* nodes;
 		unordered_map<int, unordered_map<size_t, GraphNode*>*>* areas;
+		unordered_map<int, unordered_set<int>*>* areaVoxels;
 		boost::mutex mutex;
 		int currentType = 1;
 	public:
@@ -140,6 +146,7 @@ namespace godot {
 		Navigator() {
 			nodes = new unordered_map<size_t, GraphNode*>();
 			areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
+			areaVoxels = new unordered_map<int, unordered_set<int>*>();
 		};
 		~Navigator() {};
 
@@ -216,7 +223,7 @@ namespace godot {
 			mutex.lock();
 			for (auto& point : *chunkPoints) {
 				if (nodeChanges->find(point.first) != nodeChanges->end()) {
-					current = new GraphNode(point.second.getPosition(), chunk->getOffset());
+					current = new GraphNode(point.second.getPosition(), chunk->getOffset(), point.second.getType());
 					nodes->insert(pair<size_t, GraphNode*>(point.first, current));;
 				}
 				else {
@@ -314,10 +321,14 @@ namespace godot {
 				mutex.lock();
 				if (neighbourTypes.empty()) {
 					type = getNextType();
+					auto set = new unordered_set<int>();
+
 					for (auto node : *area) {
 						node.second->setType(type);
+						set->insert(node.second->getVoxel());
 					}
 
+					areaVoxels->emplace(type, set);
 					areas->emplace(type, area);
 					area = new unordered_map<size_t, GraphNode*>();
 				}
@@ -329,25 +340,34 @@ namespace godot {
 
 					neighbourTypes.erase(type);
 					auto areaBefore = areas->at(type);
+					auto setBefore = areaVoxels->at(type);
 
 					for (auto node : *area) {
 						node.second->setType(type);
 						areaBefore->insert(node);
+						setBefore->insert(node.second->getVoxel());
 					}
 
 					area->clear();
 
 					for (int neighbourType : neighbourTypes) {
 						auto neighbourArea = areas->at(neighbourType);
+						auto neighbourSet = areaVoxels->at(neighbourType);
 
 						for (auto node : *neighbourArea) {
 							node.second->setType(type);
 							areaBefore->insert(node);
+							setBefore->insert(node.second->getVoxel());
 						}
 
-						neighbourArea->clear();
-						//areas->erase(neighbourType);
+						neighbourSet->clear();
+						/*areaVoxels->erase(neighbourType);
+						delete neighbourSet;*/
+
 						// TODO: delete neighbourArea from areas
+						neighbourArea->clear();
+						/*areas->erase(neighbourType);
+						delete neighbourArea;*/
 					}
 				}
 				mutex.unlock();
@@ -379,6 +399,98 @@ namespace godot {
 		float h(GraphNode* node, GraphNode* goal, float maxDistance) {
 			float distanceToGoal = manhattan(node->getPoint(), goal->getPoint());
 			return w(distanceToGoal, maxDistance) * distanceToGoal;
+		}
+
+		PoolVector3Array navigateToClosestVoxel(Vector3 startV, int voxel, Node* game) {
+			boost::unique_lock<boost::mutex> lock(mutex);
+			PoolVector3Array path;
+
+			GraphNode* startNode = NULL;
+
+			float minDistanceStart = numeric_limits<float>::max();
+			float currDistanceStart;
+
+			for (auto& current : *nodes) {
+				currDistanceStart = current.second->getPoint().distance_to(startV);
+
+				if (currDistanceStart < minDistanceStart) {
+					minDistanceStart = currDistanceStart;
+					startNode = current.second;
+				}
+			}
+
+			if (!startNode) return path;
+			auto voxelSet = areaVoxels->at(startNode->getType());
+			if (voxelSet->find(voxel) == voxelSet->end()) {
+				Godot::print(String("path from {0} to voxel of type {1} not found").format(Array::make(startNode->getPoint(), voxel)));
+				return path;
+			}
+			
+			GraphNode* currentNode;
+			GraphNode* neighbourNode;
+
+			Godot::print(String("find path from {0} to closest voxel of type {1}").format(Array::make(startNode->getPoint(), voxel)));
+
+			unordered_map<size_t, size_t> cameFrom;
+			unordered_map<size_t, float> costSoFar;
+			size_t cHash, nHash, sHash = startNode->getHash();
+			int cVoxel;
+
+			PriorityQueue<size_t, float> frontier;
+			frontier.put(sHash, 0);
+			costSoFar[sHash] = 0;
+
+			while (!frontier.empty()) {
+				cHash = frontier.get();
+				currentNode = nodes->at(cHash);
+				cVoxel = currentNode->getVoxel();
+
+				if (!currentNode) continue;
+
+				if (voxel == cVoxel) {
+					Godot::print("path found");
+
+					auto geo = ImmediateGeometry::_new();
+					geo->begin(Mesh::PRIMITIVE_LINES);
+					geo->set_color(Color(1, 0, 0, 1));
+
+					Vector3 currentPoint = currentNode->getPoint();
+
+					while (true) {
+						path.insert(0, currentPoint);
+						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
+
+						if (cameFrom.find(cHash) == cameFrom.end()) break;
+
+						cHash = cameFrom[cHash];
+						currentNode = currentNode->getNeighbour(cHash);
+						currentPoint = currentNode->getPoint();
+
+						path.insert(0, currentPoint);
+						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
+					}
+
+					geo->end();
+					game->call_deferred("draw_debug", geo);
+
+					return path;
+				}
+
+				for (auto& next : currentNode->getEdges()) {
+					neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
+					nHash = neighbourNode->getHash();
+					float newCost = costSoFar[cHash] + next.second->getCost();
+					if (costSoFar.find(nHash) == costSoFar.end()
+						|| newCost < costSoFar[nHash]) {
+						costSoFar[nHash] = newCost;
+						float priority = newCost + 1.0;
+						frontier.put(nHash, priority);
+						cameFrom[nHash] = cHash;
+					}
+				}
+			}
+
+			return path;
 		}
 
 		PoolVector3Array navigate(Vector3 startV, Vector3 goalV, Node* game) {

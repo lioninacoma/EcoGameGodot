@@ -123,42 +123,6 @@ namespace godot {
 			return true;
 		}
 
-		PoolVector3Array findVoxels(Vector3 pos, int type, int maxDist, bool first) {
-			PoolVector3Array voxels;
-			int x, z;
-			int dist = 0;
-			Chunk* chunk;
-
-			Vector3 p = pos;
-			p = fn::toChunkCoords(p);
-			p -= Vector3(offset.x, 0, offset.y);
-
-			while (dist < maxDist) {
-				for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
-					for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
-						if (x > -dist + (int)p.x && x < dist + (int)p.x && z > -dist + (int)p.z && z < dist + (int)p.z) continue;
-						if (x < 0 || z < 0 || x >= SECTION_SIZE || z >= SECTION_SIZE) continue;
-						if (!chunks[fn::fi2(x, z, SECTION_SIZE)]) continue;
-						chunk = chunks[fn::fi2(x, z, SECTION_SIZE)];
-
-						if (first) {
-							Vector3* closest = chunk->findClosestVoxel(pos, type);
-							if (closest) {
-								voxels.push_back(*closest);
-								return voxels;
-							}
-						}
-						else {
-							voxels.append_array(chunk->findVoxels(type));
-						}
-					}
-				}
-				dist++;
-			}
-
-			return voxels;
-		}
-
 		void fill(Section** sections, int sectionSize, int sectionsSize) {
 			int xS, xE, zS, zE, x, z, sx, sy, cx, cz, ci;
 			Section* section;

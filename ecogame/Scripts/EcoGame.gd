@@ -108,7 +108,7 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 	var m = SpatialMaterial.new()
 	m.flags_use_point_size = true
 	m.vertex_color_use_as_albedo = true
-	m.params_point_size = 3
+	m.params_point_size = 4
 	geometry.set_material_override(m)
 	add_child(geometry)
 
@@ -209,25 +209,21 @@ func _input(event : InputEvent) -> void:
 				actor.global_transform.origin.x = vx + 0.5
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
-#				Lib.updateGraphs(Vector3(vx, vy, vz), 128)
-
-				var voxels : PoolVector3Array = Lib.findVoxels(Vector3(vx, vy, vz), 5, 1, false)
-				var nodes = []
-				for v in voxels:
-					nodes.push_back([v, Vector3(vx, vy, vz)])
-				nodes.sort_custom(NodeSorter, "sort")
 				var navStart = actor.global_transform.origin
-				var it = 0
-				var maxIt = 16
-				for n in nodes:
-					var path = Lib.navigate(navStart, n[0])
-					if path.size() > 0:
-						actor.follow_path(path)
-						break
-					it += 1
-					if it > maxIt:
-						break
-						print("path not found")
+				var path = Lib.navigateToClosestVoxel(navStart, 5)
+				actor.follow_path(path)
+
+#				var voxels = Lib.findVoxels(Vector3(vx, vy, vz), 1, 8)
+#				var geo : ImmediateGeometry = ImmediateGeometry.new()
+#				geo.begin(Mesh.PRIMITIVE_POINTS)
+#				geo.set_color(Color(1, 0, 1, 1));
+#				for v in voxels:
+#					geo.add_vertex(v)
+#					print(v)
+#				geo.end()
+#				draw_debug_dots(geo)
+
+#				Lib.updateGraphs(Vector3(vx, vy, vz), 128)
 #			elif event.button_index == BUTTON_WHEEL_DOWN:
 #				chunk.setVoxel(
 #					vx % WorldVariables.CHUNK_SIZE_X,
@@ -240,8 +236,3 @@ func _input(event : InputEvent) -> void:
 #					vy % WorldVariables.CHUNK_SIZE_Y + 1,
 #					vz % WorldVariables.CHUNK_SIZE_Z, 1)
 #				build_chunk_queued(chunk)
-class NodeSorter:
-    static func sort(a, b):
-        if a[0].distance_to(a[1]) < b[0].distance_to(b[1]):
-            return true
-        return false
