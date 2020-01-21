@@ -76,6 +76,7 @@ namespace godot {
 		private:
 			Vector3 point, offset;
 			unordered_map<size_t, GraphEdge*> edges;
+			unordered_map<int, unordered_map<size_t, Vector3>*> reachableVoxels;
 			size_t hash;
 			int type;
 			int voxel;
@@ -86,6 +87,20 @@ namespace godot {
 				GraphNode::hash = fn::hash(point);
 				GraphNode::type = 0;
 				GraphNode::voxel = voxel;
+			};
+			void addReachableVoxel(Vector3 position, int voxel) {
+				auto it = reachableVoxels.find(voxel);
+				unordered_map<size_t, Vector3>* map;
+
+				if (it == reachableVoxels.end()) {
+					map = new unordered_map<size_t, Vector3>();
+					reachableVoxels.emplace(voxel, map);
+				}
+				else {
+					map = it->second;
+				}
+
+				map->emplace(fn::hash(position), position);
 			};
 			void addEdge(GraphEdge* edge) {
 				size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
@@ -120,6 +135,13 @@ namespace godot {
 			}
 			size_t getHash() {
 				return hash;
+			};
+			unordered_map<size_t, Vector3>* getReachableVoxelsOfType(int voxel) {
+				auto it = reachableVoxels.find(voxel);
+				return (it == reachableVoxels.end()) ? NULL : it->second;
+			};
+			unordered_map<int, unordered_map<size_t, Vector3>*> getReachableVoxels() {
+				return reachableVoxels;
 			};
 			int getType() {
 				return type;
@@ -167,6 +189,8 @@ namespace godot {
 			auto edge = new GraphEdge(a, b, cost);
 			a->addEdge(edge);
 			b->addEdge(edge);
+			a->addReachableVoxel(b->getPoint(), b->getVoxel());
+			b->addReachableVoxel(a->getPoint(), a->getVoxel());
 		}
 
 		void removeNode(GraphNode* node) {
@@ -295,9 +319,24 @@ namespace godot {
 									chunkOffset.z = nz;
 									chunkOffset = fn::toChunkCoords(chunkOffset);
 									chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
-									if (chunk->getOffset() == chunkOffset) continue;
+
+									if (chunk->getOffset() == chunkOffset) {
+										int voxel = chunk->getVoxel(
+											(int)nx % CHUNK_SIZE_X,
+											(int)ny % CHUNK_SIZE_Y,
+											(int)nz % CHUNK_SIZE_Z);
+										if (voxel && voxel != 6) {
+											current->addReachableVoxel(Vector3(nx, ny, nz), voxel);
+										}
+										continue;
+									}
+
 									neighbour = getNode(nHash);
-									if (!neighbour) continue;
+
+									if (!neighbour) {
+										// TODO: get reachable voxel of neighbour chunk
+										continue;
+									}
 								
 									mutex.lock();
 									int neighbourType = neighbour->getType();
@@ -326,6 +365,10 @@ namespace godot {
 					for (auto node : *area) {
 						node.second->setType(type);
 						set->insert(node.second->getVoxel());
+						auto reachable = node.second->getReachableVoxels();
+						for (auto r : reachable) {
+							set->insert(r.first);
+						}
 					}
 
 					areaVoxels->emplace(type, set);
@@ -346,6 +389,10 @@ namespace godot {
 						node.second->setType(type);
 						areaBefore->insert(node);
 						setBefore->insert(node.second->getVoxel());
+						auto reachable = node.second->getReachableVoxels();
+						for (auto r : reachable) {
+							setBefore->insert(r.first);
+						}
 					}
 
 					area->clear();
@@ -358,6 +405,10 @@ namespace godot {
 							node.second->setType(type);
 							areaBefore->insert(node);
 							setBefore->insert(node.second->getVoxel());
+							auto reachable = node.second->getReachableVoxels();
+							for (auto r : reachable) {
+								setBefore->insert(r.first);
+							}
 						}
 
 						neighbourSet->clear();
@@ -443,12 +494,17 @@ namespace godot {
 			while (!frontier.empty()) {
 				cHash = frontier.get();
 				currentNode = nodes->at(cHash);
-				cVoxel = currentNode->getVoxel();
-
 				if (!currentNode) continue;
 
-				if (voxel == cVoxel) {
+				cVoxel = currentNode->getVoxel();
+				auto reachable = currentNode->getReachableVoxelsOfType(voxel);
+
+				if (reachable && !reachable->empty()) {
 					Godot::print("path found");
+
+					for (auto v : *reachable) {
+						Godot::print(String("reachable {0} at {1}").format(Array::make(voxel, v.second)));
+					}
 
 					auto geo = ImmediateGeometry::_new();
 					geo->begin(Mesh::PRIMITIVE_LINES);

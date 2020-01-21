@@ -210,7 +210,7 @@ func _input(event : InputEvent) -> void:
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
 				var navStart = actor.global_transform.origin
-				var path = Lib.navigateToClosestVoxel(navStart, 5)
+				var path = Lib.navigateToClosestVoxel(navStart, 4)
 				actor.follow_path(path)
 
 #				var voxels = Lib.findVoxels(Vector3(vx, vy, vz), 1, 8)
