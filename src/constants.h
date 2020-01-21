@@ -1,7 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define WORLD_SIZE 4	 // Chunks
+#define WORLD_SIZE 16	 // Chunks
 #define CHUNK_SIZE_X 64  // Voxels
 #define CHUNK_SIZE_Y 128 // Voxels
 #define CHUNK_SIZE_Z 64  // Voxels
@@ -9,7 +9,7 @@
 #define BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z
 #define MAX_VERTICES_SIZE (BUFFER_SIZE * VERTEX_SIZE * 6 * 4) / 2
 
-#define SECTION_SIZE 4 // Chunks
+#define SECTION_SIZE 8 // Chunks
 #define SECTIONS_SIZE WORLD_SIZE / SECTION_SIZE
 #define SECTION_CHUNKS_LEN SECTION_SIZE * SECTION_SIZE 
 #define SECTIONS_LEN SECTIONS_SIZE * SECTIONS_SIZE

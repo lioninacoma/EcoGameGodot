@@ -102,6 +102,19 @@ namespace godot {
 
 				map->emplace(fn::hash(position), position);
 			};
+			void removeReachableVoxel(Vector3 position, int voxel) {
+				auto it = reachableVoxels.find(voxel);
+				unordered_map<size_t, Vector3>* map;
+
+				if (it != reachableVoxels.end()) {
+					map = it->second;
+					map->erase(fn::hash(position));
+
+					if (map->empty()) {
+						reachableVoxels.erase(voxel);
+					}
+				}			
+			};
 			void addEdge(GraphEdge* edge) {
 				size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
 				edges[nHash] = edge;
@@ -200,6 +213,7 @@ namespace godot {
 			for (auto& next : node->getEdges()) {
 				neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
 				neighbour->removeEdgeWithNode(hash);
+				neighbour->removeReachableVoxel(node->getPoint(), node->getVoxel());
 			}
 
 			nodes->erase(hash);
