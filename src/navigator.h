@@ -19,6 +19,8 @@
 #include "constants.h"
 #include "fn.h"
 #include "chunk.h"
+#include "graphnode.h"
+#include "graphedge.h"
 
 using namespace std;
 
@@ -48,128 +50,9 @@ namespace godot {
 			}
 		};
 
-		class GraphNode;
-
-		class GraphEdge {
-		private:
-			GraphNode* a;
-			GraphNode* b;
-			float cost;
-		public:
-			GraphEdge(GraphNode* a, GraphNode* b, float cost) {
-				GraphEdge::a = a;
-				GraphEdge::b = b;
-				GraphEdge::cost = cost;
-			};
-			GraphNode* getA() {
-				return a;
-			};
-			GraphNode* getB() {
-				return b;
-			};
-			float getCost() {
-				return cost;
-			};
-		};
-
-		class GraphNode {
-		private:
-			Vector3 point, offset;
-			unordered_map<size_t, GraphEdge*> edges;
-			unordered_map<int, unordered_map<size_t, Vector3>*> reachableVoxels;
-			size_t hash;
-			int type;
-			int voxel;
-		public:
-			GraphNode(Vector3 point, Vector3 offset, char voxel) {
-				GraphNode::point = point;
-				GraphNode::offset = offset;
-				GraphNode::hash = fn::hash(point);
-				GraphNode::type = 0;
-				GraphNode::voxel = voxel;
-			};
-			void addReachableVoxel(Vector3 position, int voxel) {
-				auto it = reachableVoxels.find(voxel);
-				unordered_map<size_t, Vector3>* map;
-
-				if (it == reachableVoxels.end()) {
-					map = new unordered_map<size_t, Vector3>();
-					reachableVoxels.emplace(voxel, map);
-				}
-				else {
-					map = it->second;
-				}
-
-				map->emplace(fn::hash(position), position);
-			};
-			void removeReachableVoxel(Vector3 position, int voxel) {
-				auto it = reachableVoxels.find(voxel);
-				unordered_map<size_t, Vector3>* map;
-
-				if (it != reachableVoxels.end()) {
-					map = it->second;
-					map->erase(fn::hash(position));
-
-					if (map->empty()) {
-						reachableVoxels.erase(voxel);
-					}
-				}			
-			};
-			void addEdge(GraphEdge* edge) {
-				size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
-				edges[nHash] = edge;
-			};
-			void removeEdgeWithNode(size_t nHash) {
-				auto it = edges.find(nHash);
-				if (it == edges.end()) return;
-				edges.erase(nHash);
-			};
-			void setType(int type) {
-				GraphNode::type = type;
-			}
-			GraphEdge* getEdgeWithNode(size_t nHash) {
-				auto it = edges.find(nHash);
-				if (it == edges.end()) return NULL;
-				return it->second;
-			};
-			GraphNode* getNeighbour(size_t nHash) {
-				GraphEdge* edge = getEdgeWithNode(nHash);
-				if (!edge) return NULL;
-				return (edge->getA()->getHash() != hash) ? edge->getA() : edge->getB();
-			};
-			unordered_map<size_t, GraphEdge*> getEdges() {
-				return edges;
-			};
-			Vector3 getPoint() {
-				return point;
-			};
-			Vector3 getOffset() {
-				return offset;
-			}
-			size_t getHash() {
-				return hash;
-			};
-			unordered_map<size_t, Vector3>* getReachableVoxelsOfType(int voxel) {
-				auto it = reachableVoxels.find(voxel);
-				return (it == reachableVoxels.end()) ? NULL : it->second;
-			};
-			unordered_map<int, unordered_map<size_t, Vector3>*> getReachableVoxels() {
-				return reachableVoxels;
-			};
-			int getType() {
-				return type;
-			};
-			int getVoxel() {
-				return voxel;
-			};
-			bool operator == (const GraphNode& o) const {
-				return hash == o.hash;
-			};
-		};
-
 		unordered_map<size_t, GraphNode*>* nodes;
-		unordered_map<int, unordered_map<size_t, GraphNode*>*>* areas;
-		unordered_map<int, unordered_set<int>*>* areaVoxels;
+		//unordered_map<int, unordered_map<size_t, GraphNode*>*>* areas;
+		//unordered_map<int, unordered_set<char>*>* areaVoxels;
 		boost::mutex mutex;
 		int currentType = 1;
 	public:
@@ -180,30 +63,22 @@ namespace godot {
 
 		Navigator() {
 			nodes = new unordered_map<size_t, GraphNode*>();
-			areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
-			areaVoxels = new unordered_map<int, unordered_set<int>*>();
+			//areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
+			//areaVoxels = new unordered_map<int, unordered_set<char>*>();
 		};
 		~Navigator() {};
 
-		void addNode(GraphNode* n) {
-			boost::unique_lock<boost::mutex> lock(mutex);
-			nodes->insert(pair<size_t, GraphNode*>(n->getHash(), n));
-		}
-
-		void addNodes(unordered_map<size_t, GraphNode*> nodeMap) {
-			boost::unique_lock<boost::mutex> lock(mutex);
-			for (auto &n : nodeMap) {
-				nodes->insert(pair<size_t, GraphNode*>(n.first, n.second));
-			}
-		}
-
 		void addEdge(GraphNode* a, GraphNode* b, float cost) {
 			boost::unique_lock<boost::mutex> lock(mutex);
+
+			// ~600 MB
 			auto edge = new GraphEdge(a, b, cost);
 			a->addEdge(edge);
 			b->addEdge(edge);
-			a->addReachableVoxel(b->getPoint(), b->getVoxel());
-			b->addReachableVoxel(a->getPoint(), a->getVoxel());
+
+			// ~700 MB
+			/*a->addReachableVoxel(b);
+			b->addReachableVoxel(a);*/
 		}
 
 		void removeNode(GraphNode* node) {
@@ -213,9 +88,10 @@ namespace godot {
 			for (auto& next : node->getEdges()) {
 				neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
 				neighbour->removeEdgeWithNode(hash);
-				neighbour->removeReachableVoxel(node->getPoint(), node->getVoxel());
+				neighbour->removeReachableVoxel(node);
 			}
 
+			//areas->at(node->getType())->erase(node->getHash());
 			nodes->erase(hash);
 			delete node;
 		}
@@ -244,10 +120,10 @@ namespace godot {
 			unordered_map<size_t, GraphNode*> nodeCache;
 			deque<size_t> queue, volume;
 			unordered_set<size_t> inque, ready;
-			unordered_set<int> neighbourTypes;
-			unordered_map<size_t, GraphNode*>* area = new unordered_map<size_t, GraphNode*>();
+			//unordered_set<int> neighbourTypes;
+			//unordered_map<size_t, GraphNode*>* area = new unordered_map<size_t, GraphNode*>();
 			size_t cHash, nHash;
-			int type;
+			//int type;
 
 			/*auto dots = ImmediateGeometry::_new();
 			dots->begin(Mesh::PRIMITIVE_POINTS);
@@ -261,7 +137,7 @@ namespace godot {
 			mutex.lock();
 			for (auto& point : *chunkPoints) {
 				if (nodeChanges->find(point.first) != nodeChanges->end()) {
-					current = new GraphNode(point.second.getPosition(), chunk->getOffset(), point.second.getType());
+					current = point.second;
 					nodes->insert(pair<size_t, GraphNode*>(point.first, current));;
 				}
 				else {
@@ -277,7 +153,6 @@ namespace godot {
 				auto it = nodes->find(change.first);
 				if (it == nodes->end()) continue;
 				current = it->second;
-				areas->at(current->getType())->erase(change.first);
 				removeNode(current);
 			}
 			mutex.unlock();
@@ -305,7 +180,7 @@ namespace godot {
 					break;
 				}
 
-				neighbourTypes.clear();
+				//neighbourTypes.clear();
 
 				while (!queue.empty()) {
 					cHash = queue.front();
@@ -314,7 +189,7 @@ namespace godot {
 
 					current = nodeCache[cHash];
 					ready.insert(cHash);
-					area->emplace(cHash, current);
+					//area->emplace(cHash, current);
 
 					for (z = -1; z < 2; z++)
 						for (x = -1; x < 2; x++)
@@ -335,13 +210,16 @@ namespace godot {
 									chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 									if (chunk->getOffset() == chunkOffset) {
-										int voxel = chunk->getVoxel(
+
+										// ~6.3 GB
+										/*int voxel = chunk->getVoxel(
 											(int)nx % CHUNK_SIZE_X,
 											(int)ny % CHUNK_SIZE_Y,
 											(int)nz % CHUNK_SIZE_Z);
 										if (voxel && voxel != 6) {
-											current->addReachableVoxel(Vector3(nx, ny, nz), voxel);
-										}
+											current->addReachableVoxel(new GraphNode(Vector3(nx, ny, nz), voxel));
+										}*/
+
 										continue;
 									}
 
@@ -352,12 +230,12 @@ namespace godot {
 										continue;
 									}
 								
-									mutex.lock();
+									/*mutex.lock();
 									int neighbourType = neighbour->getType();
 									if (neighbourType) {
 										neighbourTypes.insert(neighbourType);
 									}
-									mutex.unlock();
+									mutex.unlock();*/
 								}
 								else {
 									neighbour = nodeCache[nHash];
@@ -371,7 +249,7 @@ namespace godot {
 							}
 				}
 				
-				mutex.lock();
+				/*mutex.lock();
 				if (neighbourTypes.empty()) {
 					type = getNextType();
 					auto set = new unordered_set<int>();
@@ -426,16 +304,16 @@ namespace godot {
 						}
 
 						neighbourSet->clear();
-						/*areaVoxels->erase(neighbourType);
-						delete neighbourSet;*/
+						//areaVoxels->erase(neighbourType);
+						//delete neighbourSet;
 
 						// TODO: delete neighbourArea from areas
 						neighbourArea->clear();
-						/*areas->erase(neighbourType);
-						delete neighbourArea;*/
+						//areas->erase(neighbourType);
+						//delete neighbourArea;
 					}
 				}
-				mutex.unlock();
+				mutex.unlock();*/
 			}
 
 			nodeChanges->clear();
@@ -485,11 +363,11 @@ namespace godot {
 			}
 
 			if (!startNode) return path;
-			auto voxelSet = areaVoxels->at(startNode->getType());
+			/*auto voxelSet = areaVoxels->at(startNode->getType());
 			if (voxelSet->find(voxel) == voxelSet->end()) {
 				Godot::print(String("path from {0} to voxel of type {1} not found").format(Array::make(startNode->getPoint(), voxel)));
 				return path;
-			}
+			}*/
 			
 			GraphNode* currentNode;
 			GraphNode* neighbourNode;
@@ -591,10 +469,10 @@ namespace godot {
 			}
 
 			if (!startNode || !goalNode) return path;
-			if (startNode->getType() != goalNode->getType()) {
+			/*if (startNode->getType() != goalNode->getType()) {
 				Godot::print(String("path from {0} to {1} not found").format(Array::make(startNode->getPoint(), goalNode->getPoint())));
 				return path;
-			}
+			}*/
 
 			GraphNode* currentNode;
 			GraphNode* neighbourNode;

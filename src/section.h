@@ -341,59 +341,6 @@ namespace godot {
 			}
 		}
 
-		Area* findNextArea(int* mask, int* surfaceY) {
-			const int SECTION_SIZE_CHUNKS = sectionSize * CHUNK_SIZE_X;
-			int i, j, x0, x1, y0, y1;
-			int max_of_s, max_i, max_j;
-
-			int* sub = getIntBufferPool().borrow();
-
-			memset(sub, 0, INT_POOL_BUFFER_SIZE * sizeof(*sub));
-
-			for (i = 0; i < SECTION_SIZE_CHUNKS; i++)
-				sub[fn::fi2(i, 0, SECTION_SIZE_CHUNKS)] = mask[fn::fi2(i, 0, SECTION_SIZE_CHUNKS)];
-
-			for (j = 0; j < SECTION_SIZE_CHUNKS; j++)
-				sub[fn::fi2(0, j, SECTION_SIZE_CHUNKS)] = mask[fn::fi2(0, j, SECTION_SIZE_CHUNKS)];
-
-			for (i = 1; i < SECTION_SIZE_CHUNKS; i++) {
-				for (j = 1; j < SECTION_SIZE_CHUNKS; j++) {
-					if (mask[fn::fi2(i, j, SECTION_SIZE_CHUNKS)] > 0) {
-						sub[fn::fi2(i, j, SECTION_SIZE_CHUNKS)] = min(
-							sub[fn::fi2(i, j - 1, SECTION_SIZE_CHUNKS)],
-							min(sub[fn::fi2(i - 1, j, SECTION_SIZE_CHUNKS)],
-								sub[fn::fi2(i - 1, j - 1, SECTION_SIZE_CHUNKS)])) + 1;
-					}
-					else {
-						sub[fn::fi2(i, j, SECTION_SIZE_CHUNKS)] = 0;
-					}
-				}
-			}
-
-			max_of_s = sub[fn::fi2(0, 0)];
-			max_i = 0;
-			max_j = 0;
-
-			for (i = 0; i < SECTION_SIZE_CHUNKS; i++) {
-				for (j = 0; j < SECTION_SIZE_CHUNKS; j++) {
-					if (max_of_s < sub[fn::fi2(i, j)]) {
-						max_of_s = sub[fn::fi2(i, j)];
-						max_i = i;
-						max_j = j;
-					}
-				}
-			}
-
-			x0 = (max_i - max_of_s) + 1;
-			x1 = max_i + 1;
-			y0 = (max_j - max_of_s) + 1;
-			y1 = max_j + 1;
-			
-			getIntBufferPool().ret(sub);
-
-			return new Area(Vector2(x0, y0), Vector2(x1, y1), surfaceY[fn::fi2(x0, y0)]);
-		}
-
 		vector<Area> findAreasOfSize(int size, int* mask, int* surfaceY, int* sub) {
 			int i, j, x, y, x0, x1, y0, y1, areaY, currentSize, meanY = 0, count = 0;
 			vector<Area> areas;

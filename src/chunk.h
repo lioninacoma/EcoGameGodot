@@ -18,6 +18,7 @@
 #include "intersection.h"
 #include "voxel.h"
 #include "voxeldata.h"
+#include "graphnode.h"
 
 using namespace std;
 
@@ -26,7 +27,7 @@ namespace godot {
 	class Chunk : public Reference {
 		GODOT_CLASS(Chunk, Reference)
 	private:
-		OpenSimplexNoise* noise,* noiseP;
+		OpenSimplexNoise* noise;
 		Vector3 offset;
 		int amountNodes = 0;
 		int amountVoxel = 0;
@@ -34,7 +35,7 @@ namespace godot {
 		VoxelData* volume;
 		int* surfaceY;
 		unordered_map<size_t, bool>* nodeChanges;
-		unordered_map<size_t, Voxel>* nodes;
+		unordered_map<size_t, GraphNode*>* nodes;
 		bool volumeBuilt = false;
 		bool building = false;
 		bool assetsBuilt = false;
@@ -78,7 +79,7 @@ namespace godot {
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
-		unordered_map<size_t, Voxel>* getNodes() {
+		unordered_map<size_t, GraphNode*>* getNodes() {
 			return Chunk::nodes;
 		};
 		int getAmountNodes() {
@@ -103,9 +104,9 @@ namespace godot {
 		};
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
-		void addNode(Voxel p) {
-			size_t hash = fn::hash(p.getPosition());
-			Chunk::nodes->insert(pair<size_t, Voxel>(hash, p));
+		void addNode(GraphNode* node) {
+			size_t hash = node->getHash();
+			Chunk::nodes->insert(pair<size_t, GraphNode*>(hash, node));
 			//Chunk::nodeChanges->emplace(hash, 1);
 
 			auto it = Chunk::nodeChanges->find(hash);
@@ -116,8 +117,8 @@ namespace godot {
 				Chunk::nodeChanges->erase(hash);
 			}
 		};
-		void removeNode(Vector3 p) {
-			size_t hash = fn::hash(p);
+		void removeNode(Vector3 point) {
+			size_t hash = fn::hash(point);
 			if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
 			Chunk::nodes->erase(hash);
 			//Chunk::nodeChanges->emplace(hash, 0);
@@ -130,26 +131,26 @@ namespace godot {
 				Chunk::nodeChanges->erase(hash);
 			}
 		};
-		PoolVector3Array findVoxels(Vector3 pos, int type, float distance) {
+		PoolVector3Array findVoxels(Vector3 pos, int voxel, float distance) {
 			PoolVector3Array voxels;
 			float dist;
 			for (auto& current : *nodes) {
-				dist = current.second.getPosition().distance_to(pos);
-				if ((int)current.second.getType() == type && dist < distance) {
-					voxels.push_back(current.second.getPosition());
+				dist = current.second->getPoint().distance_to(pos);
+				if ((int)current.second->getVoxel() == voxel && dist < distance) {
+					voxels.push_back(current.second->getPoint());
 				}
 			}
 			return voxels;
 		};
-		Vector3* findClosestVoxel(Vector3 pos, int type) {
+		Vector3* findClosestVoxel(Vector3 pos, int voxel) {
 			Vector3* closest = NULL;
 			float minDistance = numeric_limits<float>::max();
 			float dist;
 
 			for (auto& current : *nodes) {
-				dist = current.second.getPosition().distance_to(pos);
-				if ((int)current.second.getType() == type && dist < minDistance) {
-					closest = &current.second.getPosition();
+				dist = current.second->getPoint().distance_to(pos);
+				if ((int)current.second->getVoxel() == voxel && dist < minDistance) {
+					closest = &current.second->getPoint();
 					minDistance = dist;
 				}
 			}

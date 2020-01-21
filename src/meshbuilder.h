@@ -12,6 +12,7 @@
 #include "chunk.h"
 #include "voxelassetmanager.h"
 #include "voxelasset.h"
+#include "graphnode.h"
 
 namespace bpt = boost::posix_time;
 using namespace std;

@@ -8,7 +8,7 @@ var Lib = load("res://bin/EcoGame.gdns").new()
 var Actor : PackedScene = load("res://Actor.tscn")
 
 # build thread variables
-const TIME_PERIOD = 1.0 # 1000ms
+const TIME_PERIOD = 0.6 # 600ms
 const MAX_BUILD_CHUNKS = 24
 const MAX_BUILD_SECTIONS = 1
 

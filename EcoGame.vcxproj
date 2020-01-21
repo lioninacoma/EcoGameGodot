@@ -170,6 +170,8 @@
     <ClCompile Include="src\gdlibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\graphedge.h" />
+    <ClInclude Include="src\graphnode.h" />
     <ClInclude Include="src\navigator.h" />
     <ClInclude Include="src\area.h" />
     <ClInclude Include="src\fn.h" />

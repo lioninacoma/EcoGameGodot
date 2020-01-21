@@ -92,5 +92,11 @@
     <ClInclude Include="src\voxeldata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\graphnode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graphedge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
