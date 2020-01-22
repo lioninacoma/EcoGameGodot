@@ -28,8 +28,11 @@ namespace godot {
 			GraphNode::type = 0;
 			GraphNode::voxel = voxel;
 		};
+		void addReachable(char voxel) {
+			reachables[voxel]++;
+		};
 		void addReachable(GraphNode* node) {
-			reachables[node->getVoxel()]++;
+			addReachable(node->getVoxel());
 		};
 		void removeReachable(GraphNode* node) {
 			int count = max((int)reachables[node->getVoxel()] - 1, 0);

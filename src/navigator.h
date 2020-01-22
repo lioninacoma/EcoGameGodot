@@ -50,7 +50,7 @@ namespace godot {
 			}
 		};
 
-		unordered_map<size_t, GraphNode*>* reachables;
+		unordered_map<size_t, Chunk*>* chunks;
 		unordered_map<size_t, GraphNode*>* nodes;
 		//unordered_map<int, unordered_map<size_t, GraphNode*>*>* areas;
 		//unordered_map<int, unordered_set<char>*>* areaVoxels;
@@ -63,7 +63,7 @@ namespace godot {
 		};
 
 		Navigator() {
-			reachables = new unordered_map<size_t, GraphNode*>();
+			chunks = new unordered_map<size_t, Chunk*>();
 			nodes = new unordered_map<size_t, GraphNode*>();
 			//areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
 			//areaVoxels = new unordered_map<int, unordered_set<char>*>();
@@ -78,7 +78,6 @@ namespace godot {
 			a->addEdge(edge);
 			b->addEdge(edge);
 
-			// ~700 MB
 			a->addReachable(b);
 			b->addReachable(a);
 		}
@@ -135,6 +134,8 @@ namespace godot {
 			}
 			dots->end();
 			game->call_deferred("draw_debug_dots", dots);*/
+
+			chunks->emplace(fn::hash(chunk->getOffset()), chunk);
 
 			mutex.lock();
 			for (auto& point : *chunkPoints) {
@@ -212,41 +213,35 @@ namespace godot {
 									chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 									if (chunk->getOffset() == chunkOffset) {
+										mutex.lock();
 										int voxel = chunk->getVoxel(
 											(int)nx % CHUNK_SIZE_X,
 											(int)ny % CHUNK_SIZE_Y,
 											(int)nz % CHUNK_SIZE_Z);
-
 										if (voxel && voxel != 6) {
-											mutex.lock();
-											auto it = reachables->find(nHash);
-											if (it == reachables->end()) {
-												neighbour = new GraphNode(Vector3(nx, ny, nz), voxel);
-												reachables->emplace(nHash, neighbour);
-											}
-											else {
-												neighbour = it->second;
-											}
-											mutex.unlock();
-											current->addReachable(neighbour);
+											current->addReachable(voxel);
 										}
-
-										// ~6.3 GB
-										/*int voxel = chunk->getVoxel(
-											(int)nx % CHUNK_SIZE_X,
-											(int)ny % CHUNK_SIZE_Y,
-											(int)nz % CHUNK_SIZE_Z);
-										if (voxel && voxel != 6) {
-											current->addReachableVoxel(new GraphNode(Vector3(nx, ny, nz), voxel));
-										}*/
-
+										mutex.unlock();
 										continue;
 									}
 
 									neighbour = getNode(nHash);
 
 									if (!neighbour) {
-										// TODO: get reachable voxel of neighbour chunk
+										// TODO: get neighbour chunk
+										/*mutex.lock();
+										auto it = chunks->find(fn::hash(chunkOffset));
+										if (it != chunks->end()) {
+											Chunk* nChunk = it->second;
+											int voxel = nChunk->getVoxel(
+												(int)nx % CHUNK_SIZE_X,
+												(int)ny % CHUNK_SIZE_Y,
+												(int)nz % CHUNK_SIZE_Z);
+											if (voxel && voxel != 6) {
+												current->addReachable(voxel);
+											}
+										}
+										mutex.unlock();*/
 										continue;
 									}
 								
