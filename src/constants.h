@@ -19,7 +19,7 @@
 #define TEXTURE_SCALE 1.0 / 1.0
 #define TEXTURE_ATLAS_LEN 3
 
-#define TYPES 6
+#define TYPES 8
 #define NOISE_SEED 123
 #define WATER_LEVEL 48
 #define VOXEL_CHANCE_T 0.7

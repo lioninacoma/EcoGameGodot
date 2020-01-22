@@ -17,7 +17,7 @@ namespace godot {
 	private:
 		Vector3 point;
 		unordered_map<size_t, GraphEdge*> edges;
-		unordered_map<char, unordered_map<size_t, GraphNode*>*> reachableVoxels;
+		unordered_map<char, char> reachables;
 		size_t hash;
 		int type;
 		char voxel;
@@ -28,31 +28,15 @@ namespace godot {
 			GraphNode::type = 0;
 			GraphNode::voxel = voxel;
 		};
-		void addReachableVoxel(GraphNode* node) {
-			auto it = reachableVoxels.find(node->getVoxel());
-			unordered_map<size_t, GraphNode*>* map;
-
-			if (it == reachableVoxels.end()) {
-				map = new unordered_map<size_t, GraphNode*>();
-				reachableVoxels.emplace(node->getVoxel(), map);
-			}
-			else {
-				map = it->second;
-			}
-
-			map->emplace(node->getHash(), node);
+		void addReachable(GraphNode* node) {
+			reachables[node->getVoxel()]++;
 		};
-		void removeReachableVoxel(GraphNode* node) {
-			auto it = reachableVoxels.find(node->getVoxel());
-			unordered_map<size_t, GraphNode*>* map;
+		void removeReachable(GraphNode* node) {
+			int count = max((int)reachables[node->getVoxel()] - 1, 0);
+			reachables[node->getVoxel()] = (char)count;
 
-			if (it != reachableVoxels.end()) {
-				map = it->second;
-				map->erase(node->getHash());
-
-				if (map->empty()) {
-					reachableVoxels.erase(node->getVoxel());
-				}
+			if (!count) {
+				reachables.erase(node->getVoxel());
 			}
 		};
 		void addEdge(GraphEdge* edge) {
@@ -86,12 +70,11 @@ namespace godot {
 		size_t getHash() {
 			return hash;
 		};
-		unordered_map<size_t, GraphNode*>* getReachableVoxelsOfType(char voxel) {
-			auto it = reachableVoxels.find(voxel);
-			return (it == reachableVoxels.end()) ? NULL : it->second;
+		char getReachablesOfType(char voxel) {
+			return reachables[voxel];
 		};
-		unordered_map<char, unordered_map<size_t, GraphNode*>*> getReachableVoxels() {
-			return reachableVoxels;
+		unordered_map<char, char> getReachables() {
+			return reachables;
 		};
 		int getType() {
 			return type;

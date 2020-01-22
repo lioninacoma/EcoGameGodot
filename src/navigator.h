@@ -50,6 +50,7 @@ namespace godot {
 			}
 		};
 
+		unordered_map<size_t, GraphNode*>* reachables;
 		unordered_map<size_t, GraphNode*>* nodes;
 		//unordered_map<int, unordered_map<size_t, GraphNode*>*>* areas;
 		//unordered_map<int, unordered_set<char>*>* areaVoxels;
@@ -62,6 +63,7 @@ namespace godot {
 		};
 
 		Navigator() {
+			reachables = new unordered_map<size_t, GraphNode*>();
 			nodes = new unordered_map<size_t, GraphNode*>();
 			//areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
 			//areaVoxels = new unordered_map<int, unordered_set<char>*>();
@@ -77,8 +79,8 @@ namespace godot {
 			b->addEdge(edge);
 
 			// ~700 MB
-			/*a->addReachableVoxel(b);
-			b->addReachableVoxel(a);*/
+			a->addReachable(b);
+			b->addReachable(a);
 		}
 
 		void removeNode(GraphNode* node) {
@@ -88,7 +90,7 @@ namespace godot {
 			for (auto& next : node->getEdges()) {
 				neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
 				neighbour->removeEdgeWithNode(hash);
-				neighbour->removeReachableVoxel(node);
+				neighbour->removeReachable(node);
 			}
 
 			//areas->at(node->getType())->erase(node->getHash());
@@ -138,7 +140,7 @@ namespace godot {
 			for (auto& point : *chunkPoints) {
 				if (nodeChanges->find(point.first) != nodeChanges->end()) {
 					current = point.second;
-					nodes->insert(pair<size_t, GraphNode*>(point.first, current));;
+					nodes->insert(point);
 				}
 				else {
 					auto it = nodes->find(point.first);
@@ -210,6 +212,24 @@ namespace godot {
 									chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 									if (chunk->getOffset() == chunkOffset) {
+										int voxel = chunk->getVoxel(
+											(int)nx % CHUNK_SIZE_X,
+											(int)ny % CHUNK_SIZE_Y,
+											(int)nz % CHUNK_SIZE_Z);
+
+										if (voxel && voxel != 6) {
+											mutex.lock();
+											auto it = reachables->find(nHash);
+											if (it == reachables->end()) {
+												neighbour = new GraphNode(Vector3(nx, ny, nz), voxel);
+												reachables->emplace(nHash, neighbour);
+											}
+											else {
+												neighbour = it->second;
+											}
+											mutex.unlock();
+											current->addReachable(neighbour);
+										}
 
 										// ~6.3 GB
 										/*int voxel = chunk->getVoxel(
@@ -389,14 +409,11 @@ namespace godot {
 				if (!currentNode) continue;
 
 				cVoxel = currentNode->getVoxel();
-				auto reachable = currentNode->getReachableVoxelsOfType(voxel);
+				char reachable = currentNode->getReachablesOfType(voxel);
 
-				if (reachable && !reachable->empty()) {
+				if (reachable) {
 					Godot::print("path found");
-
-					for (auto v : *reachable) {
-						Godot::print(String("reachable {0} at {1}").format(Array::make(voxel, v.second)));
-					}
+					Godot::print(String("{0} reachable of voxel {1}").format(Array::make(reachable, voxel)));
 
 					auto geo = ImmediateGeometry::_new();
 					geo->begin(Mesh::PRIMITIVE_LINES);
