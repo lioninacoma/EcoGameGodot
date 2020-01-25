@@ -2,15 +2,16 @@ extends Spatial
 class_name EcoGame
 
 onready var fpsLabel = get_node('FPSLabel')
-onready var WorldVariables : Node = get_node("/root/WorldVariables")
 
-var Lib = load("res://bin/EcoGame.gdns").new()
 var Actor : PackedScene = load("res://Actor.tscn")
+var TaskManager = load("res://Scripts/Actor/Task/TaskManager.gd")
 
 # build thread variables
 const TIME_PERIOD = 0.2 # 200ms
 const MAX_BUILD_CHUNKS = 24
 const MAX_BUILD_SECTIONS = 1
+
+onready var taskManager = TaskManager.new()
 
 # config
 var mouseModeCaptured : bool = false
@@ -19,7 +20,7 @@ var buildStack : Array = []
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	add_child(Lib)
+	add_child(Lib.instance)
 
 func _process(delta : float) -> void:
 	fpsLabel.set_text(str(Engine.get_frames_per_second()))
@@ -35,7 +36,7 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		var player = $Player
 		var pos = player.translation
-		Lib.buildSections(pos, WorldVariables.BUILD_DISTANCE, MAX_BUILD_SECTIONS)
+		Lib.instance.buildSections(pos, WorldVariables.BUILD_DISTANCE, MAX_BUILD_SECTIONS)
 		# Reset timer
 		time = 0
 	
@@ -47,7 +48,7 @@ func process_build_stack() -> void:
 		var chunk = buildStack.pop_front()
 		if chunk == null: continue
 		chunk.setBuilding(true)
-		Lib.buildChunk(chunk, self)
+		Lib.instance.buildChunk(chunk, self)
 
 func build_chunk(meshes : Array, chunk) -> void:
 	if (!meshes || !chunk): return
@@ -65,7 +66,7 @@ func build_chunk(meshes : Array, chunk) -> void:
 	chunk.setMeshInstanceId(meshInstance.get_instance_id())
 	chunk.setBuilding(false)
 	if true or chunk.doUpdateGraph():
-		Lib.updateGraph(chunk)
+		Lib.instance.updateGraph(chunk)
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
@@ -112,7 +113,7 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 	geometry.set_material_override(m)
 	add_child(geometry)
 
-var actor : Actor = null
+var actor
 var asset : MeshInstance = null
 var assetType : int = -1
 
@@ -141,7 +142,7 @@ func _input(event : InputEvent) -> void:
 			asset.global_transform.origin.y = vy + 1
 			asset.global_transform.origin.z = vz - int(d / 2)
 			
-			var fits = Lib.voxelAssetFits(Vector3(vx, vy, vz), assetType)
+			var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), assetType)
 			for i in range(asset.get_surface_material_count()):
 				var material = asset.mesh.surface_get_material(i)
 				var color : Color
@@ -171,15 +172,15 @@ func _input(event : InputEvent) -> void:
 			
 			if event.button_index == BUTTON_LEFT:
 				if asset:
-					var fits = Lib.voxelAssetFits(Vector3(vx, vy, vz), assetType)
+					var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), assetType)
 					if !fits: return
-					Lib.addVoxelAsset(Vector3(vx, vy, vz), assetType)
+					Lib.instance.addVoxelAsset(Vector3(vx, vy, vz), assetType)
 					asset.queue_free()
 					asset = null
 					assetType = -1
 				else:
 					assetType = 2
-					var meshes = Lib.buildVoxelAsset(assetType)
+					var meshes = Lib.instance.buildVoxelAsset(assetType)
 					asset = build_mesh_instance(meshes, null)
 					
 					for i in range(asset.get_surface_material_count()):
@@ -198,22 +199,21 @@ func _input(event : InputEvent) -> void:
 					asset.global_transform.origin.z = vz - int(d / 2)
 			elif event.button_index == BUTTON_RIGHT:
 				if actor:
-					var navStart = actor.global_transform.origin
 					var navEnd = voxelPosition
-					var path = Lib.navigate(navStart, navEnd)
-					actor.follow_path(path)
+					actor.move_to(navEnd)
 			elif event.button_index == BUTTON_MIDDLE:
 				actor = Actor.instance()
-				actor.init(Lib)
+				actor.init(taskManager)
 				add_child(actor)
 				actor.global_transform.origin.x = vx + 0.5
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
-				var navStart = actor.global_transform.origin
-				var path = Lib.navigateToClosestVoxel(navStart, 4)
-				actor.follow_path(path)
+#				var navStart = actor.global_transform.origin
+#				var path = Lib.instance.navigateToClosestVoxel(navStart, 4)
+#				actor.follow_path(path)
+				actor.gather_wood()
 
-#				var voxels = Lib.findVoxels(Vector3(vx, vy, vz), 1, 8)
+#				var voxels = Lib.instance.findVoxels(Vector3(vx, vy, vz), 1, 8)
 #				var geo : ImmediateGeometry = ImmediateGeometry.new()
 #				geo.begin(Mesh.PRIMITIVE_POINTS)
 #				geo.set_color(Color(1, 0, 1, 1));
@@ -223,7 +223,7 @@ func _input(event : InputEvent) -> void:
 #				geo.end()
 #				draw_debug_dots(geo)
 
-#				Lib.updateGraphs(Vector3(vx, vy, vz), 128)
+#				Lib.instance.updateGraphs(Vector3(vx, vy, vz), 128)
 #			elif event.button_index == BUTTON_WHEEL_DOWN:
 #				chunk.setVoxel(
 #					vx % WorldVariables.CHUNK_SIZE_X,

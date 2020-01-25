@@ -140,16 +140,10 @@ namespace godot {
 			mutex.lock();
 			for (auto& point : *chunkPoints) {
 				if (nodeChanges->find(point.first) != nodeChanges->end()) {
-					current = point.second;
 					nodes->insert(point);
 				}
-				else {
-					auto it = nodes->find(point.first);
-					if (it == nodes->end()) continue;
-					current = it->second;
-				}
 
-				nodeCache[point.first] = current;
+				nodeCache.insert(point);
 			}
 			for (auto& change : *nodeChanges) {
 				if (change.second) continue;
@@ -164,9 +158,8 @@ namespace godot {
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(0, 1, 0, 1));*/
 
-			for (auto& change : *nodeChanges) {
-				if (!change.second) continue;
-				volume.push_back(change.first);
+			for (auto& node : nodeCache) {
+				volume.push_back(node.first);
 			}
 
 			while (true) {

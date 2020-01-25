@@ -75,6 +75,9 @@ namespace godot {
 		bool doUpdateGraph() {
 			return navigatable && !nodeChanges->empty();
 		}
+		bool isNavigatable() {
+			return navigatable;
+		}
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);

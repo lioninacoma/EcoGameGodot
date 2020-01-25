@@ -12,7 +12,7 @@ _global_script_classes=[ {
 "base": "KinematicBody",
 "class": "Actor",
 "language": "GDScript",
-"path": "res://Scripts/Actor.gd"
+"path": "res://Scripts/Actor/Actor.gd"
 }, {
 "base": "Spatial",
 "class": "EcoGame",
@@ -25,6 +25,16 @@ _global_script_classes=[ {
 "path": "res://Scripts/ObjectPool.gd"
 }, {
 "base": "Node",
+"class": "Task",
+"language": "GDScript",
+"path": "res://Scripts/Actor/Task/Task.gd"
+}, {
+"base": "Node",
+"class": "TaskEvent",
+"language": "GDScript",
+"path": "res://Scripts/Actor/Task/TaskEvent.gd"
+}, {
+"base": "Node",
 "class": "ThreadPool",
 "language": "GDScript",
 "path": "res://Scripts/ThreadPool.gd"
@@ -33,6 +43,8 @@ _global_script_class_icons={
 "Actor": "",
 "EcoGame": "",
 "ObjectPool": "",
+"Task": "",
+"TaskEvent": "",
 "ThreadPool": ""
 }
 
@@ -44,7 +56,8 @@ config/icon="res://icon.png"
 
 [autoload]
 
-WorldVariables="res://Scripts/Globals/WorldVariables.gd"
+WorldVariables="*res://Scripts/Globals/WorldVariables.gd"
+Lib="*res://Scripts/Globals/Lib.gd"
 
 [input]
 
