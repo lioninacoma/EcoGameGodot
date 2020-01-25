@@ -2,14 +2,13 @@ extends Task
 
 var path = null
 var waypoint = null
-var to : Vector3 = Vector3()
 var i = 0
 
-func set_to(to : Vector3):
-	self.to = to
+func set_path(path : PoolVector3Array):
+	self.path = path
 
 func _init():
-	self.init("MoveTo")
+	self.init("FollowPath")
 
 func move_to_waypoint(actor):
 	if waypoint == null: return
@@ -18,10 +17,8 @@ func move_to_waypoint(actor):
 	actor.velocity = direction * actor.MAX_SPEED
 
 func perform(delta : float, actor : Actor) -> bool:
-	if path == null:
-		var from = actor.global_transform.origin
-		path = Lib.instance.navigate(from, to)
-		if path.size() == 0: return true
+	if waypoint == null:
+		if path == null || path.size() == 0: return true
 		waypoint = path[i]
 	
 	move_to_waypoint(actor)
@@ -37,6 +34,3 @@ func perform(delta : float, actor : Actor) -> bool:
 			waypoint = path[i]
 			return true
 	return false
-
-func update(event : TaskEvent) -> void:
-	pass

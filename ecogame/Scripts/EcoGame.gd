@@ -1,8 +1,6 @@
 extends Spatial
 class_name EcoGame
 
-onready var fpsLabel = get_node('FPSLabel')
-
 var Actor : PackedScene = load("res://Actor.tscn")
 var TaskManager = load("res://Scripts/Actor/Task/TaskManager.gd")
 
@@ -11,26 +9,27 @@ const TIME_PERIOD = 0.2 # 200ms
 const MAX_BUILD_CHUNKS = 24
 const MAX_BUILD_SECTIONS = 1
 
-onready var taskManager = TaskManager.new()
+onready var fps_label = get_node('FPSLabel')
+onready var task_manager = TaskManager.new()
 
 # config
-var mouseModeCaptured : bool = false
+var mouse_mode_captured : bool = false
 var time = 0
-var buildStack : Array = []
+var build_stack : Array = []
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	add_child(Lib.instance)
 
 func _process(delta : float) -> void:
-	fpsLabel.set_text(str(Engine.get_frames_per_second()))
+	fps_label.set_text(str(Engine.get_frames_per_second()))
 	
 	if Input.is_action_just_pressed("ui_cancel"):
-		if mouseModeCaptured:
+		if mouse_mode_captured:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-		mouseModeCaptured = !mouseModeCaptured
+		mouse_mode_captured = !mouse_mode_captured
 		
 	time += delta
 	if time > TIME_PERIOD:
@@ -44,26 +43,26 @@ func _process(delta : float) -> void:
 	process_build_stack()
 
 func process_build_stack() -> void:
-	for i in range(min(buildStack.size(), MAX_BUILD_CHUNKS)):
-		var chunk = buildStack.pop_front()
+	for i in range(min(build_stack.size(), MAX_BUILD_CHUNKS)):
+		var chunk = build_stack.pop_front()
 		if chunk == null: continue
 		chunk.setBuilding(true)
 		Lib.instance.buildChunk(chunk, self)
 
 func build_chunk(meshes : Array, chunk) -> void:
 	if (!meshes || !chunk): return
-	var oldMeshInstanceId = chunk.getMeshInstanceId()
+	var old_mesh_instance_id = chunk.getMeshInstanceId()
 	
-	if oldMeshInstanceId != 0:
-		var oldMeshInstance = instance_from_id(oldMeshInstanceId)
-		if oldMeshInstance:
-			remove_child(oldMeshInstance)
-			oldMeshInstance.free()
+	if old_mesh_instance_id != 0:
+		var old_mesh_instance = instance_from_id(old_mesh_instance_id)
+		if old_mesh_instance:
+			remove_child(old_mesh_instance)
+			old_mesh_instance.free()
 	
-	var meshInstance = build_mesh_instance(meshes, chunk)
-	add_child(meshInstance)
+	var mesh_instance = build_mesh_instance(meshes, chunk)
+	add_child(mesh_instance)
 	
-	chunk.setMeshInstanceId(meshInstance.get_instance_id())
+	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
 	chunk.setBuilding(false)
 	if true or chunk.doUpdateGraph():
 		Lib.instance.updateGraph(chunk)
@@ -71,32 +70,32 @@ func build_chunk(meshes : Array, chunk) -> void:
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
 	
-	var meshInstance = MeshInstance.new()
+	var mesh_instance = MeshInstance.new()
 	var mesh = ArrayMesh.new()
-	var surfaceIndex : int = 0
+	var surface_index : int = 0
 	
-	for meshData in meshes:
-		var mi = meshData[2] - 1
-		if meshData[3] <= 0: continue
-		var staticBody : StaticBody = StaticBody.new()
-		var polygonShape : ConcavePolygonShape = ConcavePolygonShape.new()
+	for mesh_data in meshes:
+		var mi = mesh_data[2] - 1
+		if mesh_data[3] <= 0: continue
+		var static_body : StaticBody = StaticBody.new()
+		var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
 		
-		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, meshData[0])
-		mesh.surface_set_material(surfaceIndex, WorldVariables.materials[mi])
+		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
+		mesh.surface_set_material(surface_index, WorldVariables.materials[mi])
 
-		polygonShape.set_faces(meshData[1])
-		var ownerId = staticBody.create_shape_owner(owner)
-		staticBody.shape_owner_add_shape(ownerId, polygonShape)
-		staticBody.name = "sb%s"%[surfaceIndex]
-		meshInstance.add_child(staticBody)
+		polygon_shape.set_faces(mesh_data[1])
+		var owner_id = static_body.create_shape_owner(owner)
+		static_body.shape_owner_add_shape(owner_id, polygon_shape)
+		static_body.name = "sb%s"%[surface_index]
+		mesh_instance.add_child(static_body)
 		
-		surfaceIndex += 1
+		surface_index += 1
 	
-	meshInstance.mesh = mesh
-	return meshInstance
+	mesh_instance.mesh = mesh
+	return mesh_instance
 
 func build_chunk_queued(chunk):
-	buildStack.push_front(chunk)
+	build_stack.push_front(chunk)
 
 func draw_debug(geometry : ImmediateGeometry):
 	var m = SpatialMaterial.new()
@@ -115,10 +114,14 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 
 var actor
 var asset : MeshInstance = null
-var assetType : int = -1
+var asset_type : int = -1
+var control_active : bool
 
 func _input(event : InputEvent) -> void:
-	if event is InputEventMouseMotion and asset:
+	if event is InputEventKey:
+		if event.scancode == KEY_CONTROL:
+			control_active = event.pressed
+	elif event is InputEventMouseMotion and asset:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
@@ -129,12 +132,12 @@ func _input(event : InputEvent) -> void:
 			var chunk = result.collider.shape_owner_get_owner(0)
 			if not chunk: return
 			
-			var voxelPosition = result.position
+			var voxel_position = result.position
 			var normal = result.normal
 			var b = 0.1
-			var vx = int(voxelPosition.x - (b if normal.x > 0 else 0))
-			var vy = int(voxelPosition.y - (b if normal.y > 0 else 0))
-			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
+			var vx = int(voxel_position.x - (b if normal.x > 0 else 0))
+			var vy = int(voxel_position.y - (b if normal.y > 0 else 0))
+			var vz = int(voxel_position.z - (b if normal.z > 0 else 0))
 			var w = asset.get_aabb().end.x - asset.get_aabb().position.x
 			var d = asset.get_aabb().end.z - asset.get_aabb().position.z
 			
@@ -142,7 +145,7 @@ func _input(event : InputEvent) -> void:
 			asset.global_transform.origin.y = vy + 1
 			asset.global_transform.origin.z = vz - int(d / 2)
 			
-			var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), assetType)
+			var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
 			for i in range(asset.get_surface_material_count()):
 				var material = asset.mesh.surface_get_material(i)
 				var color : Color
@@ -163,24 +166,24 @@ func _input(event : InputEvent) -> void:
 			var chunk = result.collider.shape_owner_get_owner(0)
 			if !chunk: return
 			
-			var voxelPosition = result.position
+			var voxel_position = result.position
 			var normal = result.normal
 			var b = 0.1
-			var vx = int(voxelPosition.x - (b if normal.x > 0 else 0))
-			var vy = int(voxelPosition.y - (b if normal.y > 0 else 0))
-			var vz = int(voxelPosition.z - (b if normal.z > 0 else 0))
+			var vx = int(voxel_position.x - (b if normal.x > 0 else 0))
+			var vy = int(voxel_position.y - (b if normal.y > 0 else 0))
+			var vz = int(voxel_position.z - (b if normal.z > 0 else 0))
 			
 			if event.button_index == BUTTON_LEFT:
 				if asset:
-					var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), assetType)
+					var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
 					if !fits: return
-					Lib.instance.addVoxelAsset(Vector3(vx, vy, vz), assetType)
+					Lib.instance.addVoxelAsset(Vector3(vx, vy, vz), asset_type)
 					asset.queue_free()
 					asset = null
-					assetType = -1
+					asset_type = -1
 				else:
-					assetType = 2
-					var meshes = Lib.instance.buildVoxelAsset(assetType)
+					asset_type = 2
+					var meshes = Lib.instance.buildVoxelAsset(asset_type)
 					asset = build_mesh_instance(meshes, null)
 					
 					for i in range(asset.get_surface_material_count()):
@@ -198,41 +201,12 @@ func _input(event : InputEvent) -> void:
 					asset.global_transform.origin.y = vy + 1
 					asset.global_transform.origin.z = vz - int(d / 2)
 			elif event.button_index == BUTTON_RIGHT:
-				if actor:
-					var navEnd = voxelPosition
-					actor.move_to(navEnd)
+				if actor: actor.move_to(voxel_position, !control_active)
 			elif event.button_index == BUTTON_MIDDLE:
 				actor = Actor.instance()
-				actor.init(taskManager)
+				actor.init(task_manager)
 				add_child(actor)
 				actor.global_transform.origin.x = vx + 0.5
 				actor.global_transform.origin.y = vy + 1
 				actor.global_transform.origin.z = vz + 0.5
-#				var navStart = actor.global_transform.origin
-#				var path = Lib.instance.navigateToClosestVoxel(navStart, 4)
-#				actor.follow_path(path)
-				actor.gather_wood()
-
-#				var voxels = Lib.instance.findVoxels(Vector3(vx, vy, vz), 1, 8)
-#				var geo : ImmediateGeometry = ImmediateGeometry.new()
-#				geo.begin(Mesh.PRIMITIVE_POINTS)
-#				geo.set_color(Color(1, 0, 1, 1));
-#				for v in voxels:
-#					geo.add_vertex(v)
-#					print(v)
-#				geo.end()
-#				draw_debug_dots(geo)
-
-#				Lib.instance.updateGraphs(Vector3(vx, vy, vz), 128)
-#			elif event.button_index == BUTTON_WHEEL_DOWN:
-#				chunk.setVoxel(
-#					vx % WorldVariables.CHUNK_SIZE_X,
-#					vy % WorldVariables.CHUNK_SIZE_Y,
-#					vz % WorldVariables.CHUNK_SIZE_Z, 0)
-#				build_chunk_queued(chunk)
-#			elif event.button_index == BUTTON_WHEEL_UP:
-#				chunk.setVoxel(
-#					vx % WorldVariables.CHUNK_SIZE_X,
-#					vy % WorldVariables.CHUNK_SIZE_Y + 1,
-#					vz % WorldVariables.CHUNK_SIZE_Z, 1)
-#				build_chunk_queued(chunk)
+				if control_active: actor.gather_wood()

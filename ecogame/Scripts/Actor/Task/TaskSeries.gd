@@ -19,6 +19,7 @@ func perform(delta : float, actor : Actor) -> bool:
 	return tasks.empty()
 
 func update(event : TaskEvent) -> void:
+	.update(event)
 	for task in tasks:
 		if event.task.get_instance_id() == task.get_instance_id(): continue
 		task.update(event)
