@@ -403,15 +403,15 @@ namespace godot {
 					Godot::print("path found");
 					Godot::print(String("{0} reachable of voxel {1}").format(Array::make(reachable, voxel)));
 
-					auto geo = ImmediateGeometry::_new();
+					/*auto geo = ImmediateGeometry::_new();
 					geo->begin(Mesh::PRIMITIVE_LINES);
-					geo->set_color(Color(1, 0, 0, 1));
+					geo->set_color(Color(1, 0, 0, 1));*/
 
 					Vector3 currentPoint = currentNode->getPoint();
 
 					while (true) {
 						path.insert(0, currentPoint);
-						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
+						//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 
 						if (cameFrom.find(cHash) == cameFrom.end()) break;
 
@@ -420,11 +420,11 @@ namespace godot {
 						currentPoint = currentNode->getPoint();
 
 						path.insert(0, currentPoint);
-						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
+						//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 					}
 
-					geo->end();
-					game->call_deferred("draw_debug", geo);
+					/*geo->end();
+					game->call_deferred("draw_debug", geo);*/
 
 					return path;
 				}
@@ -502,15 +502,15 @@ namespace godot {
 				if (cHash == gHash) {
 					Godot::print("path found");
 
-					auto geo = ImmediateGeometry::_new();
+					/*auto geo = ImmediateGeometry::_new();
 					geo->begin(Mesh::PRIMITIVE_LINES);
-					geo->set_color(Color(1, 0, 0, 1));
+					geo->set_color(Color(1, 0, 0, 1));*/
 
 					Vector3 currentPoint = currentNode->getPoint();
 
 					while (true) {
 						path.insert(0, currentPoint);
-						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
+						//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 
 						if (cameFrom.find(cHash) == cameFrom.end()) break;
 
@@ -519,11 +519,11 @@ namespace godot {
 						currentPoint = currentNode->getPoint();
 
 						path.insert(0, currentPoint);
-						geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
+						//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 					}
 
-					geo->end();
-					game->call_deferred("draw_debug", geo);
+					/*geo->end();
+					game->call_deferred("draw_debug", geo);*/
 
 					return path;
 				}

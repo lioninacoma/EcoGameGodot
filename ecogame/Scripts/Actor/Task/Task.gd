@@ -22,6 +22,12 @@ func init(task_name : String):
 func set_handler(task_handler) -> void:
 	self.task_handler = task_handler
 
+func set_task_data(key : String, value):
+	task_handler.set_task_data(key, value)
+
+func get_task_data(key : String):
+	return task_handler.get_task_data(key) if task_handler.has(key) else null
+
 func notify(event_name : String, args : Array = [], config : Dictionary = {}):
 	var global = config["global"] if config.has("global") else false
 	var event = TaskEvent.new()

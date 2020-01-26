@@ -17,12 +17,35 @@ var mouse_mode_captured : bool = false
 var time = 0
 var build_stack : Array = []
 
+var amount_actors = 0
+var actor
+var asset : MeshInstance = null
+var asset_type : int = -1
+var storehouse_location : Vector3 = Vector3()
+var control_active : bool
+var middle_pressed : bool = false
+var middle_pressed_location : Vector3 = Vector3()
+
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	add_child(Lib.instance)
 
 func _process(delta : float) -> void:
 	fps_label.set_text(str(Engine.get_frames_per_second()))
+	
+	if middle_pressed:
+		actor = Actor.instance()
+		actor.init(task_manager)
+		add_child(actor)
+		actor.global_transform.origin.x = middle_pressed_location.x + 0.5
+		actor.global_transform.origin.y = middle_pressed_location.y + 1
+		actor.global_transform.origin.z = middle_pressed_location.z + 0.5
+		if control_active && storehouse_location != Vector3(): 
+			actor.gather_wood(storehouse_location)
+		else:
+			actor.condition_test()
+		amount_actors += 1
+		print("%s actors created."%[amount_actors])
 	
 	if Input.is_action_just_pressed("ui_cancel"):
 		if mouse_mode_captured:
@@ -112,16 +135,11 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 	geometry.set_material_override(m)
 	add_child(geometry)
 
-var actor
-var asset : MeshInstance = null
-var asset_type : int = -1
-var control_active : bool
-
 func _input(event : InputEvent) -> void:
 	if event is InputEventKey:
 		if event.scancode == KEY_CONTROL:
 			control_active = event.pressed
-	elif event is InputEventMouseMotion and asset:
+	elif event is InputEventMouseMotion:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
@@ -138,31 +156,38 @@ func _input(event : InputEvent) -> void:
 			var vx = int(voxel_position.x - (b if normal.x > 0 else 0))
 			var vy = int(voxel_position.y - (b if normal.y > 0 else 0))
 			var vz = int(voxel_position.z - (b if normal.z > 0 else 0))
-			var w = asset.get_aabb().end.x - asset.get_aabb().position.x
-			var d = asset.get_aabb().end.z - asset.get_aabb().position.z
 			
-			asset.global_transform.origin.x = vx - int(w / 2)
-			asset.global_transform.origin.y = vy + 1
-			asset.global_transform.origin.z = vz - int(d / 2)
+			middle_pressed_location.x = vx
+			middle_pressed_location.y = vy
+			middle_pressed_location.z = vz
 			
-			var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
-			for i in range(asset.get_surface_material_count()):
-				var material = asset.mesh.surface_get_material(i)
-				var color : Color
-				if fits:
-					color = Color(0, 1, 0)
-				else:
-					color = Color(1, 0, 0)
-				material.set_blend_mode(1)
-				material.albedo_color = color
-	elif event is InputEventMouseButton and event.pressed:
+			if asset:
+				var w = asset.get_aabb().end.x - asset.get_aabb().position.x
+				var d = asset.get_aabb().end.z - asset.get_aabb().position.z
+				
+				asset.global_transform.origin.x = vx - int(w / 2)
+				asset.global_transform.origin.y = vy + 1
+				asset.global_transform.origin.z = vz - int(d / 2)
+				
+				var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
+				for i in range(asset.get_surface_material_count()):
+					var material = asset.mesh.surface_get_material(i)
+					var color : Color
+					if fits: color = Color(0, 1, 0)
+					else:    color = Color(1, 0, 0)
+					material.set_blend_mode(1)
+					material.albedo_color = color
+	elif event is InputEventMouseButton:
 		var camera = $Player/Head/Camera
 		var from = camera.project_ray_origin(event.position)
 		var to = from + camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
 		var space_state = get_world().direct_space_state
 		var result = space_state.intersect_ray(from, to)
 		
-		if result:
+		if event.button_index == BUTTON_MIDDLE:
+			middle_pressed = event.pressed
+		
+		if result && event.pressed:
 			var chunk = result.collider.shape_owner_get_owner(0)
 			if !chunk: return
 			
@@ -178,11 +203,16 @@ func _input(event : InputEvent) -> void:
 					var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
 					if !fits: return
 					Lib.instance.addVoxelAsset(Vector3(vx, vy, vz), asset_type)
+					var w = asset.get_aabb().end.x - asset.get_aabb().position.x
+					var d = asset.get_aabb().end.z - asset.get_aabb().position.z
+					storehouse_location.x = vx
+					storehouse_location.y = vy
+					storehouse_location.z = vz
 					asset.queue_free()
 					asset = null
 					asset_type = -1
 				else:
-					asset_type = 2
+					asset_type = 1
 					var meshes = Lib.instance.buildVoxelAsset(asset_type)
 					asset = build_mesh_instance(meshes, null)
 					
@@ -202,11 +232,3 @@ func _input(event : InputEvent) -> void:
 					asset.global_transform.origin.z = vz - int(d / 2)
 			elif event.button_index == BUTTON_RIGHT:
 				if actor: actor.move_to(voxel_position, !control_active)
-			elif event.button_index == BUTTON_MIDDLE:
-				actor = Actor.instance()
-				actor.init(task_manager)
-				add_child(actor)
-				actor.global_transform.origin.x = vx + 0.5
-				actor.global_transform.origin.y = vy + 1
-				actor.global_transform.origin.z = vz + 0.5
-				if control_active: actor.gather_wood()

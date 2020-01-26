@@ -45,13 +45,16 @@ namespace godot {
 
 		void buildSections(Vector3 center, float radius, int maxSectionsBuilt);
 		void buildChunk(Variant vChunk);
+		void setVoxel(Vector3 position, int voxel);
 		void addVoxelAsset(Vector3 start, int type);
 		Array buildVoxelAsset(int type);
 		bool voxelAssetFits(Vector3 start, int type);
 		PoolVector3Array navigate(Vector3 startV, Vector3 goalV);
 		PoolVector3Array navigateToClosestVoxel(Vector3 startV, int voxel);
+		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		void updateGraph(Variant vChunk);
 		void updateGraphs(Vector3 center, float radius);
+		int getVoxel(Vector3 position);
 	};
 
 }

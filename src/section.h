@@ -88,6 +88,44 @@ namespace godot {
 			}
 		}
 
+		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel) {
+			PoolVector3Array voxels;
+
+			int x, y, z, cx, cz, ci, dy;
+			Chunk* chunk;
+			Vector2 chunkOffset;
+			Vector3 start = startV - Vector3(radius, radius, radius);
+			Vector3 end = startV + Vector3(radius, radius, radius);
+
+			for (z = start.z; z < end.z; z++) {
+				for (x = start.x; x < end.x; x++) {
+					chunkOffset.x = x;
+					chunkOffset.y = z;
+					chunkOffset = fn::toChunkCoords(chunkOffset);
+					cx = (int)(chunkOffset.x - offset.x);
+					cz = (int)(chunkOffset.y - offset.y);
+					ci = fn::fi2(cx, cz, sectionSize);
+
+					if (ci < 0 || ci >= sectionChunksLen) continue;
+
+					chunk = chunks[ci];
+
+					if (!chunk) continue;
+
+					for (y = start.y; y < end.y; y++) {
+						if (chunk->getVoxel(
+							x % CHUNK_SIZE_X,
+							y % CHUNK_SIZE_Y,
+							z % CHUNK_SIZE_Z) == voxel) {
+							voxels.push_back(Vector3(x, y, z));
+						}
+					}
+				}
+			}
+
+			return voxels;
+		}
+
 		bool voxelAssetFits(Vector3 start, VoxelAssetType type) {
 			VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 			int maxDeltaY = voxelAsset->getMaxDeltaY();
@@ -121,6 +159,61 @@ namespace godot {
 			}
 
 			return true;
+		}
+
+		void setVoxel(ChunkBuilder* builder, Node* game, Vector3 position, int voxel) {
+			int x, y, z, cx, cz, ci;
+			Vector2 chunkOffset;
+			Chunk* chunk;
+			chunkOffset.x = position.x;
+			chunkOffset.y = position.z;
+			chunkOffset = fn::toChunkCoords(chunkOffset);
+			cx = (int)(chunkOffset.x - offset.x);
+			cz = (int)(chunkOffset.y - offset.y);
+			ci = fn::fi2(cx, cz, sectionSize);
+
+			if (ci < 0 || ci >= sectionChunksLen) return;
+
+			chunk = chunks[ci];
+
+			if (!chunk) return;
+
+			x = position.x;
+			y = position.y;
+			z = position.z;
+
+			chunk->setVoxel(
+				x % CHUNK_SIZE_X,
+				y % CHUNK_SIZE_Y,
+				z % CHUNK_SIZE_Z, voxel);
+			builder->build(chunk, game);
+		}
+
+		int getVoxel(Vector3 position) {
+			int x, y, z, cx, cz, ci;
+			Vector2 chunkOffset;
+			Chunk* chunk;
+			chunkOffset.x = position.x;
+			chunkOffset.y = position.z;
+			chunkOffset = fn::toChunkCoords(chunkOffset);
+			cx = (int)(chunkOffset.x - offset.x);
+			cz = (int)(chunkOffset.y - offset.y);
+			ci = fn::fi2(cx, cz, sectionSize);
+
+			if (ci < 0 || ci >= sectionChunksLen) return 0;
+
+			chunk = chunks[ci];
+
+			if (!chunk) return 0;
+
+			x = position.x;
+			y = position.y;
+			z = position.z;
+
+			return chunk->getVoxel(
+				x % CHUNK_SIZE_X,
+				y % CHUNK_SIZE_Y,
+				z % CHUNK_SIZE_Z);
 		}
 
 		void fill(Section** sections, int sectionSize, int sectionsSize) {
@@ -183,8 +276,8 @@ namespace godot {
 			}
 
 			buildAreasByType(VoxelAssetType::PINE_TREE);
-			buildAreasByType(VoxelAssetType::HOUSE_6X6);
-			buildAreasByType(VoxelAssetType::HOUSE_4X4);
+			//buildAreasByType(VoxelAssetType::HOUSE_6X6);
+			//buildAreasByType(VoxelAssetType::HOUSE_4X4);
 			
 			
 			for (i = 0; i < sectionChunksLen; i++) {

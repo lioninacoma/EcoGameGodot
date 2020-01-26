@@ -7,9 +7,12 @@ void EcoGame::_register_methods() {
 	register_method("buildVoxelAsset", &EcoGame::buildVoxelAsset);
 	register_method("addVoxelAsset", &EcoGame::addVoxelAsset);
 	register_method("voxelAssetFits", &EcoGame::voxelAssetFits);
+	register_method("setVoxel", &EcoGame::setVoxel);
+	register_method("getVoxel", &EcoGame::getVoxel);
 	register_method("buildSections", &EcoGame::buildSections);
 	register_method("navigate", &EcoGame::navigate);
 	register_method("navigateToClosestVoxel", &EcoGame::navigateToClosestVoxel);
+	register_method("findVoxelsInRange", &EcoGame::findVoxelsInRange);
 	register_method("updateGraph", &EcoGame::updateGraph);
 	register_method("updateGraphs", &EcoGame::updateGraphs);
 }
@@ -38,6 +41,46 @@ PoolVector3Array EcoGame::navigate(Vector3 startV, Vector3 goalV) {
 PoolVector3Array EcoGame::navigateToClosestVoxel(Vector3 startV, int voxel) {
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	return Navigator::get()->navigateToClosestVoxel(startV, voxel, game);
+}
+
+PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int voxel) {
+	Section* section;
+
+	Vector3 start = startV - Vector3(radius, radius, radius);
+	Vector3 end = startV + Vector3(radius, radius, radius);
+	Vector3 tl = start;
+	Vector3 br = end;
+
+	tl = fn::toChunkCoords(tl);
+	br = fn::toChunkCoords(br);
+
+	Vector2 offset = Vector2(tl.x, tl.z);
+	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+
+	section = new Section(offset, sectionSize);
+	section->fill(sections, SECTION_SIZE, SECTIONS_SIZE);
+	return section->findVoxelsInRange(startV, radius, voxel);
+}
+
+void EcoGame::setVoxel(Vector3 position, int voxel) {
+	Node* game = get_tree()->get_root()->get_node("EcoGame");
+	Vector3 p = position;
+	Section* section;
+	Chunk* chunk;
+	p = fn::toSectionCoords(p);
+	section = sections[fn::fi2((int)p.x, (int)p.z, SECTIONS_SIZE)];
+	if (!section) return;
+	section->setVoxel(chunkBuilder, game, position, voxel);
+}
+
+int EcoGame::getVoxel(Vector3 position) {
+	Vector3 p = position;
+	Section* section;
+	Chunk* chunk;
+	p = fn::toSectionCoords(p);
+	section = sections[fn::fi2((int)p.x, (int)p.z, SECTIONS_SIZE)];
+	if (!section) return 0;
+	return section->getVoxel(position);
 }
 
 void EcoGame::updateGraph(Variant vChunk) {

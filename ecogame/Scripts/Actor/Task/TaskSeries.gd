@@ -1,4 +1,5 @@
 extends Task
+class_name TaskSeries
 
 var tasks : Array = []
 var loop : bool = false
@@ -12,7 +13,7 @@ func _init():
 func perform(delta : float, actor : Actor) -> bool:
 	if !tasks.empty():
 		var task = tasks[0]
-		if task.perform(delta, actor):
+		if task.interrupted || task.perform(delta, actor):
 			tasks.pop_front()
 			if loop: tasks.push_back(task)
 	
