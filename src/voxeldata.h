@@ -3,6 +3,10 @@
 
 #include <Godot.hpp>
 
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/lock_types.hpp>
+
 #include "constants.h"
 #include "fn.h"
 
@@ -13,6 +17,7 @@ namespace godot {
 	private:
 		char* volume;
 		int width, height, depth;
+		boost::shared_timed_mutex VOLUME_MUTEX;
 	public:
 		VoxelData(int width, int height, int depth) {
 			VoxelData::width = width;
@@ -25,9 +30,11 @@ namespace godot {
 			delete[] volume;
 		};
 		int get(int x, int y, int z) {
+			boost::shared_lock<boost::shared_timed_mutex> lock(VOLUME_MUTEX);
 			return volume[fn::fi3(x, y, z, width, height)];
 		};
 		void set(int x, int y, int z, int v) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(VOLUME_MUTEX);
 			volume[fn::fi3(x, y, z, width, height)] = v;
 		};
 		int getWidth() {

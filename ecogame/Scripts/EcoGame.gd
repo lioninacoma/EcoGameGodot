@@ -10,7 +10,7 @@ const MAX_BUILD_CHUNKS = 24
 const MAX_BUILD_SECTIONS = 1
 
 onready var fps_label = get_node('FPSLabel')
-onready var task_manager = TaskManager.new()
+var task_manager = TaskManager.new()
 
 # config
 var mouse_mode_captured : bool = false
@@ -35,15 +35,12 @@ func _process(delta : float) -> void:
 	
 	if middle_pressed:
 		actor = Actor.instance()
-		actor.init(task_manager)
 		add_child(actor)
 		actor.global_transform.origin.x = middle_pressed_location.x + 0.5
 		actor.global_transform.origin.y = middle_pressed_location.y + 1
 		actor.global_transform.origin.z = middle_pressed_location.z + 0.5
-		if control_active && storehouse_location != Vector3(): 
+		if storehouse_location != Vector3(): 
 			actor.gather_wood(storehouse_location)
-		else:
-			actor.condition_test()
 		amount_actors += 1
 		print("%s actors created."%[amount_actors])
 	
@@ -69,7 +66,6 @@ func process_build_stack() -> void:
 	for i in range(min(build_stack.size(), MAX_BUILD_CHUNKS)):
 		var chunk = build_stack.pop_front()
 		if chunk == null: continue
-		chunk.setBuilding(true)
 		Lib.instance.buildChunk(chunk, self)
 
 func build_chunk(meshes : Array, chunk) -> void:
@@ -86,9 +82,7 @@ func build_chunk(meshes : Array, chunk) -> void:
 	add_child(mesh_instance)
 	
 	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
-	chunk.setBuilding(false)
-	if true or chunk.doUpdateGraph():
-		Lib.instance.updateGraph(chunk)
+#	Lib.instance.updateGraph(chunk)
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
@@ -119,6 +113,10 @@ func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 
 func build_chunk_queued(chunk):
 	build_stack.push_front(chunk)
+
+func set_path_actor(path : PoolVector3Array, actor_instance_id : int):
+	var actor = instance_from_id(actor_instance_id)
+	actor.task_handler.set_task_data("path", path)
 
 func draw_debug(geometry : ImmediateGeometry):
 	var m = SpatialMaterial.new()
@@ -231,4 +229,14 @@ func _input(event : InputEvent) -> void:
 					asset.global_transform.origin.y = vy + 1
 					asset.global_transform.origin.z = vz - int(d / 2)
 			elif event.button_index == BUTTON_RIGHT:
-				if actor: actor.move_to(voxel_position, !control_active)
+#				Lib.instance.setVoxel(Vector3(vx, vy, vz), 0)
+#				if actor: actor.move_to(voxel_position, !control_active)
+				actor = Actor.instance()
+				add_child(actor)
+				actor.global_transform.origin.x = middle_pressed_location.x + 0.5
+				actor.global_transform.origin.y = middle_pressed_location.y + 1
+				actor.global_transform.origin.z = middle_pressed_location.z + 0.5
+				if storehouse_location != Vector3():
+					actor.gather_wood(storehouse_location)
+				amount_actors += 1
+				print("%s actors created."%[amount_actors])

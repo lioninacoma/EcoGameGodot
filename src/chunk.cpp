@@ -3,21 +3,12 @@
 using namespace godot;
 
 void Chunk::_register_methods() {
-	register_method("isBuilding", &Chunk::isBuilding);
-	register_method("isAssetsBuilt", &Chunk::isAssetsBuilt);
-	register_method("isReady", &Chunk::isReady);
-	register_method("doUpdateGraph", &Chunk::doUpdateGraph);
 	register_method("getOffset", &Chunk::getOffset);
-	register_method("getVolume", &Chunk::getVolume);
 	register_method("getVoxel", &Chunk::getVoxel);
 	register_method("getMeshInstanceId", &Chunk::getMeshInstanceId);
-	register_method("getVoxelRay", &Chunk::getVoxelRay);
-	register_method("setBuilding", &Chunk::setBuilding);
-	register_method("markAssetsBuilt", &Chunk::markAssetsBuilt);
 	register_method("setOffset", &Chunk::setOffset);
 	register_method("setVoxel", &Chunk::setVoxel);
 	register_method("setMeshInstanceId", &Chunk::setMeshInstanceId);
-	register_method("buildVolume", &Chunk::buildVolume);
 }
 
 Chunk::Chunk(Vector3 offset) {
@@ -137,7 +128,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 				removeNode(node);
 			}
 
-			int voxelBelow = getVoxel(x, y - 1, z);
+			int voxelBelow = volume->get(x, y - 1, z);
 			if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
 				Vector3 newNode = node + Vector3(0, -1, 0);
 				addNode(new GraphNode(newNode, v));
@@ -147,14 +138,14 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 		if (dy == y) {
 			for (int i = y - 1; i >= 0; i--) {
 				surfaceY[fn::fi2(x, z)]--;
-				if (getVoxel(x, i, z)) {
+				if (volume->get(x, i, z)) {
 					break;
 				}
 			}
 		}
 
 		amountVoxel--;
-		amountVoxel = max(amountVoxel, 0);
+		if (amountVoxel < 0) amountVoxel = 0;
 	}
 	else {
 		if (navigatable) {
@@ -165,7 +156,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 				removeNode(node);
 			}
 
-			if (y + 1 < CHUNK_SIZE_Y && !getVoxel(x, y + 1, z) && v != 6) {
+			if (y + 1 < CHUNK_SIZE_Y && !volume->get(x, y + 1, z) && v != 6) {
 				Vector3 newNode = node + Vector3(0, 1, 0);
 				addNode(new GraphNode(newNode, v));
 			}

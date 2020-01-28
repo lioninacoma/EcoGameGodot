@@ -5,9 +5,9 @@ var task_manager
 var tasks : Array = []
 var tasks_async : Array = []
 var bin : Array = []
-var task_data : Dictionary
+var task_data : Dictionary = {}
 
-func init(actor, task_manager):
+func _init(actor, task_manager):
 	self.actor = actor
 	self.task_manager = task_manager
 	task_manager.add_handler(self)
@@ -16,7 +16,7 @@ func set_task_data(key : String, value):
 	task_data[key] = value
 
 func get_task_data(key : String):
-	return task_data[key]
+	return task_data[key] if task_data.has(key) else null
 
 func add_task(task, asynch : bool) -> void:
 	if asynch:
@@ -24,7 +24,6 @@ func add_task(task, asynch : bool) -> void:
 		task.is_async = true
 	else:
 		tasks.push_back(task)
-	task.set_handler(self)
 
 func perform_tasks(delta : float) -> void:
 	var i = 0

@@ -7,11 +7,12 @@
 #include <MeshInstance.hpp>
 #include <ArrayMesh.hpp>
 
-#include <set>
 #include <deque>
 #include <vector>
 #include <iostream>
 
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_types.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "constants.h"

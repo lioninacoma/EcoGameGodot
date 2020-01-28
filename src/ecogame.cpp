@@ -1,4 +1,5 @@
 #include "ecogame.h"
+#include "navigator.h"
 
 using namespace godot;
 
@@ -33,33 +34,22 @@ void EcoGame::_init() {
 	// initialize any variables here
 }
 
-PoolVector3Array EcoGame::navigate(Vector3 startV, Vector3 goalV) {
+void EcoGame::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	return Navigator::get()->navigate(startV, goalV, game);
+	ThreadPool::getNav()->submitTask(boost::bind(&EcoGame::navigateTask, this, startV, goalV, actorInstanceId, game));
 }
 
-PoolVector3Array EcoGame::navigateToClosestVoxel(Vector3 startV, int voxel) {
+void EcoGame::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId) {
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	return Navigator::get()->navigateToClosestVoxel(startV, voxel, game);
+	ThreadPool::getNav()->submitTask(boost::bind(&EcoGame::navigateToClosestVoxelTask, this, startV, voxel, actorInstanceId, game, this));
 }
 
-PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int voxel) {
-	Section* section;
+void EcoGame::navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game) {
+	Navigator::get()->navigate(startV, goalV, actorInstanceId, game);
+}
 
-	Vector3 start = startV - Vector3(radius, radius, radius);
-	Vector3 end = startV + Vector3(radius, radius, radius);
-	Vector3 tl = start;
-	Vector3 br = end;
-
-	tl = fn::toChunkCoords(tl);
-	br = fn::toChunkCoords(br);
-
-	Vector2 offset = Vector2(tl.x, tl.z);
-	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
-
-	section = new Section(offset, sectionSize);
-	section->fill(sections, SECTION_SIZE, SECTIONS_SIZE);
-	return section->findVoxelsInRange(startV, radius, voxel);
+void EcoGame::navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib) {
+	Navigator::get()->navigateToClosestVoxel(startV, voxel, actorInstanceId, game, this);
 }
 
 void EcoGame::setVoxel(Vector3 position, int voxel) {
@@ -159,6 +149,27 @@ void EcoGame::buildChunk(Variant vChunk) {
 	Chunk* chunk = as<Chunk>(vChunk.operator Object * ());
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	chunkBuilder->build(chunk, game);
+}
+
+PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int voxel) {
+	Section* section;
+
+	Vector3 start = startV - Vector3(radius, radius, radius);
+	Vector3 end = startV + Vector3(radius, radius, radius);
+	Vector3 tl = start;
+	Vector3 br = end;
+
+	tl = fn::toChunkCoords(tl);
+	br = fn::toChunkCoords(br);
+
+	Vector2 offset = Vector2(tl.x, tl.z);
+	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+
+	section = new Section(offset, sectionSize);
+	section->fill(sections, SECTION_SIZE, SECTIONS_SIZE);
+	PoolVector3Array voxels = section->findVoxelsInRange(startV, radius, voxel);
+	delete section;
+	return voxels;
 }
 
 bool EcoGame::voxelAssetFits(Vector3 startV, int type) {

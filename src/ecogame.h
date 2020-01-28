@@ -20,7 +20,6 @@
 #include "chunkbuilder.h"
 #include "voxelassetmanager.h"
 #include "section.h"
-#include "navigator.h"
 #include "meshbuilder.h"
 
 using namespace std;
@@ -35,6 +34,8 @@ namespace godot {
 
 		void buildSection(Section* section, Node* game);
 		void updateGraphTask(Chunk* chunk, Node* game);
+		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game);
+		void navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib);
 	public:
 		static void _register_methods();
 
@@ -49,8 +50,8 @@ namespace godot {
 		void addVoxelAsset(Vector3 start, int type);
 		Array buildVoxelAsset(int type);
 		bool voxelAssetFits(Vector3 start, int type);
-		PoolVector3Array navigate(Vector3 startV, Vector3 goalV);
-		PoolVector3Array navigateToClosestVoxel(Vector3 startV, int voxel);
+		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
+		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId);
 		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		void updateGraph(Variant vChunk);
 		void updateGraphs(Vector3 center, float radius);

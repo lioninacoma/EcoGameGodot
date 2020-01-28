@@ -22,6 +22,8 @@ vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffer
 }
 
 vector<int> MeshBuilder::buildVertices(VoxelData* volume, Chunk* chunk, const int DIMS[3], float** buffers, int buffersLen) {
+	//if (chunk) Godot::print(String("building mesh at {0} ...").format(Array::make(chunk->getOffset())));
+
 	Vector3 offset = (chunk) ? chunk->getOffset() : Vector3(0, 0, 0);
 
 	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj;
@@ -155,7 +157,7 @@ vector<int> MeshBuilder::buildVertices(VoxelData* volume, Chunk* chunk, const in
 									ny = bl[1];
 									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 1.0) {
 										for (nx = bl[0] + 0.5; nx < br[0]; nx += 1.0) {
-											if (chunk->getVoxel((int)nx, (int)ny, (int)nz) == 0 && chunk->getVoxel((int)nx, (int)ny - 1, (int)nz) != 6) {
+											if (volume->get((int)nx, (int)ny, (int)nz) == 0 && volume->get((int)nx, (int)ny - 1, (int)nz) != 6) {
 												chunk->addNode(new GraphNode(offset + Vector3(nx, ny, nz), mask[n]));
 											}
 										}
@@ -183,6 +185,8 @@ vector<int> MeshBuilder::buildVertices(VoxelData* volume, Chunk* chunk, const in
 			}
 		}
 	}
+
+	//if (chunk) Godot::print(String("mesh at {0} built").format(Array::make(chunk->getOffset())));
 
 	MeshBuilder::getMaskPool().ret(mask);
 	return vertexOffsets;

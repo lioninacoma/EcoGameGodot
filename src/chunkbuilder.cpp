@@ -1,9 +1,11 @@
 #include "chunkbuilder.h"
 #include "ecogame.h"
+#include "navigator.h"
 
 using namespace godot;
 
 void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
+	//Godot::print(String("building chunk at {0} ...").format(Array::make(chunk->getOffset())));
 	if (!chunk || !game) return;
 
 	bpt::ptime start, stop;
@@ -26,6 +28,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	}
 
 	vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES);
+	Navigator::get()->updateGraph(chunk, game);
 
 	for (int o = 0; o < offsets.size(); o++) {
 		int offset = offsets[o];
@@ -98,11 +101,16 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	cout << "chunk build in " << ms << " ms" << endl;
+	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
+	chunk->setBuilding(false);
 }
 
 void ChunkBuilder::build(Chunk* chunk, Node* game) {
 	Worker* worker = new Worker();
-
+	if (chunk->isBuilding()) {
+		Godot::print(String("chunk at {0} is already building").format(Array::make(chunk->getOffset())));
+		return;
+	}
+	chunk->setBuilding(true);
 	ThreadPool::get()->submitTask(boost::bind(&Worker::run, worker, chunk, game));
 }

@@ -217,10 +217,12 @@ namespace godot {
 		}
 
 		void fill(Section** sections, int sectionSize, int sectionsSize) {
-			int xS, xE, zS, zE, x, z, sx, sy, cx, cz, ci;
+			int xS, xE, zS, zE, x, z, sx, sy, cx, cz, ci, si;
 			Section* section;
 			Chunk* chunk;
 			Vector3 tl, br, chunkCoords;
+			const int sectionChunksLen = sectionSize * sectionSize;
+			const int sectionsLen = sectionsSize * sectionsSize;
 
 			tl = Vector3(offset.x, 0, offset.y);
 			br = tl + Vector3(Section::sectionSize, 0, Section::sectionSize);
@@ -229,22 +231,26 @@ namespace godot {
 			xS = max(0, xS);
 
 			xE = int(br.x);
-			xE = min(WORLD_SIZE - 1, xE);
+			xE = min(WORLD_SIZE, xE);
 
 			zS = int(tl.z);
 			zS = max(0, zS);
 
 			zE = int(br.z);
-			zE = min(WORLD_SIZE - 1, zE);
+			zE = min(WORLD_SIZE, zE);
 
 			for (z = (int)(zS / sectionSize); z <= (int)(zE / sectionSize); z++) {
 				for (x = (int)(xS / sectionSize); x <= (int)(xE / sectionSize); x++) {
-					section = sections[fn::fi2(x, z, sectionsSize)];
+					si = fn::fi2(x, z, sectionsSize);
+					if (si < 0 || si >= sectionsLen) continue;
+					section = sections[si];
 					if (!section) continue;
 
 					for (sy = 0; sy < sectionSize; sy++) {
 						for (sx = 0; sx < sectionSize; sx++) {
-							chunk = section->chunks[fn::fi2(sx, sy, sectionSize)];
+							ci = fn::fi2(sx, sy, sectionSize);
+							if (ci < 0 || ci >= sectionChunksLen) continue;
+							chunk = section->chunks[ci];
 							if (!chunk) continue;
 							
 							chunkCoords = chunk->getOffset();
@@ -429,8 +435,6 @@ namespace godot {
 					vx % CHUNK_SIZE_X,
 					vy % CHUNK_SIZE_Y,
 					vz % CHUNK_SIZE_Z, voxelType);
-
-				chunk->markAssetsBuilt();
 			}
 		}
 

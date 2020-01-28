@@ -3,6 +3,7 @@ class_name TaskSeries
 
 var tasks : Array = []
 var loop : bool = false
+var i = 0
 
 func set_loop(loop : bool):
 	self.loop = loop
@@ -10,14 +11,18 @@ func set_loop(loop : bool):
 func _init():
 	self.init("TaskSeries")
 
-func perform(delta : float, actor : Actor) -> bool:
+func perform(delta : float, actor) -> bool:
 	if !tasks.empty():
-		var task = tasks[0]
+		var task = tasks[i]
 		if task.interrupted || task.perform(delta, actor):
-			tasks.pop_front()
-			if loop: tasks.push_back(task)
-	
-	return tasks.empty()
+			i += 1
+		
+		if i == tasks.size():
+			i = 0
+			return !loop
+		return false
+		
+	return true
 
 func update(event : TaskEvent) -> void:
 	.update(event)

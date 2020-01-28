@@ -2,7 +2,6 @@ extends Node
 class_name Task
 
 var task_name : String
-var task_handler
 var interrupted = false
 var is_async = false
 
@@ -19,30 +18,21 @@ func init(task_name : String):
 	self.task_name = task_name
 	add_event_listener("Interrupt", funcref(self, "on_interrupt"))
 
-func set_handler(task_handler) -> void:
-	self.task_handler = task_handler
-
-func set_task_data(key : String, value):
-	task_handler.set_task_data(key, value)
-
-func get_task_data(key : String):
-	return task_handler.get_task_data(key) if task_handler.has(key) else null
-
-func notify(event_name : String, args : Array = [], config : Dictionary = {}):
+func notify(actor, event_name : String, args : Array = [], config : Dictionary = {}):
 	var global = config["global"] if config.has("global") else false
 	var event = TaskEvent.new()
 	event.event_name = event_name
 	event.args = args
-	event.handler = task_handler
+	event.handler = actor.task_handler
 	event.task = self
 	event.exclude_self = config["exclude_self"] if config.has("exclude_self") else false
 	event.receiver = config["receiver"] if config.has("receiver") else null
 	event.receiver_task_name = config["receiver_task_name"] if config.has("receiver_task_name") else null
 	event.receiver_class = config["receiver_class"] if config.has("receiver_class") else null
-	task_handler.notify(event, global)
+	event.handler.notify(event, global)
 
 # Child class implements this method
-func perform(delta : float, actor : Actor) -> bool:
+func perform(delta : float, actor) -> bool:
 	return true
 
 func update(event : TaskEvent) -> void:

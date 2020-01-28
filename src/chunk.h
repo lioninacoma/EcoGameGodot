@@ -10,6 +10,10 @@
 #include <unordered_map>
 #include <limits>
 
+#include <boost/atomic.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_types.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
@@ -27,19 +31,24 @@ namespace godot {
 	class Chunk : public Reference {
 		GODOT_CLASS(Chunk, Reference)
 	private:
-		OpenSimplexNoise* noise;
+		boost::atomic<int> amountNodes = 0;
+		boost::atomic<int> amountVoxel = 0;
+		boost::atomic<int> meshInstanceId = 0;
+		boost::atomic<bool> navigatable = false;
+		boost::atomic<bool> building = false;
+		boost::atomic<bool> volumeBuilt = false;
+
 		Vector3 offset;
-		int amountNodes = 0;
-		int amountVoxel = 0;
-		int meshInstanceId = 0;
+
 		VoxelData* volume;
-		int* surfaceY;
 		unordered_map<size_t, bool>* nodeChanges;
 		unordered_map<size_t, GraphNode*>* nodes;
-		bool volumeBuilt = false;
-		bool building = false;
-		bool assetsBuilt = false;
-		bool navigatable = false;
+
+		int* surfaceY; // TODO: provide thread safety?
+		
+		OpenSimplexNoise* noise;
+
+		boost::shared_timed_mutex CHUNK_NODES_MUTEX;
 
 		int getVoxelY(int x, int z);
 		float getVoxelChance(int x, int y, int z);
@@ -63,21 +72,12 @@ namespace godot {
 		int getMeshInstanceId() {
 			return meshInstanceId;
 		};
-		bool isBuilding() {
-			return Chunk::building;
-		}
-		bool isAssetsBuilt() {
-			return Chunk::assetsBuilt;
-		}
-		bool isReady() {
-			return Chunk::volumeBuilt && !Chunk::building && Chunk::meshInstanceId > 0;
-		}
-		bool doUpdateGraph() {
-			return navigatable && !nodeChanges->empty();
-		}
 		bool isNavigatable() {
 			return navigatable;
-		}
+		};
+		bool isBuilding() {
+			return building;
+		};
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
@@ -85,29 +85,42 @@ namespace godot {
 		unordered_map<size_t, GraphNode*>* getNodes() {
 			return Chunk::nodes;
 		};
-		int getAmountNodes() {
-			return Chunk::nodes->size();
+		void lockNodes() {
+			CHUNK_NODES_MUTEX.lock_shared();
+		};
+		void unlockNodes() {
+			CHUNK_NODES_MUTEX.unlock_shared();
 		};
 		unordered_map<size_t, bool>* getNodeChanges() {
-			return nodeChanges;
+			return Chunk::nodeChanges;
 		};
-
+		GraphNode* getNode(size_t hash) {
+			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+			auto it = Chunk::nodes->find(hash);
+			if (it == Chunk::nodes->end()) return NULL;
+			return it->second;
+		};
 		// setter
 		void setOffset(Vector3 offset) {
 			Chunk::offset = offset;
 		};
+		void setNavigatable() {
+			navigatable = true;
+		};
 		void setBuilding(bool building) {
 			Chunk::building = building;
-		};
-		void markAssetsBuilt() {
-			Chunk::assetsBuilt = true;
 		};
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;
 		};
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
+		void clearNodeChanges() {
+			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+			nodeChanges->clear();
+		}
 		void addNode(GraphNode* node) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			size_t hash = node->getHash();
 			Chunk::nodes->insert(pair<size_t, GraphNode*>(hash, node));
 			//Chunk::nodeChanges->emplace(hash, 1);
@@ -121,6 +134,7 @@ namespace godot {
 			}
 		};
 		void removeNode(Vector3 point) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			size_t hash = fn::hash(point);
 			if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
 			Chunk::nodes->erase(hash);
@@ -134,34 +148,6 @@ namespace godot {
 				Chunk::nodeChanges->erase(hash);
 			}
 		};
-		PoolVector3Array findVoxels(Vector3 pos, int voxel, float distance) {
-			PoolVector3Array voxels;
-			float dist;
-			for (auto& current : *nodes) {
-				dist = current.second->getPoint().distance_to(pos);
-				if ((int)current.second->getVoxel() == voxel && dist < distance) {
-					voxels.push_back(current.second->getPoint());
-				}
-			}
-			return voxels;
-		};
-		Vector3* findClosestVoxel(Vector3 pos, int voxel) {
-			Vector3* closest = NULL;
-			float minDistance = numeric_limits<float>::max();
-			float dist;
-
-			for (auto& current : *nodes) {
-				dist = current.second->getPoint().distance_to(pos);
-				if ((int)current.second->getVoxel() == voxel && dist < minDistance) {
-					closest = &current.second->getPoint();
-					minDistance = dist;
-				}
-			}
-			return closest;
-		};
-		void setNavigatable() {
-			navigatable = true;
-		}
 	};
 
 }

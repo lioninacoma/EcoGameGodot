@@ -24,6 +24,10 @@ namespace godot {
 			static ThreadPool* pool = new ThreadPool();
 			return pool;
 		};
+		static ThreadPool* getNav() {
+			static ThreadPool* poolNav = new ThreadPool(NAV_POOL_SIZE);
+			return poolNav;
+		};
 		ThreadPool() : ThreadPool(POOL_SIZE) {};
 		explicit ThreadPool(size_t size) : work(ioService) {
 			for (size_t i = 0; i < size; ++i) {

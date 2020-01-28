@@ -1,10 +1,9 @@
-[gd_scene load_steps=13 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Scripts/EcoGame.gd" type="Script" id=1]
 [ext_resource path="res://Ball.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Scripts/Player.gd" type="Script" id=3]
 [ext_resource path="res://Images/crosshair.png" type="Texture" id=4]
-[ext_resource path="res://Objects/teamug.obj" type="ArrayMesh" id=5]
 
 [sub_resource type="ProceduralSky" id=1]
 
@@ -70,6 +69,7 @@ far = 800.0
 [node name="Floor" type="MeshInstance" parent="."]
 editor/display_folded = true
 transform = Transform( 400, 0, 0, 0, 0.54, 0, 0, 0, 400, 390, -0.5, 390 )
+visible = false
 mesh = SubResource( 6 )
 material/0 = null
 
@@ -101,10 +101,3 @@ margin_bottom = 304.0
 size_flags_horizontal = 4
 texture = ExtResource( 4 )
 stretch_mode = 1
-
-[node name="Teamug" type="MeshInstance" parent="."]
-transform = Transform( 40, 0, 0, 0, 40, 0, 0, 0, 40, 40, -8, 40 )
-visible = false
-mesh = ExtResource( 5 )
-material/0 = null
-material/1 = null
