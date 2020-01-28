@@ -6,6 +6,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/lock_types.hpp>
+#include <boost/atomic.hpp>
 
 #include "constants.h"
 #include "fn.h"
@@ -16,7 +17,7 @@ namespace godot {
 	class VoxelData {
 	private:
 		char* volume;
-		int width, height, depth;
+		boost::atomic<int> width, height, depth;
 		boost::shared_timed_mutex VOLUME_MUTEX;
 	public:
 		VoxelData(int width, int height, int depth) {

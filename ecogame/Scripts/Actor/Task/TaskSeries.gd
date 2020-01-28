@@ -5,6 +5,12 @@ var tasks : Array = []
 var loop : bool = false
 var i = 0
 
+func interrupt():
+	.interrupt()
+	for task in tasks:
+		task.interrupt()
+	loop = false
+
 func set_loop(loop : bool):
 	self.loop = loop
 

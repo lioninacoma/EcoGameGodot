@@ -7,11 +7,23 @@ func _init(voxel : int):
 	self.init("FindPathToVoxel")
 
 func perform(delta : float, actor) -> bool:
-	Lib.instance.navigateToClosestVoxel(actor.global_transform.origin, voxel, actor.get_instance_id(), "path")
 	var path = actor.task_handler.get_task_data("path")
+	
 	if path == null:
+		var path_requested = actor.task_handler.get_task_data("path_requested")
+		if path_requested != null && path_requested:
+			return false
+	
+		var from = actor.global_transform.origin
+#		print("actor: %s, from: %s"%[actor.get_instance_id(), from])
+		Lib.instance.navigateToClosestVoxel(from, voxel, actor.get_instance_id(), "path")
+		actor.task_handler.set_task_data("path_requested", true)
 		return false
+	
 	if path.size() == 0:
-#		print("_____________PATH NOT FOUND!")
+		path = null
 		actor.task_handler.set_task_data("path", null)
+#		print("_____________PATH NOT FOUND!")
+	
+	actor.task_handler.set_task_data("path_requested", false)
 	return true

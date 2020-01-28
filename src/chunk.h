@@ -11,6 +11,7 @@
 #include <limits>
 
 #include <boost/atomic.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_types.hpp>
@@ -42,7 +43,7 @@ namespace godot {
 
 		VoxelData* volume;
 		unordered_map<size_t, bool>* nodeChanges;
-		unordered_map<size_t, GraphNode*>* nodes;
+		unordered_map<size_t, boost::shared_ptr<GraphNode>>* nodes;
 
 		int* surfaceY; // TODO: provide thread safety?
 		
@@ -82,7 +83,7 @@ namespace godot {
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
-		unordered_map<size_t, GraphNode*>* getNodes() {
+		unordered_map<size_t, boost::shared_ptr<GraphNode>>* getNodes() {
 			return Chunk::nodes;
 		};
 		void lockNodes() {
@@ -94,7 +95,7 @@ namespace godot {
 		unordered_map<size_t, bool>* getNodeChanges() {
 			return Chunk::nodeChanges;
 		};
-		GraphNode* getNode(size_t hash) {
+		boost::shared_ptr<GraphNode> getNode(size_t hash) {
 			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			auto it = Chunk::nodes->find(hash);
 			if (it == Chunk::nodes->end()) return NULL;
@@ -119,10 +120,10 @@ namespace godot {
 			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			nodeChanges->clear();
 		}
-		void addNode(GraphNode* node) {
+		void addNode(boost::shared_ptr<GraphNode> node) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			size_t hash = node->getHash();
-			Chunk::nodes->insert(pair<size_t, GraphNode*>(hash, node));
+			Chunk::nodes->insert(pair<size_t, boost::shared_ptr<GraphNode>>(hash, node));
 			//Chunk::nodeChanges->emplace(hash, 1);
 
 			auto it = Chunk::nodeChanges->find(hash);

@@ -22,7 +22,7 @@ Chunk::~Chunk() {
 void Chunk::_init() {
 	Chunk::volume = new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
-	Chunk::nodes = new unordered_map<size_t, GraphNode*>();
+	Chunk::nodes = new unordered_map<size_t, boost::shared_ptr<GraphNode>>();
 	Chunk::nodeChanges = new unordered_map<size_t, bool>();
 
 	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
@@ -131,7 +131,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 			int voxelBelow = volume->get(x, y - 1, z);
 			if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
 				Vector3 newNode = node + Vector3(0, -1, 0);
-				addNode(new GraphNode(newNode, v));
+				addNode(boost::shared_ptr<GraphNode>(new GraphNode(newNode, v)));
 			}
 		}
 
@@ -158,7 +158,7 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 
 			if (y + 1 < CHUNK_SIZE_Y && !volume->get(x, y + 1, z) && v != 6) {
 				Vector3 newNode = node + Vector3(0, 1, 0);
-				addNode(new GraphNode(newNode, v));
+				addNode(boost::shared_ptr<GraphNode>(new GraphNode(newNode, v)));
 			}
 		}
 

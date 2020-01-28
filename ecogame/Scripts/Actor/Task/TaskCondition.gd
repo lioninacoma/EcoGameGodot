@@ -4,6 +4,13 @@ var condition_tasks : Array = []
 var executing_task = null
 var else_task = null
 
+func interrupt():
+	.interrupt()
+	for task in condition_tasks:
+		task[1].interrupt()
+	if else_task != null:
+		else_task.interrupt()
+
 func add_task(task : Task, condition : FuncRef = null):
 	if condition == null:
 		else_task = task

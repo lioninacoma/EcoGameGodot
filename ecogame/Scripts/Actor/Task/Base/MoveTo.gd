@@ -24,6 +24,7 @@ func perform(delta : float, actor) -> bool:
 				return false
 			
 			var from = actor.global_transform.origin
+#			print("actor: %s, from: %s, to: %s"%[actor.get_instance_id(), from, to])
 			Lib.instance.navigate(from, to, actor.get_instance_id(), "path")
 			actor.task_handler.set_task_data("path_requested", true)
 			return false

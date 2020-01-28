@@ -20,6 +20,7 @@ func perform(delta : float, actor) -> bool:
 		if path_key != null:
 			path = actor.task_handler.get_task_data(path_key)
 		if path == null || path.size() == 0:
+			path = null
 			actor.task_handler.set_task_data("path", null)
 			return true
 		waypoint = path[0]

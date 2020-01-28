@@ -158,7 +158,7 @@ vector<int> MeshBuilder::buildVertices(VoxelData* volume, Chunk* chunk, const in
 									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 1.0) {
 										for (nx = bl[0] + 0.5; nx < br[0]; nx += 1.0) {
 											if (volume->get((int)nx, (int)ny, (int)nz) == 0 && volume->get((int)nx, (int)ny - 1, (int)nz) != 6) {
-												chunk->addNode(new GraphNode(offset + Vector3(nx, ny, nz), mask[n]));
+												chunk->addNode(boost::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
 											}
 										}
 									}

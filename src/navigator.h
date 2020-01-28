@@ -9,6 +9,7 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_types.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 #include <deque>
 #include <queue>
@@ -51,7 +52,7 @@ namespace godot {
 			}
 		};
 
-		unordered_map<size_t, GraphNode*>* nodes;
+		unordered_map<size_t, boost::shared_ptr<GraphNode>>* nodes;
 		boost::shared_timed_mutex NAV_NODES_MUTEX;
 	public:
 		static Navigator* get() {
@@ -60,28 +61,26 @@ namespace godot {
 		};
 
 		Navigator() {
-			nodes = new unordered_map<size_t, GraphNode*>();
-			//areas = new unordered_map<int, unordered_map<size_t, GraphNode*>*>();
-			//areaVoxels = new unordered_map<int, unordered_set<char>*>();
+			nodes = new unordered_map<size_t, boost::shared_ptr<GraphNode>>();
 		};
 		~Navigator() {};
 
-		void addEdge(GraphNode* a, GraphNode* b, float cost) {
+		void addEdge(boost::shared_ptr<GraphNode> a, boost::shared_ptr<GraphNode> b, float cost) {
 			// ~600 MB
 			auto edge = new GraphEdge(a, b, cost);
 			a->addEdge(edge);
 			b->addEdge(edge);
 		}
 
-		void addNode(GraphNode* node) {
+		void addNode(boost::shared_ptr<GraphNode> node) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(NAV_NODES_MUTEX);
 			nodes->emplace(node->getHash(), node);
 		}
 
-		void removeNode(GraphNode* node) {
+		void removeNode(boost::shared_ptr<GraphNode> node) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(NAV_NODES_MUTEX);
 			size_t hash = node->getHash();
-			GraphNode* neighbour;
+			boost::shared_ptr<GraphNode> neighbour;
 
 			for (auto& next : node->getEdges()) {
 				neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
@@ -89,10 +88,10 @@ namespace godot {
 			}
 
 			nodes->erase(hash);
-			delete node;
+			node.reset();
 		}
 
-		GraphNode* getNode(size_t h) {
+		boost::shared_ptr<GraphNode> getNode(size_t h) {
 			boost::shared_lock<boost::shared_timed_mutex> lock(NAV_NODES_MUTEX);
 			auto it = nodes->find(h);
 			if (it == nodes->end()) return NULL;
@@ -104,12 +103,11 @@ namespace godot {
 			int x, y, z, drawOffsetY = 1;
 			float nx, ny, nz;
 			Vector3 chunkOffset;
-			GraphNode *current, *neighbour;
+			boost::shared_ptr<GraphNode> current, neighbour;
 
-			unordered_map<size_t, GraphNode*> nodeCache;
+			unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
 			deque<size_t> queue, volume;
 			unordered_set<size_t> inque, ready;
-			//unordered_map<size_t, GraphNode*>* area = new unordered_map<size_t, GraphNode*>();
 			size_t cHash, nHash;
 
 			/*auto dots = ImmediateGeometry::_new();
@@ -232,16 +230,17 @@ namespace godot {
 			return 1 + w * w;
 		}
 
-		float h(GraphNode* node, GraphNode* goal, float maxDistance) {
+		float h(boost::shared_ptr<GraphNode> node, boost::shared_ptr<GraphNode> goal, float maxDistance) {
 			float distanceToGoal = manhattan(node->getPoint(), goal->getPoint());
 			return w(distanceToGoal, maxDistance) * distanceToGoal;
 		}
 
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib) {
 			//boost::shared_lock<boost::shared_timed_mutex> lock(NODE_MUTEX);
+			//Godot::print(String("find path from {0} to closest voxel of type {1}").format(Array::make(startV, voxel)));
 			PoolVector3Array path;
 
-			GraphNode* startNode = NULL;
+			boost::shared_ptr<GraphNode> startNode = NULL;
 
 			float minDistanceStart = numeric_limits<float>::max();
 			float currDistanceStart;
@@ -262,14 +261,14 @@ namespace godot {
 				return;
 			}
 			
-			GraphNode* currentNode;
-			GraphNode* neighbourNode;
+			boost::shared_ptr<GraphNode> currentNode;
+			boost::shared_ptr<GraphNode> neighbourNode;
 
 			unordered_map<size_t, size_t> cameFrom;
 			unordered_map<size_t, float> costSoFar;
 			size_t cHash, nHash, sHash = startNode->getHash();
 			int x, y, z;
-			float maxDist = 64;
+			float maxDist = 96;
 			bool reachable = false;
 
 			PriorityQueue<size_t, float> frontier;
@@ -355,8 +354,8 @@ namespace godot {
 			//Godot::print(String("find path from {0} to {1}").format(Array::make(startV, goalV)));
 			PoolVector3Array path;
 
-			GraphNode* startNode = NULL;
-			GraphNode* goalNode = NULL;
+			boost::shared_ptr<GraphNode> startNode = NULL;
+			boost::shared_ptr<GraphNode> goalNode = NULL;
 
 			float minDistanceStart = numeric_limits<float>::max();
 			float minDistanceGoal = numeric_limits<float>::max();
@@ -385,8 +384,8 @@ namespace godot {
 				return;
 			}
 
-			GraphNode* currentNode;
-			GraphNode* neighbourNode;
+			boost::shared_ptr<GraphNode> currentNode;
+			boost::shared_ptr<GraphNode> neighbourNode;
 
 			unordered_map<size_t, size_t> cameFrom;
 			unordered_map<size_t, float> costSoFar;

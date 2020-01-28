@@ -7,6 +7,9 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#include <boost/atomic.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+
 #include "constants.h"
 #include "fn.h"
 #include "graphedge.h"
@@ -18,9 +21,10 @@ namespace godot {
 	private:
 		Vector3 point;
 		unordered_map<size_t, GraphEdge*> edges;
-		size_t hash;
-		char voxel;
+		boost::atomic<size_t> hash;
+		boost::atomic<char> voxel;
 		boost::shared_timed_mutex EDGES_MUTEX;
+		boost::shared_timed_mutex POINT_MUTEX;
 	public:
 		GraphNode(Vector3 point, char voxel) {
 			GraphNode::point = point;
@@ -44,7 +48,7 @@ namespace godot {
 			if (it == edges.end()) return NULL;
 			return it->second;
 		};
-		GraphNode* getNeighbour(size_t nHash) {
+		boost::shared_ptr<GraphNode> getNeighbour(size_t nHash) {
 			GraphEdge* edge = getEdgeWithNode(nHash);
 			if (!edge) return NULL;
 			return (edge->getA()->getHash() != hash) ? edge->getA() : edge->getB();
@@ -59,6 +63,7 @@ namespace godot {
 			EDGES_MUTEX.unlock_shared();
 		};
 		Vector3 getPoint() {
+			boost::unique_lock<boost::shared_timed_mutex> lock(POINT_MUTEX);
 			return point;
 		};
 		size_t getHash() {
