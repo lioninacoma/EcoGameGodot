@@ -13,6 +13,10 @@ func _init(args : Dictionary):
 	self.init("SetVoxel")
 
 func perform(delta : float, actor) -> bool:
+	if finished:
+		finished = false
+		return true
+	
 	if position_key != null:
 		position = actor.task_handler.get_task_data(position_key)
 	

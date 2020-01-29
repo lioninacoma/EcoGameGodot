@@ -22,6 +22,7 @@
 #include "fn.h"
 #include "chunk.h"
 #include "area.h"
+#include "graphnode.h"
 
 using namespace std;
 
@@ -67,6 +68,7 @@ namespace godot {
 		bool voxelAssetFits(Vector3 start, VoxelAssetType type);
 		void setVoxel(Vector3 position, int voxel, boost::shared_ptr<ChunkBuilder> builder, Node* game);
 		int getVoxel(Vector3 position);
+		boost::shared_ptr<GraphNode> getNode(Vector3 position);
 		boost::shared_ptr<Chunk> getChunk(int x, int z);
 		boost::shared_ptr<Chunk> getChunk(int i);
 		void setChunk(int x, int z, boost::shared_ptr<Chunk> chunk);

@@ -46,11 +46,19 @@ func update(delta : float) -> void:
 
 func path_found(actor):
 	var data = actor.task_handler.task_data
-	return data.has("path") && data["path"] != null
+	var found = data.has("path") && data["path"] != null
+	return found
 
 func voxel_found(actor):
 	var data = actor.task_handler.task_data
-	return data.has("voxel_nearby") && data["voxel_nearby"] != null
+	var found = data.has("voxel_nearby") && data["voxel_nearby"] != null
+	return found
+
+func voxel_not_found(actor):
+	var not_found = !voxel_found(actor)
+	if not_found:
+		pass
+	return not_found
 
 func gather_wood(storehouse_location : Vector3) -> void:
 	var gather_wood = TaskSeries.new()
@@ -59,11 +67,25 @@ func gather_wood(storehouse_location : Vector3) -> void:
 	
 	var find_path_to_tree = FindPathToVoxel.new(4)
 	var is_path_found = TaskCondition.new()
+	var gather_wood_end = TaskEnd.new(gather_wood.task_name)
+	
 	var follow_path_to_tree = FollowPath.new({"path_key": "path"})
-	var task_end = TaskEnd.new(gather_wood.task_name)
+	follow_path_to_tree.task_name = "FollowPathToTree"
+	
+#	var move_to_voxel_at_tree = TaskSeries.new()
+#	var check_voxel_at_goal = FindVoxelNearby.new({"voxel": 4, "position_key": "goal"})
+#	var is_voxel_at_goal_found = TaskCondition.new()
+#	var find_new_tree = TaskSeries.new()
+#	var follow_path_to_tree_end = TaskEnd.new(follow_path_to_tree.task_name, true)
+#	move_to_voxel_at_tree.add_task(follow_path_to_tree)
+#	move_to_voxel_at_tree.add_task(check_voxel_at_goal, true)
+#	find_new_tree.add_task(follow_path_to_tree_end)
+#	find_new_tree.add_task(find_path_to_tree)
+#	is_voxel_at_goal_found.add_task(find_new_tree, funcref(self, "voxel_not_found"))
+#	move_to_voxel_at_tree.add_task(is_voxel_at_goal_found, true)
 	
 	is_path_found.add_task(follow_path_to_tree, funcref(self, "path_found"))
-	is_path_found.add_task(task_end) # ELSE
+	is_path_found.add_task(gather_wood_end) # ELSE
 	
 	var find_trunk_nearby = FindVoxelNearby.new({"voxel": 4})
 	var is_voxel_found = TaskCondition.new()
@@ -80,10 +102,10 @@ func gather_wood(storehouse_location : Vector3) -> void:
 	gather_wood.add_task(find_trunk_nearby)
 	gather_wood.add_task(is_voxel_found)
 	
-	task_handler.add_task(gather_wood, false)
+	task_handler.add_task(gather_wood)
 
 func move_to(end : Vector3, interrupt : bool) -> void:
 	var move_to = MoveTo.new(end)
-	task_handler.add_task(move_to, false)
+	task_handler.add_task(move_to)
 	if interrupt:
 		move_to.notify("Interrupt", ["sync"])

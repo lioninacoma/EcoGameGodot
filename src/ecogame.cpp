@@ -45,7 +45,7 @@ void EcoGame::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanc
 }
 
 void EcoGame::navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game) {
-	Navigator::get()->navigate(startV, goalV, actorInstanceId, game);
+	Navigator::get()->navigate(startV, goalV, actorInstanceId, game, this);
 }
 
 void EcoGame::navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib) {
@@ -69,6 +69,15 @@ int EcoGame::getVoxel(Vector3 position) {
 	section = getSection(p.x, p.z);
 	if (!section) return 0;
 	return section->getVoxel(position);
+}
+
+boost::shared_ptr<GraphNode> EcoGame::getNode(Vector3 position) {
+	Vector3 p = position;
+	boost::shared_ptr<Section> section;
+	p = fn::toSectionCoords(p);
+	section = getSection(p.x, p.z);
+	if (!section) return NULL;
+	return section->getNode(position);
 }
 
 void EcoGame::updateGraph(Variant vChunk) {
@@ -250,26 +259,29 @@ Array EcoGame::buildVoxelAsset(int type) {
 	MeshBuilder meshBuilder;
 	VoxelAssetType vat = (VoxelAssetType)type;
 	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
-	Array meshes;
 
 	const int BUFFER = asset->getWidth() * asset->getHeight() * asset->getDepth();
 	const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
+	
+	int i, j, o, n, offset, amountVertices, amountIndices;
+	Array meshes;
+	float* vertices;
 	float** buffers = new float*[TYPES];
 
-	for (int i = 0; i < TYPES; i++) {
+	for (i = 0; i < TYPES; i++) {
 		buffers[i] = new float[MAX_VERTICES];
 		memset(buffers[i], 0, MAX_VERTICES * sizeof(*buffers[i]));
 	}
 
 	vector<int> offsets = meshBuilder.buildVertices(vat, buffers, TYPES);
 
-	for (int o = 0; o < offsets.size(); o++) {
-		int offset = offsets[o];
+	for (o = 0; o < offsets.size(); o++) {
+		offset = offsets[o];
 		if (offset <= 0) continue;
 
-		float* vertices = buffers[o];
-		int amountVertices = offset / VERTEX_SIZE;
-		int amountIndices = amountVertices / 2 * 3;
+		vertices = buffers[o];
+		amountVertices = offset / VERTEX_SIZE;
+		amountIndices = amountVertices / 2 * 3;
 
 		Array meshData;
 		Array meshArrays;
@@ -292,13 +304,13 @@ Array EcoGame::buildVoxelAsset(int type) {
 		PoolVector2Array::Write uvArrayWrite = uvArray.write();
 		PoolIntArray::Write indexArrayWrite = indexArray.write();
 
-		for (int i = 0, n = 0; i < offset; i += VERTEX_SIZE, n++) {
+		for (i = 0, n = 0; i < offset; i += VERTEX_SIZE, n++) {
 			vertexArrayWrite[n] = Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
 			normalArrayWrite[n] = Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]);
 			uvArrayWrite[n] = Vector2(vertices[i + 6], vertices[i + 7]);
 		}
 
-		for (int i = 0, j = 0; i < amountIndices; i += 6, j += 4) {
+		for (i = 0, j = 0; i < amountIndices; i += 6, j += 4) {
 			indexArrayWrite[i + 0] = j + 2;
 			indexArrayWrite[i + 1] = j + 1;
 			indexArrayWrite[i + 2] = j;
@@ -326,8 +338,8 @@ Array EcoGame::buildVoxelAsset(int type) {
 		meshes.push_back(meshData);
 	}
 
-	for (int i = 0; i < TYPES; i++) {
-		delete [] buffers[i];
+	for (i = 0; i < TYPES; i++) {
+		delete[] buffers[i];
 	}
 	delete[] buffers;
 

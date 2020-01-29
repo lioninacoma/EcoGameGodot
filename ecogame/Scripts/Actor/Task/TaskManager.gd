@@ -7,5 +7,5 @@ func add_handler(handler) -> void:
 
 func notify(event : TaskEvent):
 	for handler in task_handlers:
-		if handler.get_instance_id() == event.handler.get_instance_id(): continue
+		if event.handler == handler.get_instance_id(): continue
 		handler.update(event)

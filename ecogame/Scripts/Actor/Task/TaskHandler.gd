@@ -18,7 +18,7 @@ func set_task_data(key : String, value):
 func get_task_data(key : String):
 	return task_data[key] if task_data.has(key) else null
 
-func add_task(task, asynch : bool) -> void:
+func add_task(task, asynch : bool = false) -> void:
 	if asynch:
 		tasks_async.push_back(task)
 		task.is_async = true
@@ -51,10 +51,14 @@ func update(event) -> void:
 	if event.receiver && event.receiver != actor.get_instance_id(): return
 	if event.receiver_class && event.receiver_class != actor.get_class(): return
 	for task in tasks:
-		if event.task.get_instance_id() == task.get_instance_id(): continue
-		if event.receiver_task_name && event.receiver_task_name != task.task_name: continue
+		if event.task == task.get_instance_id(): continue
+		if event.receiver_task_name:
+			task = task.get_task(event.receiver_task_name)
+			if task == null: continue
 		task.update(event)
 	for task in tasks_async:
-		if event.task.get_instance_id() == task.get_instance_id(): continue
-		if event.receiver_task_name != task.task_name: continue
+		if event.task == task.get_instance_id(): continue
+		if event.receiver_task_name:
+			task = task.get_task(event.receiver_task_name)
+			if task == null: continue
 		task.update(event)

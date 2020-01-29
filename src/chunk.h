@@ -96,6 +96,20 @@ namespace godot {
 			if (it == Chunk::nodes->end()) return NULL;
 			return it->second;
 		};
+		boost::shared_ptr<GraphNode> findNode(Vector3 position) {
+			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+			boost::shared_ptr<GraphNode> closest;
+			float minDist = numeric_limits<float>::max();
+			float dist;
+			for (auto node : *nodes) {
+				dist = node.second->getPoint().distance_to(position);
+				if (dist < minDist) {
+					minDist = dist;
+					closest = node.second;
+				}
+			}
+			return closest;
+		};
 		void forEachNodeChange(std::function<void(std::pair<size_t, bool>)> func) {
 			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
 			std::for_each(nodeChanges->begin(), nodeChanges->end(), func);

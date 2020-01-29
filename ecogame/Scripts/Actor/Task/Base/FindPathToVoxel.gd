@@ -7,6 +7,13 @@ func _init(voxel : int):
 	self.init("FindPathToVoxel")
 
 func perform(delta : float, actor) -> bool:
+	if finished:
+		actor.task_handler.set_task_data("path", null)
+		actor.task_handler.set_task_data("path_requested", false)
+		actor.task_handler.set_task_data("goal", null)
+		finished = false
+		return true
+	
 	var path = actor.task_handler.get_task_data("path")
 	
 	if path == null:
@@ -26,4 +33,6 @@ func perform(delta : float, actor) -> bool:
 #		print("_____________PATH NOT FOUND!")
 	
 	actor.task_handler.set_task_data("path_requested", false)
+	if path != null:
+		actor.task_handler.set_task_data("goal", path[path.size() - 1])
 	return true

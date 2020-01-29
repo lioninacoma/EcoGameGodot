@@ -244,22 +244,7 @@ namespace godot {
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib) {
 			//Godot::print(String("find path from {0} to closest voxel of type {1}").format(Array::make(startV, voxel)));
 			PoolVector3Array path;
-
-			boost::shared_ptr<GraphNode> startNode = NULL;
-
-			float minDistanceStart = numeric_limits<float>::max();
-			float currDistanceStart;
-
-			NAV_NODES_MUTEX.lock_shared();
-			for (auto& current : *nodes) {
-				currDistanceStart = current.second->getPoint().distance_to(startV);
-
-				if (currDistanceStart < minDistanceStart) {
-					minDistanceStart = currDistanceStart;
-					startNode = current.second;
-				}
-			}
-			NAV_NODES_MUTEX.unlock_shared();
+			boost::shared_ptr<GraphNode> startNode = lib->getNode(startV);
 
 			if (!startNode) {
 				setPathActor(path, actorInstanceId, game);
@@ -353,34 +338,11 @@ namespace godot {
 			setPathActor(path, actorInstanceId, game);
 		}
 
-		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game) {
+		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game, EcoGame* lib) {
 			//Godot::print(String("find path from {0} to {1}").format(Array::make(startV, goalV)));
 			PoolVector3Array path;
-
-			boost::shared_ptr<GraphNode> startNode = NULL;
-			boost::shared_ptr<GraphNode> goalNode = NULL;
-
-			float minDistanceStart = numeric_limits<float>::max();
-			float minDistanceGoal = numeric_limits<float>::max();
-			float currDistanceStart;
-			float currDistanceGoal;
-
-			NAV_NODES_MUTEX.lock_shared();
-			for (auto& current : *nodes) {
-				currDistanceStart = current.second->getPoint().distance_to(startV);
-				currDistanceGoal = current.second->getPoint().distance_to(goalV);
-
-				if (currDistanceStart < minDistanceStart) {
-					minDistanceStart = currDistanceStart;
-					startNode = current.second;
-				}
-
-				if (currDistanceGoal < minDistanceGoal) {
-					minDistanceGoal = currDistanceGoal;
-					goalNode = current.second;
-				}
-			}
-			NAV_NODES_MUTEX.unlock_shared();
+			boost::shared_ptr<GraphNode> startNode = lib->getNode(startV);
+			boost::shared_ptr<GraphNode> goalNode = lib->getNode(goalV);
 
 			if (!startNode || !goalNode) {
 				setPathActor(path, actorInstanceId, game);

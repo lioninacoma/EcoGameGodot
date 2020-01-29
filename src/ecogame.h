@@ -27,6 +27,7 @@
 #include "voxelassetmanager.h"
 #include "section.h"
 #include "meshbuilder.h"
+#include "graphnode.h"
 
 using namespace std;
 
@@ -68,6 +69,7 @@ namespace godot {
 		void updateGraph(Variant vChunk);
 		void updateGraphs(Vector3 center, float radius);
 		int getVoxel(Vector3 position);
+		boost::shared_ptr<GraphNode> getNode(Vector3 position);
 	};
 
 }

@@ -15,6 +15,15 @@ func move_to_waypoint(actor):
 	actor.velocity = direction * actor.MAX_SPEED
 
 func perform(delta : float, actor) -> bool:
+	if finished:
+		actor.velocity *= 0
+		actor.acceleration *= 0
+		path = null
+		waypoint = null
+		actor.task_handler.set_task_data("path", null)
+		finished = false
+		return true
+	
 	if path == null:
 		path = actor.task_handler.get_task_data("path")
 		
