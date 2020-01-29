@@ -4,6 +4,8 @@
 #include <vector>
 #include <iterator> 
 
+#include <boost/smart_ptr/shared_ptr.hpp>
+
 #include "voxel.h"
 #include "voxeldata.h"
 
@@ -18,7 +20,7 @@ namespace godot {
 		int depth;
 		int maxDeltaY;
 	protected:
-		VoxelData* volume;
+		boost::shared_ptr<VoxelData> volume;
 		vector<Voxel>* voxels;
 		float noiseChance;
 		float noiseOffset;
@@ -30,7 +32,7 @@ namespace godot {
 			VoxelAsset::height = h;
 			VoxelAsset::depth = d;
 			VoxelAsset::maxDeltaY = md;
-			VoxelAsset::volume = new VoxelData(w, h, d);
+			VoxelAsset::volume = boost::shared_ptr<VoxelData>(new VoxelData(w, h, d));
 			VoxelAsset::voxels = new vector<Voxel>();
 			VoxelAsset::noiseChance = 1.0;
 			VoxelAsset::noiseOffset = 1.0;
@@ -43,7 +45,7 @@ namespace godot {
 		vector<Voxel>* getVoxels() {
 			return voxels;
 		};
-		VoxelData* getVolume() {
+		boost::shared_ptr<VoxelData> getVolume() {
 			return volume;
 		};
 		float getNoiseChance() { return VoxelAsset::noiseChance; };

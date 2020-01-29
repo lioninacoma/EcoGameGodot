@@ -41,7 +41,7 @@ namespace godot {
 
 		Vector3 offset;
 
-		VoxelData* volume;
+		boost::shared_ptr<VoxelData> volume;
 		unordered_map<size_t, bool>* nodeChanges;
 		unordered_map<size_t, boost::shared_ptr<GraphNode>>* nodes;
 
@@ -50,6 +50,8 @@ namespace godot {
 		OpenSimplexNoise* noise;
 
 		boost::shared_timed_mutex CHUNK_NODES_MUTEX;
+		boost::shared_timed_mutex CHUNK_NODE_CHANGES_MUTEX;
+		boost::shared_timed_mutex OFFSET_MUTEX;
 
 		int getVoxelY(int x, int z);
 		float getVoxelChance(int x, int y, int z);
@@ -65,9 +67,10 @@ namespace godot {
 		
 		// getter
 		Vector3 getOffset() {
+			boost::shared_lock<boost::shared_timed_mutex> lock(OFFSET_MUTEX);
 			return offset;
 		}
-		VoxelData* getVolume() {
+		boost::shared_ptr<VoxelData> getVolume() {
 			return volume;
 		}
 		int getMeshInstanceId() {
@@ -83,17 +86,9 @@ namespace godot {
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
-		unordered_map<size_t, boost::shared_ptr<GraphNode>>* getNodes() {
-			return Chunk::nodes;
-		};
-		void lockNodes() {
-			CHUNK_NODES_MUTEX.lock_shared();
-		};
-		void unlockNodes() {
-			CHUNK_NODES_MUTEX.unlock_shared();
-		};
-		unordered_map<size_t, bool>* getNodeChanges() {
-			return Chunk::nodeChanges;
+		void forEachNode(std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> func) {
+			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+			std::for_each(nodes->begin(), nodes->end(), func);
 		};
 		boost::shared_ptr<GraphNode> getNode(size_t hash) {
 			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
@@ -101,8 +96,23 @@ namespace godot {
 			if (it == Chunk::nodes->end()) return NULL;
 			return it->second;
 		};
+		void forEachNodeChange(std::function<void(std::pair<size_t, bool>)> func) {
+			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
+			std::for_each(nodeChanges->begin(), nodeChanges->end(), func);
+		};
+		bool hasNodeChange(size_t hash) {
+			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
+			auto it = Chunk::nodeChanges->find(hash);
+			if (it == Chunk::nodeChanges->end()) return false;
+			return true;
+		};
+		bool nodeChangesEmpty() {
+			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
+			return Chunk::nodeChanges->empty();
+		};
 		// setter
 		void setOffset(Vector3 offset) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(OFFSET_MUTEX);
 			Chunk::offset = offset;
 		};
 		void setNavigatable() {
@@ -117,37 +127,31 @@ namespace godot {
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
 		void clearNodeChanges() {
-			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
-			nodeChanges->clear();
+			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
+			Chunk::nodeChanges->clear();
+		}
+		void applyNodeChange(size_t hash, bool add) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
+			auto it = Chunk::nodeChanges->find(hash);
+			if (it == Chunk::nodeChanges->end()) {
+				Chunk::nodeChanges->emplace(hash, add);
+			}
+			else if ((add && !it->second) || (!add && it->second)) {
+				Chunk::nodeChanges->erase(hash);
+			}
 		}
 		void addNode(boost::shared_ptr<GraphNode> node) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			size_t hash = node->getHash();
 			Chunk::nodes->insert(pair<size_t, boost::shared_ptr<GraphNode>>(hash, node));
-			//Chunk::nodeChanges->emplace(hash, 1);
-
-			auto it = Chunk::nodeChanges->find(hash);
-			if (it == Chunk::nodeChanges->end()) {
-				Chunk::nodeChanges->emplace(hash, 1);
-			}
-			else if (!it->second) {
-				Chunk::nodeChanges->erase(hash);
-			}
+			applyNodeChange(hash, true);
 		};
 		void removeNode(Vector3 point) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			size_t hash = fn::hash(point);
 			if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
 			Chunk::nodes->erase(hash);
-			//Chunk::nodeChanges->emplace(hash, 0);
-
-			auto it = Chunk::nodeChanges->find(hash);
-			if (it == Chunk::nodeChanges->end()) {
-				Chunk::nodeChanges->emplace(hash, 0);
-			}
-			else if (it->second) {
-				Chunk::nodeChanges->erase(hash);
-			}
+			applyNodeChange(hash, false);
 		};
 	};
 

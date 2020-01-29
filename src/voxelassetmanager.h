@@ -44,7 +44,7 @@ namespace godot {
 			return assets[type]->getVoxels();
 		}
 
-		VoxelData* getVolume(VoxelAssetType type) {
+		boost::shared_ptr<VoxelData> getVolume(VoxelAssetType type) {
 			return assets[type]->getVolume();
 		}
 	};

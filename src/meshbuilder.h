@@ -44,12 +44,12 @@ namespace godot {
 		int createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 
-		vector<int> buildVertices(VoxelData* volume, Chunk* chunk, const int DIMS[3], float** buffers, int buffersLen);
+		vector<int> buildVertices(boost::shared_ptr<VoxelData> volume, boost::shared_ptr<Chunk> chunk, const int DIMS[3], float** buffers, int buffersLen);
 	public:
 		MeshBuilder();
 		~MeshBuilder();
 
-		vector<int> buildVertices(Chunk* chunk, float** buffers, int buffersLen);
+		vector<int> buildVertices(boost::shared_ptr<Chunk> chunk, float** buffers, int buffersLen);
 		vector<int> buildVertices(VoxelAssetType type, float** buffers, int buffersLen);
 	};
 

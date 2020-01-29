@@ -16,12 +16,12 @@ vector<int> MeshBuilder::buildVertices(VoxelAssetType type, float** buffers, int
 	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(Chunk* chunk, float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(boost::shared_ptr<Chunk> chunk, float** buffers, int buffersLen) {
 	const int DIMS[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
 	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelData* volume, Chunk* chunk, const int DIMS[3], float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boost::shared_ptr<Chunk> chunk, const int DIMS[3], float** buffers, int buffersLen) {
 	//if (chunk) Godot::print(String("building mesh at {0} ...").format(Array::make(chunk->getOffset())));
 
 	Vector3 offset = (chunk) ? chunk->getOffset() : Vector3(0, 0, 0);
@@ -30,7 +30,7 @@ vector<int> MeshBuilder::buildVertices(VoxelData* volume, Chunk* chunk, const in
 	float nx, ny, nz;
 	bool backFace, b, done = false, initializeNodes = false;
 
-	if (chunk) initializeNodes = chunk->getNodeChanges()->empty();
+	if (chunk) initializeNodes = chunk->nodeChangesEmpty();
 
 	vector<int> vertexOffsets;
 	vertexOffsets.resize(buffersLen);

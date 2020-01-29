@@ -16,11 +16,14 @@ Chunk::Chunk(Vector3 offset) {
 }
 
 Chunk::~Chunk() {
-
+	volume.reset();
+	delete surfaceY;
+	delete nodes;
+	delete nodeChanges;
 }
 
 void Chunk::_init() {
-	Chunk::volume = new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
+	Chunk::volume = boost::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
 	Chunk::nodes = new unordered_map<size_t, boost::shared_ptr<GraphNode>>();
 	Chunk::nodeChanges = new unordered_map<size_t, bool>();

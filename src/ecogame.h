@@ -14,6 +14,12 @@
 #include <set> 
 #include <iterator> 
 
+#include <boost/atomic.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_types.hpp>
+
 #include "constants.h"
 #include "fn.h"
 #include "area.h"
@@ -29,11 +35,13 @@ namespace godot {
 		GODOT_CLASS(EcoGame, Node)
 
 	private:
-		Section** sections;
-		ChunkBuilder* chunkBuilder;
+		boost::shared_ptr<Section>* sections;
+		boost::shared_ptr<ChunkBuilder> chunkBuilder;
 
-		void buildSection(Section* section, Node* game);
-		void updateGraphTask(Chunk* chunk, Node* game);
+		boost::shared_timed_mutex SECTIONS_MUTEX;
+
+		void buildSection(boost::shared_ptr<Section> section, Node* game);
+		void updateGraphTask(boost::shared_ptr<Chunk> chunk, Node* game);
 		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game);
 		void navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib);
 	public:
@@ -44,6 +52,10 @@ namespace godot {
 
 		void _init();
 
+		void setSection(int x, int z, boost::shared_ptr<Section> section);
+		void setSection(int i, boost::shared_ptr<Section> section);
+		boost::shared_ptr<Section> getSection(int x, int z);
+		boost::shared_ptr<Section> getSection(int i);
 		void buildSections(Vector3 center, float radius, int maxSectionsBuilt);
 		void buildChunk(Variant vChunk);
 		void setVoxel(Vector3 position, int voxel);

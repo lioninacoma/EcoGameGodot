@@ -9,6 +9,7 @@
 
 #include <boost/atomic.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/function.hpp>
 
 #include "constants.h"
 #include "fn.h"
@@ -20,7 +21,7 @@ namespace godot {
 	class GraphNode {
 	private:
 		Vector3 point;
-		unordered_map<size_t, GraphEdge*> edges;
+		unordered_map<size_t, boost::shared_ptr<GraphEdge>> edges;
 		boost::atomic<size_t> hash;
 		boost::atomic<char> voxel;
 		boost::shared_timed_mutex EDGES_MUTEX;
@@ -31,7 +32,7 @@ namespace godot {
 			GraphNode::hash = fn::hash(point);
 			GraphNode::voxel = voxel;
 		};
-		void addEdge(GraphEdge* edge) {
+		void addEdge(boost::shared_ptr<GraphEdge> edge) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(EDGES_MUTEX);
 			size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
 			edges[nHash] = edge;
@@ -42,28 +43,23 @@ namespace godot {
 			if (it == edges.end()) return;
 			edges.erase(nHash);
 		};
-		GraphEdge* getEdgeWithNode(size_t nHash) {
+		boost::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash) {
 			boost::shared_lock<boost::shared_timed_mutex> lock(EDGES_MUTEX);
 			auto it = edges.find(nHash);
 			if (it == edges.end()) return NULL;
 			return it->second;
 		};
 		boost::shared_ptr<GraphNode> getNeighbour(size_t nHash) {
-			GraphEdge* edge = getEdgeWithNode(nHash);
+			boost::shared_ptr<GraphEdge> edge = getEdgeWithNode(nHash);
 			if (!edge) return NULL;
 			return (edge->getA()->getHash() != hash) ? edge->getA() : edge->getB();
 		};
-		unordered_map<size_t, GraphEdge*> getEdges() {
-			return edges;
-		};
-		void lockEdges() {
-			EDGES_MUTEX.lock_shared();
-		};
-		void unlockEdges() {
-			EDGES_MUTEX.unlock_shared();
+		void forEachEdge(std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> func) {
+			boost::shared_lock<boost::shared_timed_mutex> lock(EDGES_MUTEX);
+			std::for_each(edges.begin(), edges.end(), func);
 		};
 		Vector3 getPoint() {
-			boost::unique_lock<boost::shared_timed_mutex> lock(POINT_MUTEX);
+			boost::shared_lock<boost::shared_timed_mutex> lock(POINT_MUTEX);
 			return point;
 		};
 		size_t getHash() {

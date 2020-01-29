@@ -10,6 +10,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_types.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/function.hpp>
 
 #include <deque>
 #include <queue>
@@ -54,20 +55,23 @@ namespace godot {
 
 		unordered_map<size_t, boost::shared_ptr<GraphNode>>* nodes;
 		boost::shared_timed_mutex NAV_NODES_MUTEX;
+		boost::shared_timed_mutex SET_PATH_MUTEX;
 	public:
-		static Navigator* get() {
-			static Navigator* navigator = new Navigator();
+		static boost::shared_ptr<Navigator> get() {
+			static boost::shared_ptr<Navigator> navigator = boost::shared_ptr<Navigator>(new Navigator());
 			return navigator;
 		};
 
 		Navigator() {
 			nodes = new unordered_map<size_t, boost::shared_ptr<GraphNode>>();
 		};
-		~Navigator() {};
+		~Navigator() {
+			delete nodes;
+		};
 
 		void addEdge(boost::shared_ptr<GraphNode> a, boost::shared_ptr<GraphNode> b, float cost) {
 			// ~600 MB
-			auto edge = new GraphEdge(a, b, cost);
+			auto edge = boost::shared_ptr<GraphEdge>(new GraphEdge(a, b, cost));
 			a->addEdge(edge);
 			b->addEdge(edge);
 		}
@@ -82,10 +86,11 @@ namespace godot {
 			size_t hash = node->getHash();
 			boost::shared_ptr<GraphNode> neighbour;
 
-			for (auto& next : node->getEdges()) {
+			std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> lambda = [&](auto next) {
 				neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
 				neighbour->removeEdgeWithNode(hash);
-			}
+			};
+			node->forEachEdge(lambda);
 
 			nodes->erase(hash);
 			node.reset();
@@ -98,7 +103,7 @@ namespace godot {
 			return it->second;
 		}
 
-		void updateGraph(Chunk* chunk, Node* game) {
+		void updateGraph(boost::shared_ptr<Chunk> chunk, Node* game) {
 			//Godot::print(String("updating graph at {0} ...").format(Array::make(chunk->getOffset())));
 			int x, y, z, drawOffsetY = 1;
 			float nx, ny, nz;
@@ -119,23 +124,19 @@ namespace godot {
 			dots->end();
 			game->call_deferred("draw_debug_dots", dots);*/
 
-			chunk->lockNodes();
-			auto chunkNodes = chunk->getNodes();
-			auto nodeChanges = chunk->getNodeChanges();
-			for (auto& point : *chunkNodes) {
-				if (nodeChanges->find(point.first) != nodeChanges->end()) {
-					addNode(point.second);
-				}
+			std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+				if (chunk->hasNodeChange(next.first)) addNode(next.second);
+				nodeCache.insert(next);
+			};
+			chunk->forEachNode(nodeFn);
 
-				nodeCache.insert(point);
-			}
-			for (auto& change : *nodeChanges) {
-				if (change.second) continue;
-				current = getNode(change.first);
-				if (!current) continue;
-				removeNode(current);
-			}
-			chunk->unlockNodes();
+			std::function<void(std::pair<size_t, bool>)> nodeChangeFn = [&](auto next) {
+				if (!next.second) {
+					current = getNode(next.first);
+					if (current) removeNode(current);
+				}
+			};
+			chunk->forEachNodeChange(nodeChangeFn);
 
 			/*auto geo = ImmediateGeometry::_new();
 			geo->begin(Mesh::PRIMITIVE_LINES);
@@ -235,8 +236,12 @@ namespace godot {
 			return w(distanceToGoal, maxDistance) * distanceToGoal;
 		}
 
+		void setPathActor(PoolVector3Array path, int actorInstanceId, Node* game) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(SET_PATH_MUTEX);
+			game->call_deferred("set_path_actor", path, actorInstanceId);
+		}
+
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib) {
-			//boost::shared_lock<boost::shared_timed_mutex> lock(NODE_MUTEX);
 			//Godot::print(String("find path from {0} to closest voxel of type {1}").format(Array::make(startV, voxel)));
 			PoolVector3Array path;
 
@@ -257,7 +262,7 @@ namespace godot {
 			NAV_NODES_MUTEX.unlock_shared();
 
 			if (!startNode) {
-				game->call_deferred("set_path_actor", path, actorInstanceId);
+				setPathActor(path, actorInstanceId, game);
 				return;
 			}
 			
@@ -268,7 +273,7 @@ namespace godot {
 			unordered_map<size_t, float> costSoFar;
 			size_t cHash, nHash, sHash = startNode->getHash();
 			int x, y, z;
-			float maxDist = 96;
+			float maxDist = 64;
 			bool reachable = false;
 
 			PriorityQueue<size_t, float> frontier;
@@ -285,7 +290,7 @@ namespace godot {
 				if (!currentNode) continue;
 
 				if (manhattan(currentNode->getPoint(), startNode->getPoint()) > maxDist) {
-					game->call_deferred("set_path_actor", path, actorInstanceId);
+					setPathActor(path, actorInstanceId, game);
 					return;
 				}
 
@@ -326,12 +331,11 @@ namespace godot {
 					/*geo->end();
 					game->call_deferred("draw_debug", geo);*/
 
-					game->call_deferred("set_path_actor", path, actorInstanceId);
+					setPathActor(path, actorInstanceId, game);
 					return;
 				}
 
-				currentNode->lockEdges();
-				for (auto& next : currentNode->getEdges()) {
+				std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
 					neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
 					nHash = neighbourNode->getHash();
 					float newCost = costSoFar[cHash] + next.second->getCost();
@@ -342,15 +346,14 @@ namespace godot {
 						frontier.put(nHash, priority);
 						cameFrom[nHash] = cHash;
 					}
-				}
-				currentNode->unlockEdges();
+				};
+				currentNode->forEachEdge(fn);
 			}
 
-			game->call_deferred("set_path_actor", path, actorInstanceId);
+			setPathActor(path, actorInstanceId, game);
 		}
 
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game) {
-			//boost::shared_lock<boost::shared_timed_mutex> lock(NODE_MUTEX);
 			//Godot::print(String("find path from {0} to {1}").format(Array::make(startV, goalV)));
 			PoolVector3Array path;
 
@@ -380,7 +383,7 @@ namespace godot {
 			NAV_NODES_MUTEX.unlock_shared();
 
 			if (!startNode || !goalNode) {
-				game->call_deferred("set_path_actor", path, actorInstanceId);
+				setPathActor(path, actorInstanceId, game);
 				return;
 			}
 
@@ -428,12 +431,11 @@ namespace godot {
 					/*geo->end();
 					game->call_deferred("draw_debug", geo);*/
 
-					game->call_deferred("set_path_actor", path, actorInstanceId);
+					setPathActor(path, actorInstanceId, game);
 					return;
 				}
 
-				currentNode->lockEdges();
-				for (auto& next : currentNode->getEdges()) {
+				std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
 					neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
 					nHash = neighbourNode->getHash();
 					float newCost = costSoFar[cHash] + next.second->getCost();
@@ -444,11 +446,11 @@ namespace godot {
 						frontier.put(nHash, priority);
 						cameFrom[nHash] = cHash;
 					}
-				}
-				currentNode->unlockEdges();
+				};
+				currentNode->forEachEdge(fn);
 			}
 
-			game->call_deferred("set_path_actor", path, actorInstanceId);
+			setPathActor(path, actorInstanceId, game);
 		}
 	};
 

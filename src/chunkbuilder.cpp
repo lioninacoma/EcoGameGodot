@@ -4,7 +4,7 @@
 
 using namespace godot;
 
-void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
+void ChunkBuilder::Worker::run(boost::shared_ptr<Chunk> chunk, Node* game) {
 	//Godot::print(String("building chunk at {0} ...").format(Array::make(chunk->getOffset())));
 	if (!chunk || !game) return;
 
@@ -93,7 +93,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 		meshes.push_back(meshData);
 	}
 
-	Variant v = game->call_deferred("build_chunk", meshes, Ref<Chunk>(chunk));
+	Variant v = game->call_deferred("build_chunk", meshes, Ref<Chunk>(chunk.get()));
 
 	Worker::getVerticesPool().ret(buffers, TYPES);
 
@@ -105,7 +105,7 @@ void ChunkBuilder::Worker::run(Chunk* chunk, Node* game) {
 	chunk->setBuilding(false);
 }
 
-void ChunkBuilder::build(Chunk* chunk, Node* game) {
+void ChunkBuilder::build(boost::shared_ptr<Chunk> chunk, Node* game) {
 	Worker* worker = new Worker();
 	if (chunk->isBuilding()) {
 		Godot::print(String("chunk at {0} is already building").format(Array::make(chunk->getOffset())));
