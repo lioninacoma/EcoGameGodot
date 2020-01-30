@@ -1,4 +1,5 @@
 #include "chunk.h"
+#include "navigator.h"
 
 using namespace godot;
 
@@ -19,14 +20,12 @@ Chunk::~Chunk() {
 	volume.reset();
 	delete surfaceY;
 	delete nodes;
-	delete nodeChanges;
 }
 
 void Chunk::_init() {
 	Chunk::volume = boost::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
 	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
 	Chunk::nodes = new unordered_map<size_t, boost::shared_ptr<GraphNode>>();
-	Chunk::nodeChanges = new unordered_map<size_t, bool>();
 
 	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
 
@@ -126,15 +125,19 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 		if (navigatable) {
 			Vector3 node = offset + Vector3(x + 0.5, y + 1, z + 0.5);
 			size_t hash = fn::hash(node);
-
-			if (nodes->find(hash) != nodes->end()) {
-				removeNode(node);
+			auto it = nodes->find(hash);
+			
+			if (it != nodes->end()) {
+				removeNode(it->second);
+				Navigator::get()->removeNode(it->second);
 			}
 
 			int voxelBelow = volume->get(x, y - 1, z);
 			if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
 				Vector3 newNode = node + Vector3(0, -1, 0);
-				addNode(boost::shared_ptr<GraphNode>(new GraphNode(newNode, v)));
+				auto n = boost::shared_ptr<GraphNode>(new GraphNode(newNode, v));
+				addNode(n);
+				Navigator::get()->addNode(n, this);
 			}
 		}
 
@@ -154,14 +157,18 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 		if (navigatable) {
 			Vector3 node = offset + Vector3(x + 0.5, y, z + 0.5);
 			size_t hash = fn::hash(node);
+			auto it = nodes->find(hash);
 
-			if (nodes->find(hash) != nodes->end()) {
-				removeNode(node);
+			if (it != nodes->end()) {
+				removeNode(it->second);
+				Navigator::get()->removeNode(it->second);
 			}
 
 			if (y + 1 < CHUNK_SIZE_Y && !volume->get(x, y + 1, z) && v != 6) {
 				Vector3 newNode = node + Vector3(0, 1, 0);
-				addNode(boost::shared_ptr<GraphNode>(new GraphNode(newNode, v)));
+				auto n = boost::shared_ptr<GraphNode>(new GraphNode(newNode, v));
+				addNode(n);
+				Navigator::get()->addNode(n, this);
 			}
 		}
 

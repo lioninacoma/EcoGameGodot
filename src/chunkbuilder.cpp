@@ -30,7 +30,9 @@ void ChunkBuilder::Worker::run(boost::shared_ptr<Chunk> chunk, Node* game) {
 	}
 
 	vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES);
-	Navigator::get()->updateGraph(chunk, game);
+
+	if (!chunk->isNavigatable())
+		Navigator::get()->updateGraph(chunk, game);
 
 	for (o = 0; o < offsets.size(); o++) {
 		offset = offsets[o];

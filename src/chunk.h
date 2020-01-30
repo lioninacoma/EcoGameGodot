@@ -42,7 +42,6 @@ namespace godot {
 		Vector3 offset;
 
 		boost::shared_ptr<VoxelData> volume;
-		unordered_map<size_t, bool>* nodeChanges;
 		unordered_map<size_t, boost::shared_ptr<GraphNode>>* nodes;
 
 		int* surfaceY; // TODO: provide thread safety?
@@ -50,7 +49,6 @@ namespace godot {
 		OpenSimplexNoise* noise;
 
 		boost::shared_timed_mutex CHUNK_NODES_MUTEX;
-		boost::shared_timed_mutex CHUNK_NODE_CHANGES_MUTEX;
 		boost::shared_timed_mutex OFFSET_MUTEX;
 
 		int getVoxelY(int x, int z);
@@ -110,20 +108,6 @@ namespace godot {
 			}
 			return closest;
 		};
-		void forEachNodeChange(std::function<void(std::pair<size_t, bool>)> func) {
-			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
-			std::for_each(nodeChanges->begin(), nodeChanges->end(), func);
-		};
-		bool hasNodeChange(size_t hash) {
-			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
-			auto it = Chunk::nodeChanges->find(hash);
-			if (it == Chunk::nodeChanges->end()) return false;
-			return true;
-		};
-		bool nodeChangesEmpty() {
-			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
-			return Chunk::nodeChanges->empty();
-		};
 		// setter
 		void setOffset(Vector3 offset) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(OFFSET_MUTEX);
@@ -140,32 +124,17 @@ namespace godot {
 		};
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
-		void clearNodeChanges() {
-			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
-			Chunk::nodeChanges->clear();
-		}
-		void applyNodeChange(size_t hash, bool add) {
-			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODE_CHANGES_MUTEX);
-			auto it = Chunk::nodeChanges->find(hash);
-			if (it == Chunk::nodeChanges->end()) {
-				Chunk::nodeChanges->emplace(hash, add);
-			}
-			else if ((add && !it->second) || (!add && it->second)) {
-				Chunk::nodeChanges->erase(hash);
-			}
-		}
+
 		void addNode(boost::shared_ptr<GraphNode> node) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			size_t hash = node->getHash();
 			Chunk::nodes->insert(pair<size_t, boost::shared_ptr<GraphNode>>(hash, node));
-			applyNodeChange(hash, true);
 		};
-		void removeNode(Vector3 point) {
+		void removeNode(boost::shared_ptr<GraphNode> node) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
-			size_t hash = fn::hash(point);
+			size_t hash = node->getHash();
 			if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
 			Chunk::nodes->erase(hash);
-			applyNodeChange(hash, false);
 		};
 	};
 

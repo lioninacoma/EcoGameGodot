@@ -30,7 +30,7 @@ vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boos
 	float nx, ny, nz;
 	bool backFace, b, done = false, initializeNodes = false;
 
-	if (chunk) initializeNodes = chunk->nodeChangesEmpty();
+	if (chunk) initializeNodes = !chunk->isNavigatable();
 
 	vector<int> vertexOffsets;
 	vertexOffsets.resize(buffersLen);

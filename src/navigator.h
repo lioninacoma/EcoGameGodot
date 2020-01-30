@@ -83,7 +83,12 @@ namespace godot {
 
 		void removeNode(boost::shared_ptr<GraphNode> node) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(NAV_NODES_MUTEX);
+			
 			size_t hash = node->getHash();
+			auto it = nodes->find(hash);
+
+			if (it == nodes->end()) return;
+			
 			boost::shared_ptr<GraphNode> neighbour;
 
 			std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> lambda = [&](auto next) {
@@ -101,6 +106,49 @@ namespace godot {
 			auto it = nodes->find(h);
 			if (it == nodes->end()) return NULL;
 			return it->second;
+		}
+
+		void addNode(boost::shared_ptr<GraphNode> node, Chunk* chunk) {
+			int x, y, z;
+			float nx, ny, nz;
+			Vector3 chunkOffset;
+			boost::shared_ptr<GraphNode> neighbour;
+			size_t nHash;
+
+			addNode(node);
+
+			for (z = -1; z < 2; z++)
+				for (x = -1; x < 2; x++)
+					for (y = -1; y < 2; y++) {
+						if (!x && !y && !z) continue;
+
+						nx = node->getPoint().x + x;
+						ny = node->getPoint().y + y;
+						nz = node->getPoint().z + z;
+
+						nHash = fn::hash(Vector3(nx, ny, nz));
+						neighbour = chunk->getNode(nHash);
+
+						if (!neighbour) {
+							chunkOffset.x = nx;
+							chunkOffset.y = ny;
+							chunkOffset.z = nz;
+							chunkOffset = fn::toChunkCoords(chunkOffset);
+							chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+							if (chunk->getOffset() == chunkOffset) {
+								continue;
+							}
+
+							neighbour = getNode(nHash);
+
+							if (!neighbour) {
+								continue;
+							}
+						}
+
+						addEdge(node, neighbour, euclidean(node->getPoint(), neighbour->getPoint()));
+					}
 		}
 
 		void updateGraph(boost::shared_ptr<Chunk> chunk, Node* game) {
@@ -125,18 +173,10 @@ namespace godot {
 			game->call_deferred("draw_debug_dots", dots);*/
 
 			std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
-				if (chunk->hasNodeChange(next.first)) addNode(next.second);
+				addNode(next.second);
 				nodeCache.insert(next);
 			};
 			chunk->forEachNode(nodeFn);
-
-			std::function<void(std::pair<size_t, bool>)> nodeChangeFn = [&](auto next) {
-				if (!next.second) {
-					current = getNode(next.first);
-					if (current) removeNode(current);
-				}
-			};
-			chunk->forEachNodeChange(nodeChangeFn);
 
 			/*auto geo = ImmediateGeometry::_new();
 			geo->begin(Mesh::PRIMITIVE_LINES);
@@ -208,7 +248,6 @@ namespace godot {
 				}
 			}
 
-			chunk->clearNodeChanges();
 			chunk->setNavigatable();
 
 			Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset())));
