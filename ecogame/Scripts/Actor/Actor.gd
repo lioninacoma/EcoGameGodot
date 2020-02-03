@@ -8,8 +8,10 @@ var TaskEnd       = load("res://Scripts/Actor/Task/TaskEnd.gd")
 
 var FindPathToVoxel = load("res://Scripts/Actor/Task/Base/FindPathToVoxel.gd")
 var FindVoxelNearby = load("res://Scripts/Actor/Task/Base/FindVoxelNearby.gd")
+var FindVoxelsInArea = load("res://Scripts/Actor/Task/Base/FindVoxelsInArea.gd")
 var FollowPath      = load("res://Scripts/Actor/Task/Base/FollowPath.gd")
 var MoveTo          = load("res://Scripts/Actor/Task/Base/MoveTo.gd")
+var MoveToNextVoxelInArea = load("res://Scripts/Actor/Task/Base/MoveToNextVoxelInArea.gd")
 var SetVoxel        = load("res://Scripts/Actor/Task/Base/SetVoxel.gd")
 
 var velocity = Vector3()
@@ -46,7 +48,7 @@ func update(delta : float) -> void:
 
 func path_found(actor):
 	var data = actor.task_handler.task_data
-	var found = data.has("path") && data["path"] != null
+	var found = data.has("next_voxel") && data["next_voxel"] != null
 	return found
 
 func voxel_found(actor):
@@ -65,7 +67,10 @@ func gather_wood(storehouse_location : Vector3) -> void:
 	gather_wood.task_name = "GatherWood"
 	gather_wood.set_loop(true)
 	
-	var find_path_to_tree = FindPathToVoxel.new(4)
+#	var find_path_to_tree = FindPathToVoxel.new(4)
+	var find_voxels_in_area = FindVoxelsInArea.new({"voxel": 4, "size": 64})
+	var set_to_next_voxel_in_area = MoveToNextVoxelInArea.new(4)
+	var move_to_next_voxel = MoveTo.new({"to_key": "next_voxel"})
 	var is_path_found = TaskCondition.new()
 	var gather_wood_end = TaskEnd.new(gather_wood.task_name)
 	
@@ -84,20 +89,22 @@ func gather_wood(storehouse_location : Vector3) -> void:
 #	is_voxel_at_goal_found.add_task(find_new_tree, funcref(self, "voxel_not_found"))
 #	move_to_voxel_at_tree.add_task(is_voxel_at_goal_found, true)
 	
-	is_path_found.add_task(follow_path_to_tree, funcref(self, "path_found"))
+	is_path_found.add_task(move_to_next_voxel, funcref(self, "path_found"))
 	is_path_found.add_task(gather_wood_end) # ELSE
 	
 	var find_trunk_nearby = FindVoxelNearby.new({"voxel": 4})
 	var is_voxel_found = TaskCondition.new()
 	var chop_wood_and_store = TaskSeries.new()
 	var chop_wood = SetVoxel.new({"position_key": "voxel_nearby", "voxel": 0})
-	var move_to_storehouse = MoveTo.new(storehouse_location)
+	var move_to_storehouse = MoveTo.new({"to": storehouse_location})
 	
 	chop_wood_and_store.add_task(chop_wood)
 	chop_wood_and_store.add_task(move_to_storehouse)
 	is_voxel_found.add_task(chop_wood_and_store, funcref(self, "voxel_found"))
 	
-	gather_wood.add_task(find_path_to_tree)
+#	gather_wood.add_task(find_path_to_tree)
+	gather_wood.add_task(find_voxels_in_area)
+	gather_wood.add_task(set_to_next_voxel_in_area)
 	gather_wood.add_task(is_path_found)
 	gather_wood.add_task(find_trunk_nearby)
 	gather_wood.add_task(is_voxel_found)

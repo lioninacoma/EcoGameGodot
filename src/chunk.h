@@ -108,6 +108,39 @@ namespace godot {
 			}
 			return closest;
 		};
+		PoolVector3Array getReachableVoxelsOfType(Vector3 point, int type) {
+			PoolVector3Array voxels;
+			Vector3 chunkOffset;
+			int x, y, z, nx, ny, nz, v;
+			for (z = -1; z < 2; z++)
+				for (x = -1; x < 2; x++)
+					for (y = -1; y < 2; y++) {
+						nx = point.x + x;
+						ny = point.y + y;
+						nz = point.z + z;
+						//Godot::print(String("point: {0}").format(Array::make(point)));
+
+						chunkOffset.x = nx;
+						chunkOffset.y = ny;
+						chunkOffset.z = nz;
+						chunkOffset = fn::toChunkCoords(chunkOffset);
+						chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+						if (offset != chunkOffset) {
+							continue;
+						}
+
+						v = getVoxel(
+							nx % CHUNK_SIZE_X, 
+							ny % CHUNK_SIZE_Y,
+							nz % CHUNK_SIZE_Z);
+
+						if (v != type) continue;
+
+						voxels.push_back(Vector3(nx, ny, nz));
+					}
+			return voxels;
+		};
 		// setter
 		void setOffset(Vector3 offset) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(OFFSET_MUTEX);

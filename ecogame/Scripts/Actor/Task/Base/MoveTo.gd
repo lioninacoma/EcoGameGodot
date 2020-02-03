@@ -2,10 +2,12 @@ extends Task
 
 var path = null
 var waypoint = null
-var to : Vector3 = Vector3()
+var to = null
+var to_key = null
 
-func _init(to : Vector3):
-	self.to = to
+func _init(args : Dictionary):
+	self.to = args["to"] if args.has("to") else null
+	self.to_key = args["to_key"] if args.has("to_key") else null
 	self.init("MoveTo")
 
 func move_to_waypoint(actor):
@@ -24,7 +26,10 @@ func perform(delta : float, actor) -> bool:
 		finished = false
 		return true
 	
-	if path == null:
+	if to_key:
+		to = actor.task_handler.get_task_data(to_key)
+	
+	if path == null && to != null:
 		path = actor.task_handler.get_task_data("path")
 		
 		if path == null:

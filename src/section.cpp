@@ -26,6 +26,22 @@ Section::~Section() {
 	delete[] chunks;
 }
 
+boost::shared_ptr<Chunk> Section::intersection(int x, int y, int z) {
+	boost::shared_ptr<Chunk> chunk = getChunk(x - offset.x, z - offset.y);
+	if (!chunk) return NULL;
+
+	return chunk;
+}
+
+vector<boost::shared_ptr<Chunk>> Section::getChunksRay(Vector3 from, Vector3 to) {
+	from = fn::toChunkCoords(from);
+	to = fn::toChunkCoords(to);
+
+	vector<boost::shared_ptr<Chunk>> list;
+	boost::function<boost::shared_ptr<Chunk>(int, int, int)> intersection(boost::bind(&Section::intersection, this, _1, _2, _3));
+	return Intersection::get<boost::shared_ptr<Chunk>>(from, to, false, intersection, list);
+}
+
 float Section::getVoxelAssetChance(int x, int y, float scale) {
 	return noise->get_noise_2d(
 		(x + offset.x * CHUNK_SIZE_X) * scale,

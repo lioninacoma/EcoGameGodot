@@ -43,6 +43,7 @@ namespace godot {
 
 		boost::shared_timed_mutex CHUNKS_MUTEX;
 		boost::shared_timed_mutex OFFSET_MUTEX;
+		boost::shared_ptr<Chunk> intersection(int x, int y, int z);
 	public:
 		static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4>& getIntBufferPool() {
 			static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4> pool;
@@ -62,6 +63,7 @@ namespace godot {
 
 		}
 
+		vector<boost::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		float getVoxelAssetChance(int x, int y, float scale);
 		void addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_ptr<ChunkBuilder> builder, Node* game);
 		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);

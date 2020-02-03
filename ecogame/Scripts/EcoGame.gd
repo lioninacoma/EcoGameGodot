@@ -231,6 +231,12 @@ func _input(event : InputEvent) -> void:
 			elif event.button_index == BUTTON_RIGHT:
 #				Lib.instance.setVoxel(Vector3(vx, vy, vz), 0)
 #				if actor: actor.move_to(voxel_position, !control_active)
+
+#				var s = 16
+#				var voxels = Lib.instance.getVoxelsInArea(Vector3(vx - s, vy, vz - s), Vector3(vx + s, vy, vz  + s), 4)
+#				print("%s voxels found"%[voxels.size()])
+#				return
+
 				actor = Actor.instance()
 				add_child(actor)
 				actor.global_transform.origin.x = middle_pressed_location.x + 0.5

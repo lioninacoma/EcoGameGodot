@@ -163,28 +163,12 @@ namespace godot {
 			unordered_set<size_t> inque, ready;
 			size_t cHash, nHash;
 
-			/*auto dots = ImmediateGeometry::_new();
-			dots->begin(Mesh::PRIMITIVE_POINTS);
-			dots->set_color(Color(1, 0, 1, 1));
-			for (auto &current : *chunkNodes) {
-				dots->add_vertex(current.second);
-			}
-			dots->end();
-			game->call_deferred("draw_debug_dots", dots);*/
-
 			std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
 				addNode(next.second);
 				nodeCache.insert(next);
+				volume.push_back(next.first);
 			};
 			chunk->forEachNode(nodeFn);
-
-			/*auto geo = ImmediateGeometry::_new();
-			geo->begin(Mesh::PRIMITIVE_LINES);
-			geo->set_color(Color(0, 1, 0, 1));*/
-
-			for (auto& node : nodeCache) {
-				volume.push_back(node.first);
-			}
 
 			while (true) {
 				while (!volume.empty()) {
@@ -207,7 +191,6 @@ namespace godot {
 
 					current = nodeCache[cHash];
 					ready.insert(cHash);
-					//area->emplace(cHash, current);
 
 					for (z = -1; z < 2; z++)
 						for (x = -1; x < 2; x++)
@@ -249,10 +232,7 @@ namespace godot {
 			}
 
 			chunk->setNavigatable();
-
 			Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset())));
-			/*geo->end();
-			game->call_deferred("draw_debug", geo);*/
 		}
 
 		float manhattan(Vector3 a, Vector3 b) {
@@ -276,7 +256,7 @@ namespace godot {
 		}
 
 		void setPathActor(PoolVector3Array path, int actorInstanceId, Node* game) {
-			boost::unique_lock<boost::shared_timed_mutex> lock(SET_PATH_MUTEX);
+			//boost::unique_lock<boost::shared_timed_mutex> lock(SET_PATH_MUTEX);
 			game->call_deferred("set_path_actor", path, actorInstanceId);
 		}
 
@@ -293,11 +273,22 @@ namespace godot {
 			boost::shared_ptr<GraphNode> currentNode;
 			boost::shared_ptr<GraphNode> neighbourNode;
 
+			float maxDist = 96;
+			unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
+			vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksInRange(startNode->getPoint(), maxDist);
+			//Godot::print(String("chunks {0}").format(Array::make(chunks.size())));
+
+			for (auto chunk : chunks) {
+				std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+					nodeCache.insert(next);
+				};
+				chunk->forEachNode(nodeFn);
+			}
+
 			unordered_map<size_t, size_t> cameFrom;
 			unordered_map<size_t, float> costSoFar;
 			size_t cHash, nHash, sHash = startNode->getHash();
 			int x, y, z;
-			float maxDist = 64;
 			bool reachable = false;
 
 			PriorityQueue<size_t, float> frontier;
@@ -309,7 +300,11 @@ namespace godot {
 
 			while (!frontier.empty()) {
 				cHash = frontier.get();
-				currentNode = getNode(cHash);
+				auto nodeIt = nodeCache.find(cHash);
+
+				if (nodeIt == nodeCache.end())
+					currentNode = getNode(cHash);
+				else currentNode = nodeIt->second;
 
 				if (!currentNode) continue;
 
@@ -391,6 +386,16 @@ namespace godot {
 			boost::shared_ptr<GraphNode> currentNode;
 			boost::shared_ptr<GraphNode> neighbourNode;
 
+			unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
+			vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksRay(startNode->getPoint(), goalNode->getPoint());
+			
+			for (auto chunk : chunks) {
+				std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+					nodeCache.insert(next);
+				};
+				chunk->forEachNode(nodeFn);
+			}
+			
 			unordered_map<size_t, size_t> cameFrom;
 			unordered_map<size_t, float> costSoFar;
 			size_t cHash, nHash, sHash = startNode->getHash(), gHash = goalNode->getHash();
@@ -402,7 +407,12 @@ namespace godot {
 
 			while (!frontier.empty()) {
 				cHash = frontier.get();
-				currentNode = getNode(cHash);
+				auto nodeIt = nodeCache.find(cHash);
+
+				if (nodeIt == nodeCache.end())
+					currentNode = getNode(cHash);
+				else currentNode = nodeIt->second;
+				
 
 				if (!currentNode) continue;
 

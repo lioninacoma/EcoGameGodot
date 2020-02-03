@@ -2,6 +2,7 @@
 #define INTERSECTION_H
 
 #include <Vector3.hpp>
+#include <Rect2.hpp>
 
 #include <boost/function.hpp>
 
@@ -95,6 +96,12 @@ namespace godot {
 			}
 
 			return list;
+		}
+
+		static bool isPointInRectangle(Vector2 start, Vector2 end, Vector2 p) {
+			Rect2 r = Rect2(start, Vector2(abs(end.x - start.x), abs(end.y - start.y)));
+			//Godot::print(String("start: {0}, end: {1}, p: {2}, r: {3}, area: {4}").format(Array::make(start, end, p, r, r.get_area())));
+			return r.has_point(p);
 		}
 	};
 

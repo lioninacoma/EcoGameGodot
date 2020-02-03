@@ -10,6 +10,7 @@ void EcoGame::_register_methods() {
 	register_method("voxelAssetFits", &EcoGame::voxelAssetFits);
 	register_method("setVoxel", &EcoGame::setVoxel);
 	register_method("getVoxel", &EcoGame::getVoxel);
+	register_method("getVoxelsInArea", &EcoGame::getVoxelsInArea);
 	register_method("buildSections", &EcoGame::buildSections);
 	register_method("navigate", &EcoGame::navigate);
 	register_method("navigateToClosestVoxel", &EcoGame::navigateToClosestVoxel);
@@ -32,6 +33,109 @@ EcoGame::~EcoGame() {
 
 void EcoGame::_init() {
 	// initialize any variables here
+}
+
+boost::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
+	//Godot::print(String("Section: {0}").format(Array::make(Vector3(x, y, z))));
+	boost::shared_ptr<Section> section = getSection(x, z);
+	if (!section) return NULL;
+
+	return section;
+}
+
+PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel) {
+	int i, j;
+	PoolVector3Array currentVoxels, result;
+	unordered_map<size_t, Vector3> voxels;
+	boost::shared_ptr<Section> section;
+	Vector3 tl = start;
+	Vector3 br = end;
+	Vector3 current;
+	Vector2 start2 = Vector2(start.x, start.z);
+	Vector2 end2 = Vector2(end.x, end.z);
+
+	tl = fn::toChunkCoords(tl);
+	br = fn::toChunkCoords(br);
+
+	Vector2 offset = Vector2(tl.x, tl.z);
+	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+	int sectionChunksLen = sectionSize * sectionSize;
+
+	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+	section->fill(this, SECTION_SIZE);
+
+	for (i = 0; i < sectionChunksLen; i++) {
+		auto chunk = section->getChunk(i);
+		if (!chunk) continue;
+
+		std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+			currentVoxels = chunk->getReachableVoxelsOfType(next.second->getPoint(), voxel);
+			
+			for (j = 0; j < currentVoxels.size(); j++) {
+				current = currentVoxels[j];
+				if (!Intersection::isPointInRectangle(start2, end2, Vector2(current.x + 0.5, current.z + 0.5))) continue;
+				voxels.emplace(fn::hash(current), current);
+			}
+		};
+		chunk->forEachNode(nodeFn);
+	}
+
+	section.reset();
+
+	for (auto v : voxels)
+		result.push_back(v.second);
+
+	return result;
+}
+
+vector<boost::shared_ptr<Section>> EcoGame::getSectionsRay(Vector3 from, Vector3 to) {
+	from = fn::toSectionCoords(from);
+	to = fn::toSectionCoords(to);
+
+	vector<boost::shared_ptr<Section>> list;
+	boost::function<boost::shared_ptr<Section>(int, int, int)> intersection(boost::bind(&EcoGame::intersection, this, _1, _2, _3));
+	return Intersection::get<boost::shared_ptr<Section>>(from, to, false, intersection, list);
+}
+
+vector<boost::shared_ptr<Chunk>> EcoGame::getChunksRay(Vector3 from, Vector3 to) {
+	vector<boost::shared_ptr<Chunk>> list;
+	vector<boost::shared_ptr<Chunk>> chunks;
+	vector<boost::shared_ptr<Section>> sections = getSectionsRay(from, to);
+	
+	for (auto section : sections) {
+		chunks = section->getChunksRay(from, to);
+		list.insert(list.end(), chunks.begin(), chunks.end());
+	}
+	return list;
+}
+
+vector<boost::shared_ptr<Chunk>> EcoGame::getChunksInRange(Vector3 center, float radius) {
+	vector<boost::shared_ptr<Chunk>> list;
+	int x, z, i;
+	int dist = radius / (SECTION_SIZE * CHUNK_SIZE_X);
+	Vector3 p = Vector3(center.x, 0, center.z);
+	Vector3 cc = Vector3(CHUNK_SIZE_X / 2, 0, CHUNK_SIZE_Z / 2);
+	boost::shared_ptr<Section> section;
+
+	p = fn::toSectionCoords(p);
+
+	for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
+		for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
+			if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
+			section = getSection(x, z);
+
+			if (!section) continue;
+
+			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
+				auto chunk = section->getChunk(i);
+
+				if (!chunk || (chunk->getOffset() + cc).distance_to(center) > radius) continue;
+				list.push_back(section->getChunk(i));
+			}
+		}
+	}
+
+	return list;
 }
 
 void EcoGame::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
@@ -126,9 +230,10 @@ void EcoGame::updateGraphs(Vector3 center, float radius) {
 		for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
 			if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
 			if (p.distance_to(Vector3(x, 0, z)) > dist + 1) continue;
-			if (!sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
 
 			section = getSection(x, z);
+
+			if (!section) continue;
 			
 			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
 				ThreadPool::get()->submitTask(boost::bind(&EcoGame::updateGraphTask, this, section->getChunk(i), game));

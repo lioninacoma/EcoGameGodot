@@ -10,8 +10,7 @@
 #include <Vector3.hpp>
 
 #include <iostream>
-#include <iomanip>
-#include <set> 
+#include <unordered_map> 
 #include <iterator> 
 
 #include <boost/atomic.hpp>
@@ -28,6 +27,7 @@
 #include "section.h"
 #include "meshbuilder.h"
 #include "graphnode.h"
+#include "intersection.h"
 
 using namespace std;
 
@@ -53,6 +53,11 @@ namespace godot {
 
 		void _init();
 
+		boost::shared_ptr<Section> intersection(int x, int y, int z);
+		vector<boost::shared_ptr<Section>> getSectionsRay(Vector3 from, Vector3 to);
+		vector<boost::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
+		vector<boost::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
+		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
 		void setSection(int x, int z, boost::shared_ptr<Section> section);
 		void setSection(int i, boost::shared_ptr<Section> section);
 		boost::shared_ptr<Section> getSection(int x, int z);
