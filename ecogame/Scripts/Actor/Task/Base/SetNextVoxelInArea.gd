@@ -4,7 +4,7 @@ var voxel
 
 func _init(voxel):
 	self.voxel = voxel
-	self.init("MoveToNextVoxelInArea")
+	self.init("SetNextVoxelInArea")
 
 func perform(delta : float, actor) -> bool:
 	if finished:
@@ -37,9 +37,7 @@ func perform(delta : float, actor) -> bool:
 			if nearby.size() > 0:
 				next_voxel = closest
 		
-		if voxels.size() > 0:
-			actor.task_handler.set_task_data("voxels_in_area", voxels)
-		else:
+		if voxels.size() == 0:
 			actor.task_handler.set_task_data("voxels_in_area", null)
 	
 	if next_voxel:
