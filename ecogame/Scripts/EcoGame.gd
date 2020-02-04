@@ -237,12 +237,15 @@ func _input(event : InputEvent) -> void:
 #				print("%s voxels found"%[voxels.size()])
 #				return
 
-				actor = Actor.instance()
-				add_child(actor)
-				actor.global_transform.origin.x = middle_pressed_location.x + 0.5
-				actor.global_transform.origin.y = middle_pressed_location.y + 1
-				actor.global_transform.origin.z = middle_pressed_location.z + 0.5
-				if storehouse_location != Vector3():
-					actor.gather_wood(storehouse_location)
-				amount_actors += 1
-				print("%s actors created."%[amount_actors])
+				var voxels = Lib.instance.getDisconnectedVoxels(Vector3(vx, vy, vz), 8)
+				print(voxels.size())
+
+#				actor = Actor.instance()
+#				add_child(actor)
+#				actor.global_transform.origin.x = middle_pressed_location.x + 0.5
+#				actor.global_transform.origin.y = middle_pressed_location.y + 1
+#				actor.global_transform.origin.z = middle_pressed_location.z + 0.5
+#				if storehouse_location != Vector3():
+#					actor.gather_wood(storehouse_location)
+#				amount_actors += 1
+#				print("%s actors created."%[amount_actors])

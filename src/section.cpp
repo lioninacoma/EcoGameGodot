@@ -65,6 +65,98 @@ void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_p
 	}
 }
 
+PoolVector3Array Section::getDisconnectedVoxels(Vector3 start, Vector3 end) {
+	PoolVector3Array voxels;
+	boost::shared_ptr<Chunk> chunk;
+	int x, y, z, cx, cz;
+	float nx, ny, nz, voxel;
+	Vector3 point;
+	Vector2 chunkOffset;
+	boost::shared_ptr<GraphNode> current, neighbour;
+	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
+	deque<size_t> queue, volume;
+	unordered_set<size_t> inque, ready;
+	size_t cHash, nHash;
+
+	for (z = start.z; z <= end.z; z++) {
+		for (x = start.x; x <= end.x; x++) {
+			chunkOffset.x = x;
+			chunkOffset.y = z;
+			chunkOffset = fn::toChunkCoords(chunkOffset);
+			cx = (int)(chunkOffset.x - offset.x);
+			cz = (int)(chunkOffset.y - offset.y);
+
+			chunk = getChunk(cx, cz);
+
+			if (!chunk) continue;
+
+			for (y = start.y; y <= end.y; y++) {
+				voxel = chunk->getVoxel(
+					x % CHUNK_SIZE_X,
+					y % CHUNK_SIZE_Y,
+					z % CHUNK_SIZE_Z);
+				if (voxel) {
+					current = boost::shared_ptr<GraphNode>(new GraphNode(Vector3(x, y, z), voxel));
+					nodeCache.emplace(current->getHash(), current);
+					volume.push_back(current->getHash());
+				}
+			}
+		}
+	}
+
+	while (true) {
+		while (!volume.empty()) {
+			cHash = volume.front();
+			volume.pop_front();
+			if (ready.find(cHash) == ready.end()) {
+				queue.push_back(cHash);
+				inque.insert(cHash);
+				break;
+			}
+		}
+		if (queue.empty()) {
+			break;
+		}
+
+		while (!queue.empty()) {
+			cHash = queue.front();
+			queue.pop_front();
+			inque.erase(cHash);
+
+			current = nodeCache[cHash];
+			ready.insert(cHash);
+			point = current->getPoint();
+
+			if (point.x <= start.x || point.y <= start.y || point.z <= start.z
+				|| point.x >= end.x || point.y >= end.y || point.z >= end.z) {
+				Godot::print(String("edge found: {0}, voxel: {1}, start: {2}, end: {3}").format(Array::make(point, current->getVoxel(), start, end)));
+				break;
+			}
+
+			for (z = -1; z < 2; z++)
+				for (x = -1; x < 2; x++)
+					for (y = -1; y < 2; y++) {
+						if (!x && !y && !z) continue;
+
+						nx = point.x + x;
+						ny = point.y + y;
+						nz = point.z + z;
+
+						nHash = fn::hash(Vector3(nx, ny, nz));
+						neighbour = nodeCache[nHash];
+
+						if (!neighbour) continue;
+						if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
+							queue.push_back(nHash);
+							inque.insert(nHash);
+						}
+					}
+		}
+	}
+
+	return voxels;
+}
+
 PoolVector3Array Section::findVoxelsInRange(Vector3 startV, float radius, int voxel) {
 	PoolVector3Array voxels;
 

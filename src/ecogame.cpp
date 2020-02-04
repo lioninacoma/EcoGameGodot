@@ -11,6 +11,7 @@ void EcoGame::_register_methods() {
 	register_method("setVoxel", &EcoGame::setVoxel);
 	register_method("getVoxel", &EcoGame::getVoxel);
 	register_method("getVoxelsInArea", &EcoGame::getVoxelsInArea);
+	register_method("getDisconnectedVoxels", &EcoGame::getDisconnectedVoxels);
 	register_method("buildSections", &EcoGame::buildSections);
 	register_method("navigate", &EcoGame::navigate);
 	register_method("navigateToClosestVoxel", &EcoGame::navigateToClosestVoxel);
@@ -35,12 +36,25 @@ void EcoGame::_init() {
 	// initialize any variables here
 }
 
-boost::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
-	//Godot::print(String("Section: {0}").format(Array::make(Vector3(x, y, z))));
-	boost::shared_ptr<Section> section = getSection(x, z);
-	if (!section) return NULL;
+PoolVector3Array EcoGame::getDisconnectedVoxels(Vector3 center, float radius) {
+	boost::shared_ptr<Section> section;
 
-	return section;
+	Vector3 start = center - Vector3(radius, radius, radius);
+	Vector3 end = center + Vector3(radius, radius, radius);
+	Vector3 tl = start;
+	Vector3 br = end;
+
+	tl = fn::toChunkCoords(tl);
+	br = fn::toChunkCoords(br);
+
+	Vector2 offset = Vector2(tl.x, tl.z);
+	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+
+	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+	section->fill(this, SECTION_SIZE);
+	PoolVector3Array voxels = section->getDisconnectedVoxels(start, end);
+	section.reset();
+	return voxels;
 }
 
 PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel) {
@@ -86,6 +100,14 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 		result.push_back(v.second);
 
 	return result;
+}
+
+boost::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
+	//Godot::print(String("Section: {0}").format(Array::make(Vector3(x, y, z))));
+	boost::shared_ptr<Section> section = getSection(x, z);
+	if (!section) return NULL;
+
+	return section;
 }
 
 vector<boost::shared_ptr<Section>> EcoGame::getSectionsRay(Vector3 from, Vector3 to) {

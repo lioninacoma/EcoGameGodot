@@ -57,6 +57,7 @@ namespace godot {
 		vector<boost::shared_ptr<Section>> getSectionsRay(Vector3 from, Vector3 to);
 		vector<boost::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		vector<boost::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
+		PoolVector3Array getDisconnectedVoxels(Vector3 center, float radius);
 		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
 		void setSection(int x, int z, boost::shared_ptr<Section> section);
 		void setSection(int i, boost::shared_ptr<Section> section);
