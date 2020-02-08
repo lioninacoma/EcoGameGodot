@@ -12,6 +12,7 @@
 #include <iostream>
 #include <unordered_map> 
 #include <iterator> 
+#include <limits>
 
 #include <boost/atomic.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
@@ -28,6 +29,7 @@
 #include "meshbuilder.h"
 #include "graphnode.h"
 #include "intersection.h"
+#include "voxel.h"
 
 using namespace std;
 
@@ -57,7 +59,7 @@ namespace godot {
 		vector<boost::shared_ptr<Section>> getSectionsRay(Vector3 from, Vector3 to);
 		vector<boost::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		vector<boost::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
-		PoolVector3Array getDisconnectedVoxels(Vector3 center, float radius);
+		Array getDisconnectedVoxels(Vector3 position, float radius);
 		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
 		void setSection(int x, int z, boost::shared_ptr<Section> section);
 		void setSection(int i, boost::shared_ptr<Section> section);
@@ -67,7 +69,9 @@ namespace godot {
 		void buildChunk(Variant vChunk);
 		void setVoxel(Vector3 position, int voxel);
 		void addVoxelAsset(Vector3 start, int type);
-		Array buildVoxelAsset(int type);
+		Array buildVoxelAssetByType(int type);
+		Array buildVoxelAssetByVolume(Array volume);
+		Array buildVoxelAsset(VoxelAsset* voxelAsset);
 		bool voxelAssetFits(Vector3 start, int type);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId);

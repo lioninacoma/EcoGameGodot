@@ -65,17 +65,20 @@ void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_p
 	}
 }
 
-PoolVector3Array Section::getDisconnectedVoxels(Vector3 start, Vector3 end) {
-	PoolVector3Array voxels;
+Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end) {
+	Array voxels;
 	boost::shared_ptr<Chunk> chunk;
 	int x, y, z, cx, cz;
 	float nx, ny, nz, voxel;
 	Vector3 point;
 	Vector2 chunkOffset;
-	boost::shared_ptr<GraphNode> current, neighbour;
+	boost::shared_ptr<GraphNode> current;
 	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
 	deque<size_t> queue, volume;
 	unordered_set<size_t> inque, ready;
+	vector<vector<boost::shared_ptr<GraphNode>>*> areas;
+	vector<bool> areaOutOfBounds;
+	int areaIndex = 0;
 	size_t cHash, nHash;
 
 	for (z = start.z; z <= end.z; z++) {
@@ -105,6 +108,9 @@ PoolVector3Array Section::getDisconnectedVoxels(Vector3 start, Vector3 end) {
 	}
 
 	while (true) {
+		auto area = new vector<boost::shared_ptr<GraphNode>>();
+		areaOutOfBounds.push_back(false);
+
 		while (!volume.empty()) {
 			cHash = volume.front();
 			volume.pop_front();
@@ -124,13 +130,13 @@ PoolVector3Array Section::getDisconnectedVoxels(Vector3 start, Vector3 end) {
 			inque.erase(cHash);
 
 			current = nodeCache[cHash];
+			area->push_back(current);
 			ready.insert(cHash);
 			point = current->getPoint();
 
 			if (point.x <= start.x || point.y <= start.y || point.z <= start.z
 				|| point.x >= end.x || point.y >= end.y || point.z >= end.z) {
-				Godot::print(String("edge found: {0}, voxel: {1}, start: {2}, end: {3}").format(Array::make(point, current->getVoxel(), start, end)));
-				break;
+				areaOutOfBounds[areaIndex] = true;
 			}
 
 			for (z = -1; z < 2; z++)
@@ -143,16 +149,43 @@ PoolVector3Array Section::getDisconnectedVoxels(Vector3 start, Vector3 end) {
 						nz = point.z + z;
 
 						nHash = fn::hash(Vector3(nx, ny, nz));
-						neighbour = nodeCache[nHash];
 
-						if (!neighbour) continue;
+						if (nodeCache.find(nHash) == nodeCache.end()) continue;
 						if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
 							queue.push_back(nHash);
 							inque.insert(nHash);
 						}
 					}
 		}
+
+		areas.push_back(area);
+
+		if (ready.size() >= nodeCache.size()) {
+			break;
+		}
+
+		areaIndex++;
 	}
+
+	areaIndex = -1;
+	for (bool b : areaOutOfBounds) {
+		areaIndex++;
+		if (b) continue;
+		for (auto v : *areas[areaIndex]) {
+			auto voxel = Ref<Voxel>(Voxel::_new());
+			voxel->setPosition(v->getPoint());
+			voxel->setType(v->getVoxel());
+			voxels.push_back(voxel);
+		}
+	}
+
+	for (auto area : areas) {
+		for (auto v : *areas[areaIndex])
+			v.reset();
+		area->clear();
+		delete area;
+	}
+	nodeCache.clear();
 
 	return voxels;
 }

@@ -50,6 +50,7 @@ namespace godot {
 		~MeshBuilder();
 
 		vector<int> buildVertices(boost::shared_ptr<Chunk> chunk, float** buffers, int buffersLen);
+		vector<int> buildVertices(VoxelAsset* asset, float** buffers, int buffersLen);
 		vector<int> buildVertices(VoxelAssetType type, float** buffers, int buffersLen);
 	};
 

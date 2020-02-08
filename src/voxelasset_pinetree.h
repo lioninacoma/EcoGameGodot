@@ -21,17 +21,17 @@ namespace godot {
 			int x, y, z;
 
 			// trunk
-			setVoxel(2, 0, 2, 4);
-			setVoxel(2, 1, 2, 4);
-			setVoxel(2, 2, 2, 4);
+			setVoxel(3, 0, 3, 4);
+			setVoxel(3, 1, 3, 4);
+			setVoxel(3, 2, 3, 4);
 
-			int zd = 0;
-			int xw = 0;
+			int zd = 1;
+			int xw = 1;
 
 			// leaves
 			for (y = 3; y < h; y++) {
-				for (z = zd; z < d - zd; z++) {
-					for (x = xw; x < w - xw; x++) {
+				for (z = zd; z <= d - zd; z++) {
+					for (x = xw; x <= w - xw; x++) {
 						setVoxel(x, y, z, 5);
 					}
 				}

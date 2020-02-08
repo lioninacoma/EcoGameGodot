@@ -25,4 +25,20 @@ func perform(delta : float, actor) -> bool:
 	
 	if position != null && voxel != null:
 		Lib.instance.setVoxel(position, voxel)
+		
+		var volume = Lib.instance.getDisconnectedVoxels(position, 8)
+		if volume.size() <= 0: return true
+		var meshes = Lib.instance.buildVoxelAssetByVolume(volume)
+		if meshes.size() <= 0: return true
+		for v in volume:
+			Lib.instance.setVoxel(v.getPosition(), 0)
+		var a = Lib.game.build_mesh_instance_rigid(meshes, null)
+		Lib.game.add_child(a)
+		var mesh = a.get_node("mesh")
+		var w = mesh.get_aabb().end.x - mesh.get_aabb().position.x
+		var d = mesh.get_aabb().end.z - mesh.get_aabb().position.z
+		
+		a.global_transform.origin.x = position.x - int(w / 2)
+		a.global_transform.origin.y = position.y + 1
+		a.global_transform.origin.z = position.z - int(d / 2)
 	return true

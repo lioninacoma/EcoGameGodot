@@ -23,6 +23,7 @@
 #include "chunk.h"
 #include "area.h"
 #include "graphnode.h"
+#include "voxel.h"
 
 using namespace std;
 
@@ -66,7 +67,7 @@ namespace godot {
 		vector<boost::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		float getVoxelAssetChance(int x, int y, float scale);
 		void addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_ptr<ChunkBuilder> builder, Node* game);
-		PoolVector3Array getDisconnectedVoxels(Vector3 start, Vector3 end);
+		Array getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end);
 		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		bool voxelAssetFits(Vector3 start, VoxelAssetType type);
 		void setVoxel(Vector3 position, int voxel, boost::shared_ptr<ChunkBuilder> builder, Node* game);

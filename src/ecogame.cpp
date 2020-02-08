@@ -5,7 +5,8 @@ using namespace godot;
 
 void EcoGame::_register_methods() {
 	register_method("buildChunk", &EcoGame::buildChunk);
-	register_method("buildVoxelAsset", &EcoGame::buildVoxelAsset);
+	register_method("buildVoxelAssetByType", &EcoGame::buildVoxelAssetByType);
+	register_method("buildVoxelAssetByVolume", &EcoGame::buildVoxelAssetByVolume);
 	register_method("addVoxelAsset", &EcoGame::addVoxelAsset);
 	register_method("voxelAssetFits", &EcoGame::voxelAssetFits);
 	register_method("setVoxel", &EcoGame::setVoxel);
@@ -36,11 +37,11 @@ void EcoGame::_init() {
 	// initialize any variables here
 }
 
-PoolVector3Array EcoGame::getDisconnectedVoxels(Vector3 center, float radius) {
+Array EcoGame::getDisconnectedVoxels(Vector3 position, float radius) {
 	boost::shared_ptr<Section> section;
 
-	Vector3 start = center - Vector3(radius, radius, radius);
-	Vector3 end = center + Vector3(radius, radius, radius);
+	Vector3 start = position - Vector3(radius, radius, radius);
+	Vector3 end = position + Vector3(radius, radius, radius);
 	Vector3 tl = start;
 	Vector3 br = end;
 
@@ -52,7 +53,7 @@ PoolVector3Array EcoGame::getDisconnectedVoxels(Vector3 center, float radius) {
 
 	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
 	section->fill(this, SECTION_SIZE);
-	PoolVector3Array voxels = section->getDisconnectedVoxels(start, end);
+	Array voxels = section->getDisconnectedVoxels(position, start, end);
 	section.reset();
 	return voxels;
 }
@@ -382,25 +383,22 @@ void EcoGame::addVoxelAsset(Vector3 startV, int type) {
 	section.reset();
 }
 
-Array EcoGame::buildVoxelAsset(int type) {
+Array EcoGame::buildVoxelAsset(VoxelAsset* asset) {
 	MeshBuilder meshBuilder;
-	VoxelAssetType vat = (VoxelAssetType)type;
-	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
-
 	const int BUFFER = asset->getWidth() * asset->getHeight() * asset->getDepth();
 	const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
-	
+
 	int i, j, o, n, offset, amountVertices, amountIndices;
 	Array meshes;
 	float* vertices;
-	float** buffers = new float*[TYPES];
+	float** buffers = new float* [TYPES];
 
 	for (i = 0; i < TYPES; i++) {
 		buffers[i] = new float[MAX_VERTICES];
 		memset(buffers[i], 0, MAX_VERTICES * sizeof(*buffers[i]));
 	}
 
-	vector<int> offsets = meshBuilder.buildVertices(vat, buffers, TYPES);
+	vector<int> offsets = meshBuilder.buildVertices(asset, buffers, TYPES);
 
 	for (o = 0; o < offsets.size(); o++) {
 		offset = offsets[o];
@@ -471,5 +469,58 @@ Array EcoGame::buildVoxelAsset(int type) {
 	delete[] buffers;
 
 	return meshes;
+}
+
+Array EcoGame::buildVoxelAssetByType(int type) {
+	VoxelAssetType vat = (VoxelAssetType)type;
+	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
+	return this->buildVoxelAsset(asset);
+}
+
+Array EcoGame::buildVoxelAssetByVolume(Array volume) {
+	int i, x, y, z, type;
+	int minX = numeric_limits<int>::max(), minY = numeric_limits<int>::max(), minZ = numeric_limits<int>::max();
+	int maxX = numeric_limits<int>::min(), maxY = numeric_limits<int>::min(), maxZ = numeric_limits<int>::min();
+	Voxel* voxel;
+	Vector3 position;
+
+	for (i = 0; i < volume.size(); i++) {
+		voxel = Reference::cast_to<Voxel>(volume[i]);
+		position = voxel->getPosition();
+
+		x = position.x;
+		y = position.y;
+		z = position.z;
+
+		minX = min(minX, x);
+		minY = min(minY, y);
+		minZ = min(minZ, z);
+
+		maxX = max(maxX, x);
+		maxY = max(maxY, y);
+		maxZ = max(maxZ, z);
+	}
+
+	int width  = abs(maxX - minX) + 1;
+	int height = abs(maxY - minY) + 1;
+	int depth  = abs(maxZ - minZ) + 1;
+
+	auto asset = new VoxelAsset(width, height, depth, 0);
+
+	for (i = 0; i < volume.size(); i++) {
+		voxel = Reference::cast_to<Voxel>(volume[i]);
+		position = voxel->getPosition();
+		type = voxel->getType();
+
+		x = position.x;
+		y = position.y;
+		z = position.z;
+
+		asset->setVoxel(x - minX, y - minY, z - minZ, type);
+	}
+
+	Array ret = EcoGame::buildVoxelAsset(asset);
+	delete asset;
+	return ret;
 }
 

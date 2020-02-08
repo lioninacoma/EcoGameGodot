@@ -10,9 +10,14 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
+vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, float** buffers, int buffersLen) {
+	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
+	return MeshBuilder::buildVertices(asset->getVolume(), NULL, DIMS, buffers, buffersLen);
+}
+
 vector<int> MeshBuilder::buildVertices(VoxelAssetType type, float** buffers, int buffersLen) {
-	VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
-	const int DIMS[3] = { voxelAsset->getWidth(), voxelAsset->getHeight(), voxelAsset->getDepth() };
+	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(type);
+	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
 	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, DIMS, buffers, buffersLen);
 }
 

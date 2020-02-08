@@ -202,9 +202,9 @@ namespace godot {
 								nz = current->getPoint().z + z;
 
 								nHash = fn::hash(Vector3(nx, ny, nz));
-								neighbour = nodeCache[nHash];
+								auto it = nodeCache.find(nHash);
 
-								if (!neighbour) {
+								if (it == nodeCache.end()) {
 									chunkOffset.x = nx;
 									chunkOffset.y = ny;
 									chunkOffset.z = nz;
@@ -221,9 +221,13 @@ namespace godot {
 										continue;
 									}
 								}
-								else if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
-									queue.push_back(nHash);
-									inque.insert(nHash);
+								else {
+									neighbour = it->second;
+
+									if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
+										queue.push_back(nHash);
+										inque.insert(nHash);
+									}
 								}
 
 								addEdge(current, neighbour, euclidean(current->getPoint(), neighbour->getPoint()));

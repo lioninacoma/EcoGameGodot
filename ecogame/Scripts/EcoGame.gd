@@ -19,7 +19,7 @@ var build_stack : Array = []
 
 var amount_actors = 0
 var actor
-var asset : MeshInstance = null
+var asset = null
 var asset_type : int = -1
 var storehouse_location : Vector3 = Vector3()
 var control_active : bool
@@ -29,6 +29,7 @@ var middle_pressed_location : Vector3 = Vector3()
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	add_child(Lib.instance)
+	Lib.game = self
 
 func _process(delta : float) -> void:
 	fps_label.set_text(str(Engine.get_frames_per_second()))
@@ -84,17 +85,51 @@ func build_chunk(meshes : Array, chunk) -> void:
 	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
 #	Lib.instance.updateGraph(chunk)
 
+func build_mesh_instance_rigid(meshes : Array, owner) -> RigidBody:
+	if (!meshes): return null
+	
+	var mesh_instance = MeshInstance.new()
+	var mesh = ArrayMesh.new()
+	var surface_index : int = 0
+	var rigid_body : RigidBody = RigidBody.new()
+	
+	mesh_instance.name = "mesh"
+	
+	for mesh_data in meshes:
+		var mi = mesh_data[2] - 1
+		if mesh_data[3] <= 0: continue
+		
+		var polygon_shape : ConvexPolygonShape = ConvexPolygonShape.new()
+		
+		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
+		mesh.surface_set_material(surface_index, WorldVariables.materials[mi])
+
+		polygon_shape.set_points(mesh_data[1])
+		var owner_id = rigid_body.create_shape_owner(owner)
+		rigid_body.shape_owner_add_shape(owner_id, polygon_shape)
+		rigid_body.name = "body%s"%[surface_index]
+
+		surface_index += 1
+	
+	rigid_body.add_child(mesh_instance)
+	mesh_instance.mesh = mesh
+	return rigid_body
+
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
 	
 	var mesh_instance = MeshInstance.new()
 	var mesh = ArrayMesh.new()
 	var surface_index : int = 0
+	var static_body : StaticBody = StaticBody.new()
+	
+	mesh_instance.name = "mesh"
+	static_body.name = "body"
 	
 	for mesh_data in meshes:
 		var mi = mesh_data[2] - 1
 		if mesh_data[3] <= 0: continue
-		var static_body : StaticBody = StaticBody.new()
+		
 		var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
 		
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
@@ -103,11 +138,9 @@ func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 		polygon_shape.set_faces(mesh_data[1])
 		var owner_id = static_body.create_shape_owner(owner)
 		static_body.shape_owner_add_shape(owner_id, polygon_shape)
-		static_body.name = "sb%s"%[surface_index]
-		mesh_instance.add_child(static_body)
-		
 		surface_index += 1
 	
+	mesh_instance.add_child(static_body)
 	mesh_instance.mesh = mesh
 	return mesh_instance
 
@@ -162,11 +195,11 @@ func _input(event : InputEvent) -> void:
 			if asset:
 				var w = asset.get_aabb().end.x - asset.get_aabb().position.x
 				var d = asset.get_aabb().end.z - asset.get_aabb().position.z
-				
+
 				asset.global_transform.origin.x = vx - int(w / 2)
 				asset.global_transform.origin.y = vy + 1
 				asset.global_transform.origin.z = vz - int(d / 2)
-				
+
 				var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
 				for i in range(asset.get_surface_material_count()):
 					var material = asset.mesh.surface_get_material(i)
@@ -211,12 +244,12 @@ func _input(event : InputEvent) -> void:
 					asset_type = -1
 				else:
 					asset_type = 1
-					var meshes = Lib.instance.buildVoxelAsset(asset_type)
+					var meshes = Lib.instance.buildVoxelAssetByType(asset_type)
 					asset = build_mesh_instance(meshes, null)
+					var body = asset.get_node("body")
+					asset.remove_child(body)
 					
 					for i in range(asset.get_surface_material_count()):
-						var body = asset.get_node("sb%s"%[i])
-						asset.remove_child(body)
 						var material = asset.mesh.surface_get_material(i).duplicate(true)
 						material.set_blend_mode(1)
 						material.albedo_color = Color(0, 1, 0)
@@ -232,20 +265,12 @@ func _input(event : InputEvent) -> void:
 #				Lib.instance.setVoxel(Vector3(vx, vy, vz), 0)
 #				if actor: actor.move_to(voxel_position, !control_active)
 
-#				var s = 16
-#				var voxels = Lib.instance.getVoxelsInArea(Vector3(vx - s, vy, vz - s), Vector3(vx + s, vy, vz  + s), 4)
-#				print("%s voxels found"%[voxels.size()])
-#				return
-
-				var voxels = Lib.instance.getDisconnectedVoxels(Vector3(vx, vy, vz), 8)
-				print(voxels.size())
-
-#				actor = Actor.instance()
-#				add_child(actor)
-#				actor.global_transform.origin.x = middle_pressed_location.x + 0.5
-#				actor.global_transform.origin.y = middle_pressed_location.y + 1
-#				actor.global_transform.origin.z = middle_pressed_location.z + 0.5
-#				if storehouse_location != Vector3():
-#					actor.gather_wood(storehouse_location)
-#				amount_actors += 1
-#				print("%s actors created."%[amount_actors])
+				actor = Actor.instance()
+				add_child(actor)
+				actor.global_transform.origin.x = middle_pressed_location.x + 0.5
+				actor.global_transform.origin.y = middle_pressed_location.y + 1
+				actor.global_transform.origin.z = middle_pressed_location.z + 0.5
+				if storehouse_location != Vector3():
+					actor.gather_wood(storehouse_location)
+				amount_actors += 1
+				print("%s actors created."%[amount_actors])
