@@ -94,6 +94,7 @@ func build_mesh_instance_rigid(meshes : Array, owner) -> RigidBody:
 	var rigid_body : RigidBody = RigidBody.new()
 	
 	mesh_instance.name = "mesh"
+	rigid_body.name = "body"
 	
 	for mesh_data in meshes:
 		var mi = mesh_data[2] - 1
@@ -107,7 +108,6 @@ func build_mesh_instance_rigid(meshes : Array, owner) -> RigidBody:
 		polygon_shape.set_points(mesh_data[1])
 		var owner_id = rigid_body.create_shape_owner(owner)
 		rigid_body.shape_owner_add_shape(owner_id, polygon_shape)
-		rigid_body.name = "body%s"%[surface_index]
 
 		surface_index += 1
 	
