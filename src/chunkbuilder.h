@@ -37,8 +37,12 @@ namespace godot {
 			};
 			MeshBuilder meshBuilder;
 		public:
-			void run(boost::shared_ptr<Chunk> chunk, Node* game);
+			void run(boost::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder);
 		};
+		deque<boost::shared_ptr<Chunk>> buildQueue;
+		unordered_set<size_t> inque;
+		void processQueue();
+		Node* game;
 	public:
 		ChunkBuilder() {};
 		~ChunkBuilder() {};

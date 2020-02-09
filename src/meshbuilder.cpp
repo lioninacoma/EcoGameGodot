@@ -10,26 +10,24 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen) {
 	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
-	return MeshBuilder::buildVertices(asset->getVolume(), NULL, DIMS, buffers, buffersLen);
+	return MeshBuilder::buildVertices(asset->getVolume(), NULL, offset, DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelAssetType type, float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen) {
 	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(type);
 	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
-	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, DIMS, buffers, buffersLen);
+	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, offset, DIMS, buffers, buffersLen);
 }
 
 vector<int> MeshBuilder::buildVertices(boost::shared_ptr<Chunk> chunk, float** buffers, int buffersLen) {
 	const int DIMS[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
-	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, DIMS, buffers, buffersLen);
+	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, chunk->getOffset(), DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boost::shared_ptr<Chunk> chunk, const int DIMS[3], float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boost::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen) {
 	//if (chunk) Godot::print(String("building mesh at {0} ...").format(Array::make(chunk->getOffset())));
-
-	Vector3 offset = (chunk) ? chunk->getOffset() : Vector3(0, 0, 0);
 
 	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj;
 	float nx, ny, nz;
@@ -192,6 +190,7 @@ vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boos
 	}
 
 	//if (chunk) Godot::print(String("mesh at {0} built").format(Array::make(chunk->getOffset())));
+	//if (!chunk) Godot::print(String("mesh built").format(Array::make()));
 
 	MeshBuilder::getMaskPool().ret(mask);
 	return vertexOffsets;

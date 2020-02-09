@@ -41,7 +41,6 @@ directional_shadow_max_distance = 300.0
 [node name="Ball" parent="." instance=ExtResource( 2 )]
 
 [node name="Box" type="StaticBody" parent="."]
-editor/display_folded = true
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 4.29119, 1.05643, -1.06591 )
 
 [node name="MeshInstance" type="MeshInstance" parent="Box"]

@@ -385,7 +385,10 @@ void EcoGame::addVoxelAsset(Vector3 startV, int type) {
 
 Array EcoGame::buildVoxelAsset(VoxelAsset* asset) {
 	MeshBuilder meshBuilder;
-	const int BUFFER = asset->getWidth() * asset->getHeight() * asset->getDepth();
+	int w = asset->getWidth();
+	int h = asset->getHeight();
+	int d = asset->getDepth();
+	const int BUFFER = max(w * h * d, 4);
 	const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
 
 	int i, j, o, n, offset, amountVertices, amountIndices;
@@ -398,7 +401,7 @@ Array EcoGame::buildVoxelAsset(VoxelAsset* asset) {
 		memset(buffers[i], 0, MAX_VERTICES * sizeof(*buffers[i]));
 	}
 
-	vector<int> offsets = meshBuilder.buildVertices(asset, buffers, TYPES);
+	vector<int> offsets = meshBuilder.buildVertices(asset, Vector3(-w/2.0, -h/2.0, -d/2.0), buffers, TYPES);
 
 	for (o = 0; o < offsets.size(); o++) {
 		offset = offsets[o];

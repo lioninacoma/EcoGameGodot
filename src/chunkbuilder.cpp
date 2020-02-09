@@ -4,7 +4,7 @@
 
 using namespace godot;
 
-void ChunkBuilder::Worker::run(boost::shared_ptr<Chunk> chunk, Node* game) {
+void ChunkBuilder::Worker::run(boost::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder) {
 	//Godot::print(String("building chunk at {0} ...").format(Array::make(chunk->getOffset())));
 	if (!chunk || !game) return;
 
@@ -107,14 +107,29 @@ void ChunkBuilder::Worker::run(boost::shared_ptr<Chunk> chunk, Node* game) {
 
 	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
 	chunk->setBuilding(false);
+	builder->processQueue();
+}
+
+void ChunkBuilder::processQueue() {
+	if (buildQueue.empty()) return;
+	boost::shared_ptr<Chunk> chunk = buildQueue.front();
+	buildQueue.pop_front();
+	size_t hash = fn::hash(chunk->getOffset());
+	inque.erase(hash);
+	build(chunk, game);
 }
 
 void ChunkBuilder::build(boost::shared_ptr<Chunk> chunk, Node* game) {
 	Worker* worker = new Worker();
 	if (chunk->isBuilding()) {
-		Godot::print(String("chunk at {0} is already building").format(Array::make(chunk->getOffset())));
+		//Godot::print(String("chunk at {0} is already building").format(Array::make(chunk->getOffset())));
+		size_t hash = fn::hash(chunk->getOffset());
+		if (inque.find(hash) != inque.end()) return;
+		inque.insert(hash);
+		buildQueue.push_back(chunk);
+		ChunkBuilder::game = game;
 		return;
 	}
 	chunk->setBuilding(true);
-	ThreadPool::get()->submitTask(boost::bind(&Worker::run, worker, chunk, game));
+	ThreadPool::get()->submitTask(boost::bind(&Worker::run, worker, chunk, game, this));
 }

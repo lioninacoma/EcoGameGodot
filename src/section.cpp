@@ -68,7 +68,7 @@ void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_p
 Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end) {
 	Array voxels;
 	boost::shared_ptr<Chunk> chunk;
-	int x, y, z, cx, cz;
+	int i, x, y, z, cx, cz;
 	float nx, ny, nz, voxel;
 	Vector3 point;
 	Vector2 chunkOffset;
@@ -80,6 +80,16 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 	vector<bool> areaOutOfBounds;
 	int areaIndex = 0;
 	size_t cHash, nHash;
+
+	// von Neumann neighbourhood (3D)
+	int neighbours[6][3] = {
+		{ 1,  0,  0 }, 
+		{ 0,  0,  1 }, 
+		{-1,  0,  0 }, 
+		{ 0,  0, -1 }, 
+		{ 0,  1,  0 }, 
+		{ 0, -1,  0 }
+	};
 
 	for (z = start.z; z <= end.z; z++) {
 		for (x = start.x; x <= end.x; x++) {
@@ -139,23 +149,23 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 				areaOutOfBounds[areaIndex] = true;
 			}
 
-			for (z = -1; z < 2; z++)
-				for (x = -1; x < 2; x++)
-					for (y = -1; y < 2; y++) {
-						if (!x && !y && !z) continue;
+			for (i = 0; i < 6; i++) {
+				x = neighbours[i][0];
+				y = neighbours[i][1];
+				z = neighbours[i][2];
 
-						nx = point.x + x;
-						ny = point.y + y;
-						nz = point.z + z;
+				nx = point.x + x;
+				ny = point.y + y;
+				nz = point.z + z;
 
-						nHash = fn::hash(Vector3(nx, ny, nz));
+				nHash = fn::hash(Vector3(nx, ny, nz));
 
-						if (nodeCache.find(nHash) == nodeCache.end()) continue;
-						if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
-							queue.push_back(nHash);
-							inque.insert(nHash);
-						}
-					}
+				if (nodeCache.find(nHash) == nodeCache.end()) continue;
+				if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
+					queue.push_back(nHash);
+					inque.insert(nHash);
+				}
+			}
 		}
 
 		areas.push_back(area);

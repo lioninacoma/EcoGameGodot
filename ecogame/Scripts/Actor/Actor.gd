@@ -12,7 +12,9 @@ var FindVoxelsInArea = load("res://Scripts/Actor/Task/Base/FindVoxelsInArea.gd")
 var FollowPath      = load("res://Scripts/Actor/Task/Base/FollowPath.gd")
 var MoveTo          = load("res://Scripts/Actor/Task/Base/MoveTo.gd")
 var SetNextVoxelInArea = load("res://Scripts/Actor/Task/Base/SetNextVoxelInArea.gd")
-var SetVoxel        = load("res://Scripts/Actor/Task/Base/SetVoxel.gd")
+#var SetVoxel        = load("res://Scripts/Actor/Task/Base/SetVoxel.gd")
+
+var ChopWood        = load("res://Scripts/Actor/Task/ChopWood/ChopWood.gd")
 
 var velocity = Vector3()
 var acceleration = Vector3()
@@ -95,7 +97,7 @@ func gather_wood(storehouse_location : Vector3) -> void:
 	var find_trunk_nearby = FindVoxelNearby.new({"voxel": 4})
 	var is_voxel_found = TaskCondition.new()
 	var chop_wood_and_store = TaskSeries.new()
-	var chop_wood = SetVoxel.new({"position_key": "voxel_nearby", "voxel": 0})
+	var chop_wood = ChopWood.new({"position_key": "voxel_nearby"})
 	var move_to_storehouse = MoveTo.new({"to": storehouse_location})
 	
 	chop_wood_and_store.add_task(chop_wood)

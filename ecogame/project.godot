@@ -117,6 +117,11 @@ switch_rts={
  ]
 }
 
+[physics]
+
+common/physics_fps=30
+3d/active_soft_world=false
+
 [rendering]
 
 environment/default_environment="res://default_env.tres"

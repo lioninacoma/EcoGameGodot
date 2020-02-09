@@ -19,7 +19,7 @@ var build_stack : Array = []
 
 var amount_actors = 0
 var actor
-var asset = null
+var current_asset = null
 var asset_type : int = -1
 var storehouse_location : Vector3 = Vector3()
 var control_active : bool
@@ -83,11 +83,11 @@ func build_chunk(meshes : Array, chunk) -> void:
 	add_child(mesh_instance)
 	
 	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
-#	Lib.instance.updateGraph(chunk)
 
-func build_mesh_instance_rigid(meshes : Array, owner) -> RigidBody:
+func build_asset(meshes : Array, owner) -> Spatial:
 	if (!meshes): return null
 	
+	var new_asset : Spatial = Spatial.new()
 	var mesh_instance = MeshInstance.new()
 	var mesh = ArrayMesh.new()
 	var surface_index : int = 0
@@ -96,24 +96,41 @@ func build_mesh_instance_rigid(meshes : Array, owner) -> RigidBody:
 	mesh_instance.name = "mesh"
 	rigid_body.name = "body"
 	
+	rigid_body.add_child(mesh_instance)
+	new_asset.add_child(rigid_body)
+	
 	for mesh_data in meshes:
 		var mi = mesh_data[2] - 1
 		if mesh_data[3] <= 0: continue
 		
-		var polygon_shape : ConvexPolygonShape = ConvexPolygonShape.new()
-		
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
 		mesh.surface_set_material(surface_index, WorldVariables.materials[mi])
 
+		var polygon_shape : ConvexPolygonShape = ConvexPolygonShape.new()
 		polygon_shape.set_points(mesh_data[1])
 		var owner_id = rigid_body.create_shape_owner(owner)
 		rigid_body.shape_owner_add_shape(owner_id, polygon_shape)
 
 		surface_index += 1
 	
-	rigid_body.add_child(mesh_instance)
 	mesh_instance.mesh = mesh
-	return rigid_body
+#	var aabb = mesh_instance.get_aabb()
+#	var w = aabb.end.x - aabb.position.x
+#	var h = aabb.end.y - aabb.position.y
+#	var d = aabb.end.z - aabb.position.z
+#
+#	rigid_body.transform.origin.x = w/2
+#	rigid_body.transform.origin.y = h/2
+#	rigid_body.transform.origin.z = d/2
+	
+	var weight = 16.0
+	rigid_body.set_weight(9.8 * weight)
+	rigid_body.set_mass(1.0)
+	rigid_body.set_friction(1.0)
+	rigid_body.set_bounce(0)
+	rigid_body.set_can_sleep(true)
+	
+	return new_asset
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
@@ -192,17 +209,17 @@ func _input(event : InputEvent) -> void:
 			middle_pressed_location.y = vy
 			middle_pressed_location.z = vz
 			
-			if asset:
-				var w = asset.get_aabb().end.x - asset.get_aabb().position.x
-				var d = asset.get_aabb().end.z - asset.get_aabb().position.z
+			if current_asset:
+				var aabb = current_asset.get_aabb()
+				var h = aabb.end.y - aabb.position.y
 
-				asset.global_transform.origin.x = vx - int(w / 2)
-				asset.global_transform.origin.y = vy + 1
-				asset.global_transform.origin.z = vz - int(d / 2)
+				current_asset.global_transform.origin.x = vx
+				current_asset.global_transform.origin.y = vy + int(h/2) + 1
+				current_asset.global_transform.origin.z = vz
 
 				var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
-				for i in range(asset.get_surface_material_count()):
-					var material = asset.mesh.surface_get_material(i)
+				for i in range(current_asset.get_surface_material_count()):
+					var material = current_asset.mesh.surface_get_material(i)
 					var color : Color
 					if fits: color = Color(0, 1, 0)
 					else:    color = Color(1, 0, 0)
@@ -230,37 +247,54 @@ func _input(event : InputEvent) -> void:
 			var vz = int(voxel_position.z - (b if normal.z > 0 else 0))
 			
 			if event.button_index == BUTTON_LEFT:
-				if asset:
+				if control_active:
+					var position = Vector3(vx, vy, vz)
+					
+					Lib.instance.setVoxel(position, 0)
+					var volume = Lib.instance.getDisconnectedVoxels(position, 8)
+					if volume.size() <= 0: return
+					for voxel in volume:
+						var voxelPos = voxel.getPosition()
+						var meshes = Lib.instance.buildVoxelAssetByVolume([voxel])
+						if meshes.size() <= 0: continue
+						Lib.instance.setVoxel(voxelPos, 0)
+	
+						var asset = build_asset(meshes, null)
+						Lib.game.add_child(asset)
+						asset.global_transform.origin.x = voxelPos.x
+						asset.global_transform.origin.y = voxelPos.y
+						asset.global_transform.origin.z = voxelPos.z
+					return
+				
+				if current_asset:
 					var fits = Lib.instance.voxelAssetFits(Vector3(vx, vy, vz), asset_type)
 					if !fits: return
 					Lib.instance.addVoxelAsset(Vector3(vx, vy, vz), asset_type)
-					var w = asset.get_aabb().end.x - asset.get_aabb().position.x
-					var d = asset.get_aabb().end.z - asset.get_aabb().position.z
 					storehouse_location.x = vx
 					storehouse_location.y = vy
 					storehouse_location.z = vz
-					asset.queue_free()
-					asset = null
+					current_asset.queue_free()
+					current_asset = null
 					asset_type = -1
 				else:
 					asset_type = 1
 					var meshes = Lib.instance.buildVoxelAssetByType(asset_type)
-					asset = build_mesh_instance(meshes, null)
-					var body = asset.get_node("body")
-					asset.remove_child(body)
+					current_asset = build_mesh_instance(meshes, null)
+					var body = current_asset.get_node("body")
+					current_asset.remove_child(body)
 					
-					for i in range(asset.get_surface_material_count()):
-						var material = asset.mesh.surface_get_material(i).duplicate(true)
+					for i in range(current_asset.get_surface_material_count()):
+						var material = current_asset.mesh.surface_get_material(i).duplicate(true)
 						material.set_blend_mode(1)
 						material.albedo_color = Color(0, 1, 0)
-						asset.mesh.surface_set_material(i, material)
+						current_asset.mesh.surface_set_material(i, material)
 					
-					add_child(asset)
-					var w = asset.get_aabb().end.x - asset.get_aabb().position.x
-					var d = asset.get_aabb().end.z - asset.get_aabb().position.z
-					asset.global_transform.origin.x = vx - int(w / 2)
-					asset.global_transform.origin.y = vy + 1
-					asset.global_transform.origin.z = vz - int(d / 2)
+					add_child(current_asset)
+					var aabb = current_asset.get_aabb()
+					var h = aabb.end.y - aabb.position.y
+					current_asset.global_transform.origin.x = vx
+					current_asset.global_transform.origin.y = vy + int(h/2) + 1
+					current_asset.global_transform.origin.z = vz
 			elif event.button_index == BUTTON_RIGHT:
 #				Lib.instance.setVoxel(Vector3(vx, vy, vz), 0)
 #				if actor: actor.move_to(voxel_position, !control_active)
