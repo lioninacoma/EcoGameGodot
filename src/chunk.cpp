@@ -123,21 +123,26 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	
 	if (v == 0) {
 		if (navigatable) {
-			Vector3 node = offset + Vector3(x + 0.5, y + 1, z + 0.5);
-			size_t hash = fn::hash(node);
-			auto it = nodes->find(hash);
-			
-			if (it != nodes->end()) {
-				removeNode(it->second);
-				Navigator::get()->removeNode(it->second);
-			}
+			try {
+				Vector3 node = offset + Vector3(x + 0.5, y + 1, z + 0.5);
+				size_t hash = fn::hash(node);
+				auto it = nodes->find(hash);
 
-			int voxelBelow = volume->get(x, y - 1, z);
-			if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
-				Vector3 newNode = node + Vector3(0, -1, 0);
-				auto n = boost::shared_ptr<GraphNode>(new GraphNode(newNode, v));
-				addNode(n);
-				Navigator::get()->addNode(n, this);
+				if (it != nodes->end()) {
+					Navigator::get()->removeNode(it->second);
+					removeNode(it->second);
+				}
+
+				int voxelBelow = volume->get(x, y - 1, z);
+				if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
+					Vector3 newNode = node + Vector3(0, -1, 0);
+					auto n = boost::shared_ptr<GraphNode>(new GraphNode(newNode, v));
+					Navigator::get()->addNode(n, this);
+					addNode(n);
+				}
+			}
+			catch (const std::exception & e) {
+				std::cerr << boost::diagnostic_information(e);
 			}
 		}
 
@@ -155,20 +160,25 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	}
 	else {
 		if (navigatable) {
-			Vector3 node = offset + Vector3(x + 0.5, y, z + 0.5);
-			size_t hash = fn::hash(node);
-			auto it = nodes->find(hash);
+			try {
+				Vector3 node = offset + Vector3(x + 0.5, y, z + 0.5);
+				size_t hash = fn::hash(node);
+				auto it = nodes->find(hash);
 
-			if (it != nodes->end()) {
-				removeNode(it->second);
-				Navigator::get()->removeNode(it->second);
+				if (it != nodes->end()) {
+					Navigator::get()->removeNode(it->second);
+					removeNode(it->second);
+				}
+
+				if (y + 1 < CHUNK_SIZE_Y && !volume->get(x, y + 1, z) && v != 6) {
+					Vector3 newNode = node + Vector3(0, 1, 0);
+					auto n = boost::shared_ptr<GraphNode>(new GraphNode(newNode, v));
+					Navigator::get()->addNode(n, this);
+					addNode(n);
+				}
 			}
-
-			if (y + 1 < CHUNK_SIZE_Y && !volume->get(x, y + 1, z) && v != 6) {
-				Vector3 newNode = node + Vector3(0, 1, 0);
-				auto n = boost::shared_ptr<GraphNode>(new GraphNode(newNode, v));
-				addNode(n);
-				Navigator::get()->addNode(n, this);
+			catch (const std::exception & e) {
+				std::cerr << boost::diagnostic_information(e);
 			}
 		}
 

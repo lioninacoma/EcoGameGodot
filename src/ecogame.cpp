@@ -1,5 +1,19 @@
 #include "ecogame.h"
 #include "navigator.h"
+#include "threadpool.h"
+
+#include <boost/exception/diagnostic_information.hpp> 
+#include <boost/exception_ptr.hpp> 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <tchar.h>
+
+void SignalHandler(int signal) {
+	printf("Signal %d", signal);
+	throw "!Access Violation!";
+}
 
 using namespace godot;
 
@@ -22,6 +36,11 @@ void EcoGame::_register_methods() {
 }
 
 EcoGame::EcoGame() {
+	typedef void (*SignalHandlerPointer)(int);
+
+	SignalHandlerPointer previousHandler;
+	previousHandler = signal(SIGSEGV, SignalHandler);
+
 	chunkBuilder = boost::shared_ptr<ChunkBuilder>(new ChunkBuilder());
 	sections = new boost::shared_ptr<Section>[SECTIONS_LEN * sizeof(*sections)];
 
@@ -45,17 +64,24 @@ Array EcoGame::getDisconnectedVoxels(Vector3 position, float radius) {
 	Vector3 tl = start;
 	Vector3 br = end;
 
-	tl = fn::toChunkCoords(tl);
-	br = fn::toChunkCoords(br);
+	try {
+		tl = fn::toChunkCoords(tl);
+		br = fn::toChunkCoords(br);
 
-	Vector2 offset = Vector2(tl.x, tl.z);
-	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+		Vector2 offset = Vector2(tl.x, tl.z);
+		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
-	section->fill(this, SECTION_SIZE);
-	Array voxels = section->getDisconnectedVoxels(position, start, end);
-	section.reset();
-	return voxels;
+		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section->fill(this, SECTION_SIZE);
+		Array voxels = section->getDisconnectedVoxels(position, start, end);
+		section.reset();
+		return voxels;
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
+
+	return Array();
 }
 
 PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel) {
@@ -69,44 +95,56 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 	Vector2 start2 = Vector2(start.x, start.z);
 	Vector2 end2 = Vector2(end.x, end.z);
 
-	tl = fn::toChunkCoords(tl);
-	br = fn::toChunkCoords(br);
+	try {
+		tl = fn::toChunkCoords(tl);
+		br = fn::toChunkCoords(br);
 
-	Vector2 offset = Vector2(tl.x, tl.z);
-	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
-	int sectionChunksLen = sectionSize * sectionSize;
+		Vector2 offset = Vector2(tl.x, tl.z);
+		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+		int sectionChunksLen = sectionSize * sectionSize;
 
-	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
-	section->fill(this, SECTION_SIZE);
+		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section->fill(this, SECTION_SIZE);
 
-	for (i = 0; i < sectionChunksLen; i++) {
-		auto chunk = section->getChunk(i);
-		if (!chunk) continue;
+		for (i = 0; i < sectionChunksLen; i++) {
+			auto chunk = section->getChunk(i);
+			if (!chunk) continue;
 
-		std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
-			currentVoxels = chunk->getReachableVoxelsOfType(next.second->getPoint(), voxel);
+			std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+				currentVoxels = chunk->getReachableVoxelsOfType(next.second->getPoint(), voxel);
 			
-			for (j = 0; j < currentVoxels.size(); j++) {
-				current = currentVoxels[j];
-				if (!Intersection::isPointInRectangle(start2, end2, Vector2(current.x + 0.5, current.z + 0.5))) continue;
-				voxels.emplace(fn::hash(current), current);
-			}
-		};
-		chunk->forEachNode(nodeFn);
+				for (j = 0; j < currentVoxels.size(); j++) {
+					current = currentVoxels[j];
+					if (!Intersection::isPointInRectangle(start2, end2, Vector2(current.x + 0.5, current.z + 0.5))) continue;
+					voxels.emplace(fn::hash(current), current);
+				}
+			};
+			chunk->forEachNode(nodeFn);
+		}
+
+		section.reset();
+
+		for (auto v : voxels)
+			result.push_back(v.second);
 	}
-
-	section.reset();
-
-	for (auto v : voxels)
-		result.push_back(v.second);
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
 
 	return result;
 }
 
 boost::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
-	//Godot::print(String("Section: {0}").format(Array::make(Vector3(x, y, z))));
-	boost::shared_ptr<Section> section = getSection(x, z);
-	if (!section) return NULL;
+	boost::shared_ptr<Section> section = NULL;
+
+	try {
+		//Godot::print(String("Section: {0}").format(Array::make(Vector3(x, y, z))));
+		boost::shared_ptr<Section> section = getSection(x, z);
+		if (!section) return NULL;
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
 
 	return section;
 }
@@ -114,21 +152,36 @@ boost::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
 vector<boost::shared_ptr<Section>> EcoGame::getSectionsRay(Vector3 from, Vector3 to) {
 	from = fn::toSectionCoords(from);
 	to = fn::toSectionCoords(to);
+	vector<boost::shared_ptr<Section>> sections;
 
-	vector<boost::shared_ptr<Section>> list;
-	boost::function<boost::shared_ptr<Section>(int, int, int)> intersection(boost::bind(&EcoGame::intersection, this, _1, _2, _3));
-	return Intersection::get<boost::shared_ptr<Section>>(from, to, false, intersection, list);
+	try {
+		vector<boost::shared_ptr<Section>> list;
+		boost::function<boost::shared_ptr<Section>(int, int, int)> intersection(boost::bind(&EcoGame::intersection, this, _1, _2, _3));
+		sections = Intersection::get<boost::shared_ptr<Section>>(from, to, false, intersection, list);
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
+
+	return sections;
 }
 
 vector<boost::shared_ptr<Chunk>> EcoGame::getChunksRay(Vector3 from, Vector3 to) {
 	vector<boost::shared_ptr<Chunk>> list;
 	vector<boost::shared_ptr<Chunk>> chunks;
-	vector<boost::shared_ptr<Section>> sections = getSectionsRay(from, to);
 	
-	for (auto section : sections) {
-		chunks = section->getChunksRay(from, to);
-		list.insert(list.end(), chunks.begin(), chunks.end());
+	try {
+		vector<boost::shared_ptr<Section>> sections = getSectionsRay(from, to);
+
+		for (auto section : sections) {
+			chunks = section->getChunksRay(from, to);
+			list.insert(list.end(), chunks.begin(), chunks.end());
+		}
 	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
+
 	return list;
 }
 
@@ -140,22 +193,27 @@ vector<boost::shared_ptr<Chunk>> EcoGame::getChunksInRange(Vector3 center, float
 	Vector3 cc = Vector3(CHUNK_SIZE_X / 2, 0, CHUNK_SIZE_Z / 2);
 	boost::shared_ptr<Section> section;
 
-	p = fn::toSectionCoords(p);
+	try {
+		p = fn::toSectionCoords(p);
 
-	for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
-		for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
-			if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
-			section = getSection(x, z);
+		for (z = -dist + (int)p.z; z <= dist + (int)p.z; z++) {
+			for (x = -dist + (int)p.x; x <= dist + (int)p.x; x++) {
+				if (x < 0 || z < 0 || x >= SECTIONS_SIZE || z >= SECTIONS_SIZE) continue;
+				section = getSection(x, z);
 
-			if (!section) continue;
+				if (!section) continue;
 
-			for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
-				auto chunk = section->getChunk(i);
+				for (i = 0; i < SECTION_CHUNKS_LEN; i++) {
+					auto chunk = section->getChunk(i);
 
-				if (!chunk || (chunk->getOffset() + cc).distance_to(center) > radius) continue;
-				list.push_back(section->getChunk(i));
+					if (!chunk || (chunk->getOffset() + cc).distance_to(center) > radius) continue;
+					list.push_back(section->getChunk(i));
+				}
 			}
 		}
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
 	}
 
 	return list;
@@ -180,31 +238,50 @@ void EcoGame::navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorIns
 }
 
 void EcoGame::setVoxel(Vector3 position, int voxel) {
-	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	Vector3 p = position;
-	boost::shared_ptr<Section> section;
-	p = fn::toSectionCoords(p);
-	section = getSection(p.x, p.z);
-	if (!section) return;
-	section->setVoxel(position, voxel, chunkBuilder, game);
+	try {
+		Node* game = get_tree()->get_root()->get_node("EcoGame");
+		Vector3 p = position;
+		boost::shared_ptr<Section> section;
+		p = fn::toSectionCoords(p);
+		section = getSection(p.x, p.z);
+		if (!section) return;
+		section->setVoxel(position, voxel, chunkBuilder, game);
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
 }
 
 int EcoGame::getVoxel(Vector3 position) {
-	Vector3 p = position;
-	boost::shared_ptr<Section> section;
-	p = fn::toSectionCoords(p);
-	section = getSection(p.x, p.z);
-	if (!section) return 0;
-	return section->getVoxel(position);
+	int voxel = 0;
+	try {
+		Vector3 p = position;
+		boost::shared_ptr<Section> section;
+		p = fn::toSectionCoords(p);
+		section = getSection(p.x, p.z);
+		if (!section) return 0;
+		voxel = section->getVoxel(position);
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
+	return voxel;
 }
 
 boost::shared_ptr<GraphNode> EcoGame::getNode(Vector3 position) {
-	Vector3 p = position;
-	boost::shared_ptr<Section> section;
-	p = fn::toSectionCoords(p);
-	section = getSection(p.x, p.z);
-	if (!section) return NULL;
-	return section->getNode(position);
+	boost::shared_ptr<GraphNode> node;
+	try {
+		Vector3 p = position;
+		boost::shared_ptr<Section> section;
+		p = fn::toSectionCoords(p);
+		section = getSection(p.x, p.z);
+		if (!section) return NULL;
+		node = section->getNode(position);
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
+	return node;
 }
 
 void EcoGame::updateGraph(Variant vChunk) {
@@ -224,9 +301,14 @@ void EcoGame::setSection(int x, int z, boost::shared_ptr<Section> section) {
 }
 
 void EcoGame::setSection(int i, boost::shared_ptr<Section> section) {
-	boost::unique_lock<boost::shared_timed_mutex> lock(SECTIONS_MUTEX);
-	if (i < 0 || i >= SECTIONS_LEN) return;
-	sections[i] = section;
+	try {
+		boost::unique_lock<boost::shared_timed_mutex> lock(SECTIONS_MUTEX);
+		if (i < 0 || i >= SECTIONS_LEN) return;
+		sections[i] = section;
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
 }
 
 boost::shared_ptr<Section> EcoGame::getSection(int x, int z) {
@@ -235,9 +317,16 @@ boost::shared_ptr<Section> EcoGame::getSection(int x, int z) {
 }
 
 boost::shared_ptr<Section> EcoGame::getSection(int i) {
-	boost::shared_lock<boost::shared_timed_mutex> lock(SECTIONS_MUTEX);
-	if (i < 0 || i >= SECTIONS_LEN) return NULL;
-	return sections[i];
+	boost::shared_ptr<Section> section;
+	try {
+		boost::shared_lock<boost::shared_timed_mutex> lock(SECTIONS_MUTEX);
+		if (i < 0 || i >= SECTIONS_LEN) return NULL;
+		section = sections[i];
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
+	return section;
 }
 
 void EcoGame::updateGraphs(Vector3 center, float radius) {
@@ -309,167 +398,190 @@ void EcoGame::buildChunk(Variant vChunk) {
 }
 
 PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int voxel) {
-	boost::shared_ptr<Section> section;
+	PoolVector3Array voxels;
+	try {
+		boost::shared_ptr<Section> section;
 
-	Vector3 start = startV - Vector3(radius, radius, radius);
-	Vector3 end = startV + Vector3(radius, radius, radius);
-	Vector3 tl = start;
-	Vector3 br = end;
+		Vector3 start = startV - Vector3(radius, radius, radius);
+		Vector3 end = startV + Vector3(radius, radius, radius);
+		Vector3 tl = start;
+		Vector3 br = end;
 
-	tl = fn::toChunkCoords(tl);
-	br = fn::toChunkCoords(br);
+		tl = fn::toChunkCoords(tl);
+		br = fn::toChunkCoords(br);
 
-	Vector2 offset = Vector2(tl.x, tl.z);
-	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+		Vector2 offset = Vector2(tl.x, tl.z);
+		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
-	section->fill(this, SECTION_SIZE);
-	PoolVector3Array voxels = section->findVoxelsInRange(startV, radius, voxel);
-	section.reset();
+		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section->fill(this, SECTION_SIZE);
+		voxels = section->findVoxelsInRange(startV, radius, voxel);
+		section.reset();
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
 	return voxels;
 }
 
 bool EcoGame::voxelAssetFits(Vector3 startV, int type) {
-	VoxelAssetType vat = (VoxelAssetType)type;
-	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
-	float width = asset->getWidth();
-	float depth = asset->getDepth();
-	boost::shared_ptr<Section> section;
-	int w2 = (int)(width / 2.0);
-	int d2 = (int)(depth / 2.0);
+	bool fits = false;
+	try {
+		VoxelAssetType vat = (VoxelAssetType)type;
+		VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
+		float width = asset->getWidth();
+		float depth = asset->getDepth();
+		boost::shared_ptr<Section> section;
+		int w2 = (int)(width / 2.0);
+		int d2 = (int)(depth / 2.0);
 
-	Vector3 start = startV - Vector3(w2, 0, d2);
-	Vector3 end = startV + Vector3(w2, 0, d2);
-	Vector3 tl = start;
-	Vector3 br = end;
+		Vector3 start = startV - Vector3(w2, 0, d2);
+		Vector3 end = startV + Vector3(w2, 0, d2);
+		Vector3 tl = start;
+		Vector3 br = end;
 
-	tl = fn::toChunkCoords(tl);
-	br = fn::toChunkCoords(br);
+		tl = fn::toChunkCoords(tl);
+		br = fn::toChunkCoords(br);
 
-	Vector2 offset = Vector2(tl.x, tl.z);
-	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+		Vector2 offset = Vector2(tl.x, tl.z);
+		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
-	section->fill(this, SECTION_SIZE);
-	bool fits = section->voxelAssetFits(start, vat);
-	section.reset();
+		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section->fill(this, SECTION_SIZE);
+		fits = section->voxelAssetFits(start, vat);
+		section.reset();
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
 	return fits;
 }
 
 void EcoGame::addVoxelAsset(Vector3 startV, int type) {
-	VoxelAssetType vat = (VoxelAssetType)type;
-	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
-	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	float width = asset->getWidth();
-	float depth = asset->getDepth();
-	boost::shared_ptr<Section> section;
-	int w2 = (int)(width / 2.0);
-	int d2 = (int)(depth / 2.0);
+	try {
+		VoxelAssetType vat = (VoxelAssetType)type;
+		VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
+		Node* game = get_tree()->get_root()->get_node("EcoGame");
+		float width = asset->getWidth();
+		float depth = asset->getDepth();
+		boost::shared_ptr<Section> section;
+		int w2 = (int)(width / 2.0);
+		int d2 = (int)(depth / 2.0);
 
-	Vector3 start = startV - Vector3(w2, 0, d2);
-	Vector3 end = startV + Vector3(w2, 0, d2);
-	Vector3 tl = start;
-	Vector3 br = end;
+		Vector3 start = startV - Vector3(w2, 0, d2);
+		Vector3 end = startV + Vector3(w2, 0, d2);
+		Vector3 tl = start;
+		Vector3 br = end;
 
-	tl = fn::toChunkCoords(tl);
-	br = fn::toChunkCoords(br);
+		tl = fn::toChunkCoords(tl);
+		br = fn::toChunkCoords(br);
 
-	Vector2 offset = Vector2(tl.x, tl.z);
-	int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
+		Vector2 offset = Vector2(tl.x, tl.z);
+		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-	section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
-	section->fill(this, SECTION_SIZE);
-	section->addVoxelAsset(start, vat, chunkBuilder, game);
-	section.reset();
+		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section->fill(this, SECTION_SIZE);
+		section->addVoxelAsset(start, vat, chunkBuilder, game);
+		section.reset();
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
+	}
 }
 
 Array EcoGame::buildVoxelAsset(VoxelAsset* asset) {
-	MeshBuilder meshBuilder;
-	int w = asset->getWidth();
-	int h = asset->getHeight();
-	int d = asset->getDepth();
-	const int BUFFER = max(w * h * d, 4);
-	const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
-
-	int i, j, o, n, offset, amountVertices, amountIndices;
 	Array meshes;
-	float* vertices;
-	float** buffers = new float* [TYPES];
 
-	for (i = 0; i < TYPES; i++) {
-		buffers[i] = new float[MAX_VERTICES];
-		memset(buffers[i], 0, MAX_VERTICES * sizeof(*buffers[i]));
-	}
+	try {
+		MeshBuilder meshBuilder;
+		int w = asset->getWidth();
+		int h = asset->getHeight();
+		int d = asset->getDepth();
+		const int BUFFER = max(w * h * d, 4);
+		const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
 
-	vector<int> offsets = meshBuilder.buildVertices(asset, Vector3(-w/2.0, -h/2.0, -d/2.0), buffers, TYPES);
+		int i, j, o, n, offset, amountVertices, amountIndices;
+		float* vertices;
+		float** buffers = new float* [TYPES];
 
-	for (o = 0; o < offsets.size(); o++) {
-		offset = offsets[o];
-		if (offset <= 0) continue;
-
-		vertices = buffers[o];
-		amountVertices = offset / VERTEX_SIZE;
-		amountIndices = amountVertices / 2 * 3;
-
-		Array meshData;
-		Array meshArrays;
-		PoolVector3Array vertexArray;
-		PoolVector3Array normalArray;
-		PoolVector2Array uvArray;
-		PoolIntArray indexArray;
-		PoolVector3Array collisionArray;
-
-		meshArrays.resize(Mesh::ARRAY_MAX);
-		vertexArray.resize(amountVertices);
-		normalArray.resize(amountVertices);
-		uvArray.resize(amountVertices);
-		indexArray.resize(amountIndices);
-		collisionArray.resize(amountIndices);
-
-		PoolVector3Array::Write vertexArrayWrite = vertexArray.write();
-		PoolVector3Array::Write normalArrayWrite = normalArray.write();
-		PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
-		PoolVector2Array::Write uvArrayWrite = uvArray.write();
-		PoolIntArray::Write indexArrayWrite = indexArray.write();
-
-		for (i = 0, n = 0; i < offset; i += VERTEX_SIZE, n++) {
-			vertexArrayWrite[n] = Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
-			normalArrayWrite[n] = Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]);
-			uvArrayWrite[n] = Vector2(vertices[i + 6], vertices[i + 7]);
+		for (i = 0; i < TYPES; i++) {
+			buffers[i] = new float[MAX_VERTICES];
+			memset(buffers[i], 0, MAX_VERTICES * sizeof(*buffers[i]));
 		}
 
-		for (i = 0, j = 0; i < amountIndices; i += 6, j += 4) {
-			indexArrayWrite[i + 0] = j + 2;
-			indexArrayWrite[i + 1] = j + 1;
-			indexArrayWrite[i + 2] = j;
-			indexArrayWrite[i + 3] = j;
-			indexArrayWrite[i + 4] = j + 3;
-			indexArrayWrite[i + 5] = j + 2;
-			collisionArrayWrite[i + 0] = vertexArrayWrite[j + 2];
-			collisionArrayWrite[i + 1] = vertexArrayWrite[j + 1];
-			collisionArrayWrite[i + 2] = vertexArrayWrite[j];
-			collisionArrayWrite[i + 3] = vertexArrayWrite[j];
-			collisionArrayWrite[i + 4] = vertexArrayWrite[j + 3];
-			collisionArrayWrite[i + 5] = vertexArrayWrite[j + 2];
+		vector<int> offsets = meshBuilder.buildVertices(asset, Vector3(-w / 2.0, -h / 2.0, -d / 2.0), buffers, TYPES);
+
+		for (o = 0; o < offsets.size(); o++) {
+			offset = offsets[o];
+			if (offset <= 0) continue;
+
+			vertices = buffers[o];
+			amountVertices = offset / VERTEX_SIZE;
+			amountIndices = amountVertices / 2 * 3;
+
+			Array meshData;
+			Array meshArrays;
+			PoolVector3Array vertexArray;
+			PoolVector3Array normalArray;
+			PoolVector2Array uvArray;
+			PoolIntArray indexArray;
+			PoolVector3Array collisionArray;
+
+			meshArrays.resize(Mesh::ARRAY_MAX);
+			vertexArray.resize(amountVertices);
+			normalArray.resize(amountVertices);
+			uvArray.resize(amountVertices);
+			indexArray.resize(amountIndices);
+			collisionArray.resize(amountIndices);
+
+			PoolVector3Array::Write vertexArrayWrite = vertexArray.write();
+			PoolVector3Array::Write normalArrayWrite = normalArray.write();
+			PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
+			PoolVector2Array::Write uvArrayWrite = uvArray.write();
+			PoolIntArray::Write indexArrayWrite = indexArray.write();
+
+			for (i = 0, n = 0; i < offset; i += VERTEX_SIZE, n++) {
+				vertexArrayWrite[n] = Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+				normalArrayWrite[n] = Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]);
+				uvArrayWrite[n] = Vector2(vertices[i + 6], vertices[i + 7]);
+			}
+
+			for (i = 0, j = 0; i < amountIndices; i += 6, j += 4) {
+				indexArrayWrite[i + 0] = j + 2;
+				indexArrayWrite[i + 1] = j + 1;
+				indexArrayWrite[i + 2] = j;
+				indexArrayWrite[i + 3] = j;
+				indexArrayWrite[i + 4] = j + 3;
+				indexArrayWrite[i + 5] = j + 2;
+				collisionArrayWrite[i + 0] = vertexArrayWrite[j + 2];
+				collisionArrayWrite[i + 1] = vertexArrayWrite[j + 1];
+				collisionArrayWrite[i + 2] = vertexArrayWrite[j];
+				collisionArrayWrite[i + 3] = vertexArrayWrite[j];
+				collisionArrayWrite[i + 4] = vertexArrayWrite[j + 3];
+				collisionArrayWrite[i + 5] = vertexArrayWrite[j + 2];
+			}
+
+			meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
+			meshArrays[Mesh::ARRAY_NORMAL] = normalArray;
+			meshArrays[Mesh::ARRAY_TEX_UV] = uvArray;
+			meshArrays[Mesh::ARRAY_INDEX] = indexArray;
+
+			meshData.push_back(meshArrays);
+			meshData.push_back(collisionArray);
+			meshData.push_back(o + 1);
+			meshData.push_back(offset);
+
+			meshes.push_back(meshData);
 		}
 
-		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
-		meshArrays[Mesh::ARRAY_NORMAL] = normalArray;
-		meshArrays[Mesh::ARRAY_TEX_UV] = uvArray;
-		meshArrays[Mesh::ARRAY_INDEX] = indexArray;
-
-		meshData.push_back(meshArrays);
-		meshData.push_back(collisionArray);
-		meshData.push_back(o + 1);
-		meshData.push_back(offset);
-
-		meshes.push_back(meshData);
+		for (i = 0; i < TYPES; i++) {
+			delete[] buffers[i];
+		}
+		delete[] buffers;
 	}
-
-	for (i = 0; i < TYPES; i++) {
-		delete[] buffers[i];
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
 	}
-	delete[] buffers;
 
 	return meshes;
 }

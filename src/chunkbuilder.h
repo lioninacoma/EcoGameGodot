@@ -11,6 +11,7 @@
 #include <vector>
 #include <iostream>
 
+#include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_types.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -19,7 +20,6 @@
 #include "chunk.h"
 #include "meshbuilder.h"
 #include "objectpool.h"
-#include "threadpool.h"
 
 using namespace std;
 namespace bpt = boost::posix_time;
@@ -39,10 +39,13 @@ namespace godot {
 		public:
 			void run(boost::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder);
 		};
+		
 		deque<boost::shared_ptr<Chunk>> buildQueue;
 		unordered_set<size_t> inque;
-		void processQueue();
-		Node* game;
+		void processQueue(Node* game);
+		void queueChunk(boost::shared_ptr<Chunk> chunk);
+
+		boost::shared_timed_mutex BUILD_QUEUE_MUTEX;
 	public:
 		ChunkBuilder() {};
 		~ChunkBuilder() {};

@@ -9,10 +9,10 @@
 #include <Array.hpp>
 #include <Vector3.hpp>
 
+#include <limits>
 #include <iostream>
 #include <unordered_map> 
-#include <iterator> 
-#include <limits>
+#include <iterator>
 
 #include <boost/atomic.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>

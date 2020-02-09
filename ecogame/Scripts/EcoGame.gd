@@ -3,6 +3,7 @@ class_name EcoGame
 
 var Actor : PackedScene = load("res://Actor.tscn")
 var TaskManager = load("res://Scripts/Actor/Task/TaskManager.gd")
+var Tree = load("res://Scripts/Tree.gd")
 
 # build thread variables
 const TIME_PERIOD = 0.2 # 200ms
@@ -251,19 +252,25 @@ func _input(event : InputEvent) -> void:
 					var position = Vector3(vx, vy, vz)
 					
 					Lib.instance.setVoxel(position, 0)
+					
 					var volume = Lib.instance.getDisconnectedVoxels(position, 8)
 					if volume.size() <= 0: return
-					for voxel in volume:
-						var voxelPos = voxel.getPosition()
-						var meshes = Lib.instance.buildVoxelAssetByVolume([voxel])
-						if meshes.size() <= 0: continue
-						Lib.instance.setVoxel(voxelPos, 0)
-	
-						var asset = build_asset(meshes, null)
-						Lib.game.add_child(asset)
-						asset.global_transform.origin.x = voxelPos.x
-						asset.global_transform.origin.y = voxelPos.y
-						asset.global_transform.origin.z = voxelPos.z
+					var meshes = Lib.instance.buildVoxelAssetByVolume(volume)
+					if meshes.size() <= 0: return
+					for v in volume:
+						Lib.instance.setVoxel(v.getPosition(), 0)
+			
+					var asset = build_asset(meshes, null)
+					var tree = Tree.new(asset, volume)
+					add_child(tree)
+					var aabb = tree.get_mesh().get_aabb()
+					var w = aabb.end.x - aabb.position.x
+					var h = aabb.end.y - aabb.position.y
+					var d = aabb.end.z - aabb.position.z
+			
+					tree.global_transform.origin.x = position.x + 0.5
+					tree.global_transform.origin.y = position.y + 1 + (h/2)
+					tree.global_transform.origin.z = position.z + 0.5
 					return
 				
 				if current_asset:

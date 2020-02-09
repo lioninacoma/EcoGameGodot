@@ -45,7 +45,6 @@ func perform(delta : float, actor) -> bool:
 		var asset = Lib.game.build_asset(meshes, null)
 		var tree = Tree.new(asset, volume)
 		Lib.game.add_child(tree)
-		var body = tree.get_body()
 		var aabb = tree.get_mesh().get_aabb()
 		var w = aabb.end.x - aabb.position.x
 		var h = aabb.end.y - aabb.position.y
@@ -54,6 +53,4 @@ func perform(delta : float, actor) -> bool:
 		tree.global_transform.origin.x = position.x + 0.5
 		tree.global_transform.origin.y = position.y + 1 + (h/2)
 		tree.global_transform.origin.z = position.z + 0.5
-
-#		body.apply_central_impulse(Vector3(1, 1, 1) * 16)
 	return true

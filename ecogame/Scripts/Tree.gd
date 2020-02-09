@@ -27,10 +27,7 @@ func _process(delta : float) -> void:
 	if time > DELETE_TIMEOUT:
 		for i in range(voxel_assets.size() - 1, -1, -1):
 			var voxel_asset = voxel_assets[i]
-			if voxel_asset[0] == 5:
-				voxel_asset[1].queue_free()
-				voxel_assets.remove(i)
-			elif voxel_asset[0] == 4:
+			if voxel_asset[0] == 4:
 				var voxel_asset_body = voxel_asset[1].get_node("body")
 				var velocity_len = voxel_asset_body.get_linear_velocity().length()
 				if velocity_len > 0.05: continue
@@ -38,6 +35,9 @@ func _process(delta : float) -> void:
 				var vy = int(voxel_asset_body.global_transform.origin.y)
 				var vz = int(voxel_asset_body.global_transform.origin.z)
 				Lib.instance.setVoxel(Vector3(vx, vy, vz), 4)
+				voxel_asset[1].queue_free()
+				voxel_assets.remove(i)
+			else:
 				voxel_asset[1].queue_free()
 				voxel_assets.remove(i)
 	

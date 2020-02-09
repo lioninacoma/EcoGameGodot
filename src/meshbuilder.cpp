@@ -27,6 +27,12 @@ vector<int> MeshBuilder::buildVertices(boost::shared_ptr<Chunk> chunk, float** b
 }
 
 vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boost::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen) {
+	bpt::ptime start, stop;
+	bpt::time_duration dur;
+	long ms = 0;
+
+	start = bpt::microsec_clock::local_time();
+
 	//if (chunk) Godot::print(String("building mesh at {0} ...").format(Array::make(chunk->getOffset())));
 
 	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj;
@@ -189,7 +195,11 @@ vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boos
 		}
 	}
 
-	//if (chunk) Godot::print(String("mesh at {0} built").format(Array::make(chunk->getOffset())));
+	stop = bpt::microsec_clock::local_time();
+	dur = stop - start;
+	ms = dur.total_milliseconds();
+
+	//if (chunk) Godot::print(String("mesh at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
 	//if (!chunk) Godot::print(String("mesh built").format(Array::make()));
 
 	MeshBuilder::getMaskPool().ret(mask);

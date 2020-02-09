@@ -17,6 +17,8 @@
 #include <boost/thread/lock_types.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
+#include <boost/exception/diagnostic_information.hpp> 
+#include <boost/exception_ptr.hpp> 
 
 #include "constants.h"
 #include "fn.h"
@@ -159,15 +161,25 @@ namespace godot {
 		int buildVolume();
 
 		void addNode(boost::shared_ptr<GraphNode> node) {
-			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
-			size_t hash = node->getHash();
-			Chunk::nodes->insert(pair<size_t, boost::shared_ptr<GraphNode>>(hash, node));
+			try {
+				boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+				size_t hash = node->getHash();
+				Chunk::nodes->insert(pair<size_t, boost::shared_ptr<GraphNode>>(hash, node));
+			}
+			catch (const std::exception & e) {
+				std::cerr << boost::diagnostic_information(e);
+			}
 		};
 		void removeNode(boost::shared_ptr<GraphNode> node) {
-			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
-			size_t hash = node->getHash();
-			if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
-			Chunk::nodes->erase(hash);
+			try {
+				boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+				size_t hash = node->getHash();
+				if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
+				Chunk::nodes->erase(hash);
+			}
+			catch (const std::exception & e) {
+				std::cerr << boost::diagnostic_information(e);
+			}
 		};
 	};
 

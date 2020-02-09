@@ -7,8 +7,11 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include <boost/atomic.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_types.hpp>
+#include <boost/atomic.hpp>
 #include <boost/function.hpp>
 
 #include "constants.h"
