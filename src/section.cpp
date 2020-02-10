@@ -70,8 +70,8 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 	boost::shared_ptr<Chunk> chunk;
 	int i, x, y, z, cx, cz;
 	float nx, ny, nz, voxel;
-	Vector3 point;
 	Vector2 chunkOffset;
+	boost::shared_ptr<Vector3> point;
 	boost::shared_ptr<GraphNode> current;
 	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
 	deque<size_t> queue, volume;
@@ -144,8 +144,8 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 			ready.insert(cHash);
 			point = current->getPoint();
 
-			if (point.x <= start.x || point.y <= start.y || point.z <= start.z
-				|| point.x >= end.x || point.y >= end.y || point.z >= end.z) {
+			if (point->x <= start.x || point->y <= start.y || point->z <= start.z
+				|| point->x >= end.x || point->y >= end.y || point->z >= end.z) {
 				areaOutOfBounds[areaIndex] = true;
 			}
 
@@ -154,9 +154,9 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 				y = neighbours[i][1];
 				z = neighbours[i][2];
 
-				nx = point.x + x;
-				ny = point.y + y;
-				nz = point.z + z;
+				nx = point->x + x;
+				ny = point->y + y;
+				nz = point->z + z;
 
 				nHash = fn::hash(Vector3(nx, ny, nz));
 
@@ -183,7 +183,7 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 		if (b) continue;
 		for (auto v : *areas[areaIndex]) {
 			auto voxel = Ref<Voxel>(Voxel::_new());
-			voxel->setPosition(v->getPoint());
+			voxel->setPosition(*v->getPoint());
 			voxel->setType(v->getVoxel());
 			voxels.push_back(voxel);
 		}
@@ -390,7 +390,12 @@ void Section::fill(EcoGame* lib, int sectionSize) {
 
 			for (sy = 0; sy < sectionSize; sy++) {
 				for (sx = 0; sx < sectionSize; sx++) {
-					chunk = section->getChunk(sx, sy);
+					try {
+						chunk = section->getChunk(sx, sy);
+					}
+					catch (const std::exception & e) {
+						std::cerr << boost::diagnostic_information(e);
+					}
 					if (!chunk) continue;
 
 					chunkCoords = chunk->getOffset();

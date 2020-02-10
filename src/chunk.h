@@ -102,7 +102,7 @@ namespace godot {
 			float minDist = numeric_limits<float>::max();
 			float dist;
 			for (auto node : *nodes) {
-				dist = node.second->getPoint().distance_to(position);
+				dist = node.second->getPoint()->distance_to(position);
 				if (dist < minDist) {
 					minDist = dist;
 					closest = node.second;
@@ -161,8 +161,8 @@ namespace godot {
 		int buildVolume();
 
 		void addNode(boost::shared_ptr<GraphNode> node) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			try {
-				boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 				size_t hash = node->getHash();
 				Chunk::nodes->insert(pair<size_t, boost::shared_ptr<GraphNode>>(hash, node));
 			}
@@ -171,8 +171,8 @@ namespace godot {
 			}
 		};
 		void removeNode(boost::shared_ptr<GraphNode> node) {
+			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			try {
-				boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 				size_t hash = node->getHash();
 				if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;
 				Chunk::nodes->erase(hash);

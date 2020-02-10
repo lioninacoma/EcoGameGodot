@@ -111,7 +111,7 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 			if (!chunk) continue;
 
 			std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
-				currentVoxels = chunk->getReachableVoxelsOfType(next.second->getPoint(), voxel);
+				currentVoxels = chunk->getReachableVoxelsOfType(*next.second->getPoint(), voxel);
 			
 				for (j = 0; j < currentVoxels.size(); j++) {
 					current = currentVoxels[j];

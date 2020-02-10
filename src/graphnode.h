@@ -23,17 +23,22 @@ using namespace std;
 namespace godot {
 	class GraphNode {
 	private:
-		Vector3 point;
+		boost::shared_ptr<Vector3> point;
 		unordered_map<size_t, boost::shared_ptr<GraphEdge>> edges;
 		boost::atomic<size_t> hash;
 		boost::atomic<char> voxel;
 		boost::shared_timed_mutex EDGES_MUTEX;
-		boost::shared_timed_mutex POINT_MUTEX;
 	public:
 		GraphNode(Vector3 point, char voxel) {
-			GraphNode::point = point;
+			GraphNode::point = boost::shared_ptr<Vector3>(new Vector3(point));
 			GraphNode::hash = fn::hash(point);
 			GraphNode::voxel = voxel;
+		};
+		~GraphNode() {
+			point.reset();
+			for (auto edge : edges)
+				edge.second.reset();
+			edges.clear();
 		};
 		void addEdge(boost::shared_ptr<GraphEdge> edge) {
 			boost::unique_lock<boost::shared_timed_mutex> lock(EDGES_MUTEX);
@@ -61,8 +66,7 @@ namespace godot {
 			boost::shared_lock<boost::shared_timed_mutex> lock(EDGES_MUTEX);
 			std::for_each(edges.begin(), edges.end(), func);
 		};
-		Vector3 getPoint() {
-			boost::shared_lock<boost::shared_timed_mutex> lock(POINT_MUTEX);
+		boost::shared_ptr<Vector3> getPoint() {
 			return point;
 		};
 		size_t getHash() {

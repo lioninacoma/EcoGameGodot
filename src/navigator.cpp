@@ -44,7 +44,7 @@ void Navigator::removeNode(boost::shared_ptr<GraphNode> node) {
 		node->forEachEdge(lambda);
 
 		nodes->erase(hash);
-		node.reset();
+		//node.reset();
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -63,6 +63,7 @@ void Navigator::addNode(boost::shared_ptr<GraphNode> node, Chunk* chunk) {
 		int x, y, z;
 		float nx, ny, nz;
 		Vector3 chunkOffset;
+		boost::shared_ptr<Vector3> point;
 		boost::shared_ptr<GraphNode> neighbour;
 		size_t nHash;
 
@@ -73,9 +74,10 @@ void Navigator::addNode(boost::shared_ptr<GraphNode> node, Chunk* chunk) {
 				for (y = -1; y < 2; y++) {
 					if (!x && !y && !z) continue;
 
-					nx = node->getPoint().x + x;
-					ny = node->getPoint().y + y;
-					nz = node->getPoint().z + z;
+					point = node->getPoint();
+					nx = point->x + x;
+					ny = point->y + y;
+					nz = point->z + z;
 
 					nHash = fn::hash(Vector3(nx, ny, nz));
 					neighbour = chunk->getNode(nHash);
@@ -98,7 +100,7 @@ void Navigator::addNode(boost::shared_ptr<GraphNode> node, Chunk* chunk) {
 						}
 					}
 
-					addEdge(node, neighbour, euclidean(node->getPoint(), neighbour->getPoint()));
+					addEdge(node, neighbour, euclidean(fn::unreference(node->getPoint()), fn::unreference(neighbour->getPoint())));
 				}
 	}
 	catch (const std::exception & e) {
@@ -111,6 +113,7 @@ void Navigator::updateGraph(boost::shared_ptr<Chunk> chunk, Node* game) {
 	int x, y, z, drawOffsetY = 1;
 	float nx, ny, nz;
 	Vector3 chunkOffset;
+	boost::shared_ptr<Vector3> point;
 	boost::shared_ptr<GraphNode> current, neighbour;
 
 	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
@@ -152,9 +155,10 @@ void Navigator::updateGraph(boost::shared_ptr<Chunk> chunk, Node* game) {
 					for (y = -1; y < 2; y++) {
 						if (!x && !y && !z) continue;
 
-						nx = current->getPoint().x + x;
-						ny = current->getPoint().y + y;
-						nz = current->getPoint().z + z;
+						point = current->getPoint();
+						nx = point->x + x;
+						ny = point->y + y;
+						nz = point->z + z;
 
 						nHash = fn::hash(Vector3(nx, ny, nz));
 						auto it = nodeCache.find(nHash);
@@ -185,7 +189,7 @@ void Navigator::updateGraph(boost::shared_ptr<Chunk> chunk, Node* game) {
 							}
 						}
 
-						addEdge(current, neighbour, euclidean(current->getPoint(), neighbour->getPoint()));
+						addEdge(current, neighbour, euclidean(fn::unreference(current->getPoint()), fn::unreference(neighbour->getPoint())));
 					}
 		}
 	}
@@ -210,7 +214,7 @@ float Navigator::w(float distanceToGoal, float maxDistance) {
 }
 
 float Navigator::h(boost::shared_ptr<GraphNode> node, boost::shared_ptr<GraphNode> goal, float maxDistance) {
-	float distanceToGoal = manhattan(node->getPoint(), goal->getPoint());
+	float distanceToGoal = manhattan(fn::unreference(node->getPoint()), fn::unreference(goal->getPoint()));
 	return w(distanceToGoal, maxDistance) * distanceToGoal;
 }
 
@@ -229,12 +233,13 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 		return;
 	}
 
+	boost::shared_ptr<Vector3> currentPoint;
 	boost::shared_ptr<GraphNode> currentNode;
 	boost::shared_ptr<GraphNode> neighbourNode;
 
 	float maxDist = 96;
 	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
-	vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksInRange(startNode->getPoint(), maxDist);
+	vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksInRange(fn::unreference(startNode->getPoint()), maxDist);
 	//Godot::print(String("chunks {0}").format(Array::make(chunks.size())));
 
 	for (auto chunk : chunks) {
@@ -266,13 +271,15 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 		else currentNode = nodeIt->second;
 
 		if (!currentNode) continue;
+		
+		currentPoint = currentNode->getPoint();
 
-		if (manhattan(currentNode->getPoint(), startNode->getPoint()) > maxDist) {
+		if (manhattan(fn::unreference(currentPoint), fn::unreference(currentPoint)) > maxDist) {
 			setPathActor(path, actorInstanceId, game);
 			return;
 		}
 
-		cPos = currentNode->getPoint() + Vector3(0, 1, 0);
+		cPos = fn::unreference(currentPoint) + Vector3(0, 1, 0);
 		for (z = -range; z < range && !reachable; z++)
 			for (y = -range; y < range && !reachable; y++)
 				for (x = -range; x < range && !reachable; x++) {
@@ -290,10 +297,8 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(1, 0, 0, 1));*/
 
-			Vector3 currentPoint = currentNode->getPoint();
-
 			while (true) {
-				path.insert(0, currentPoint);
+				path.insert(0, fn::unreference(currentPoint));
 				//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 
 				if (cameFrom.find(cHash) == cameFrom.end()) break;
@@ -302,7 +307,7 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 				currentNode = currentNode->getNeighbour(cHash);
 				currentPoint = currentNode->getPoint();
 
-				path.insert(0, currentPoint);
+				path.insert(0, fn::unreference(currentPoint));
 				//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 			}
 
@@ -342,11 +347,12 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 		return;
 	}
 
+	boost::shared_ptr<Vector3> currentPoint;
 	boost::shared_ptr<GraphNode> currentNode;
 	boost::shared_ptr<GraphNode> neighbourNode;
 
 	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
-	vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksRay(startNode->getPoint(), goalNode->getPoint());
+	vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksRay(fn::unreference(startNode->getPoint()), fn::unreference(goalNode->getPoint()));
 
 	for (auto chunk : chunks) {
 		std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
@@ -358,7 +364,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 	unordered_map<size_t, size_t> cameFrom;
 	unordered_map<size_t, float> costSoFar;
 	size_t cHash, nHash, sHash = startNode->getHash(), gHash = goalNode->getHash();
-	float maxDistance = manhattan(startNode->getPoint(), goalNode->getPoint());
+	float maxDistance = manhattan(fn::unreference(startNode->getPoint()), fn::unreference(goalNode->getPoint()));
 
 	PriorityQueue<size_t, float> frontier;
 	frontier.put(sHash, 0);
@@ -372,8 +378,9 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 			currentNode = getNode(cHash);
 		else currentNode = nodeIt->second;
 
-
 		if (!currentNode) continue;
+
+		currentPoint = currentNode->getPoint();
 
 		if (cHash == gHash) {
 			//Godot::print("path found");
@@ -382,10 +389,8 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(1, 0, 0, 1));*/
 
-			Vector3 currentPoint = currentNode->getPoint();
-
 			while (true) {
-				path.insert(0, currentPoint);
+				path.insert(0, fn::unreference(currentPoint));
 				//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 
 				if (cameFrom.find(cHash) == cameFrom.end()) break;
@@ -394,7 +399,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 				currentNode = currentNode->getNeighbour(cHash);
 				currentPoint = currentNode->getPoint();
 
-				path.insert(0, currentPoint);
+				path.insert(0, fn::unreference(currentPoint));
 				//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
 			}
 

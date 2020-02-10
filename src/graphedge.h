@@ -28,6 +28,10 @@ namespace godot {
 			GraphEdge::b = b;
 			GraphEdge::cost = cost;
 		};
+		~GraphEdge() {
+			a.reset();
+			b.reset();
+		};
 		boost::shared_ptr<GraphNode> getA() {
 			return a;
 		};
