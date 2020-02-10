@@ -29,8 +29,19 @@ namespace godot {
 			return fi2(x, z, CHUNK_SIZE_X);
 		}
 
-		static Vector3 unreference(boost::shared_ptr<Vector3> point) {
+		static Vector3 unreference(std::shared_ptr<Vector3> point) {
 			return Vector3(point->x, point->y, point->z);
+		}
+
+		static void handle_eptr(std::exception_ptr eptr) {
+			try {
+				if (eptr) {
+					std::rethrow_exception(eptr);
+				}
+			}
+			catch (const std::exception & e) {
+				std::cout << "Caught exception \"" << e.what() << "\"\n";
+			}
 		}
 
 		static Vector3 toChunkCoords(Vector3 position) {

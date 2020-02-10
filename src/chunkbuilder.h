@@ -10,10 +10,10 @@
 #include <deque>
 #include <vector>
 #include <iostream>
+#include <shared_mutex>
+#include <mutex>
+#include <condition_variable>
 
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_types.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "constants.h"
@@ -37,19 +37,22 @@ namespace godot {
 			};
 			MeshBuilder meshBuilder;
 		public:
-			void run(boost::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder);
+			void run(std::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder);
 		};
 		
-		deque<boost::shared_ptr<Chunk>> buildQueue;
+		deque<std::shared_ptr<Chunk>> buildQueue;
 		unordered_set<size_t> inque;
 		void processQueue(Node* game);
-		void queueChunk(boost::shared_ptr<Chunk> chunk);
+		void queueChunk(std::shared_ptr<Chunk> chunk);
 
-		boost::shared_timed_mutex BUILD_QUEUE_MUTEX;
+		std::shared_timed_mutex BUILD_QUEUE_MUTEX;
+		std::mutex BUILD_QUEUE_WAIT;
+		std::condition_variable BUILD_QUEUE_WAIT_CV;
+		std::atomic<bool> threadStarted = false;
 	public:
-		ChunkBuilder() {};
+		ChunkBuilder();
 		~ChunkBuilder() {};
-		void build(boost::shared_ptr<Chunk> chunk, Node* game);
+		void build(std::shared_ptr<Chunk> chunk, Node* game);
 	};
 
 }

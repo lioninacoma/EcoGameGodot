@@ -9,12 +9,10 @@
 #include <vector>
 #include <unordered_map>
 #include <limits>
+#include <atomic>
+#include <shared_mutex>
+#include <mutex>
 
-#include <boost/atomic.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_types.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/exception/diagnostic_information.hpp> 
@@ -34,24 +32,24 @@ namespace godot {
 	class Chunk : public Reference {
 		GODOT_CLASS(Chunk, Reference)
 	private:
-		boost::atomic<int> amountNodes = 0;
-		boost::atomic<int> amountVoxel = 0;
-		boost::atomic<int> meshInstanceId = 0;
-		boost::atomic<bool> navigatable = false;
-		boost::atomic<bool> building = false;
-		boost::atomic<bool> volumeBuilt = false;
+		std::atomic<int> amountNodes = 0;
+		std::atomic<int> amountVoxel = 0;
+		std::atomic<int> meshInstanceId = 0;
+		std::atomic<bool> navigatable = false;
+		std::atomic<bool> building = false;
+		std::atomic<bool> volumeBuilt = false;
 
 		Vector3 offset;
 
-		boost::shared_ptr<VoxelData> volume;
-		unordered_map<size_t, boost::shared_ptr<GraphNode>>* nodes;
+		std::shared_ptr<VoxelData> volume;
+		unordered_map<size_t, std::shared_ptr<GraphNode>>* nodes;
 
 		int* surfaceY; // TODO: provide thread safety?
 		
 		OpenSimplexNoise* noise;
 
-		boost::shared_timed_mutex CHUNK_NODES_MUTEX;
-		boost::shared_timed_mutex OFFSET_MUTEX;
+		std::shared_timed_mutex CHUNK_NODES_MUTEX;
+		std::shared_timed_mutex OFFSET_MUTEX;
 
 		int getVoxelY(int x, int z);
 		float getVoxelChance(int x, int y, int z);
@@ -67,10 +65,10 @@ namespace godot {
 		
 		// getter
 		Vector3 getOffset() {
-			boost::shared_lock<boost::shared_timed_mutex> lock(OFFSET_MUTEX);
+			std::shared_lock<std::shared_timed_mutex> lock(OFFSET_MUTEX);
 			return offset;
 		}
-		boost::shared_ptr<VoxelData> getVolume() {
+		std::shared_ptr<VoxelData> getVolume() {
 			return volume;
 		}
 		int getMeshInstanceId() {
@@ -86,19 +84,19 @@ namespace godot {
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
-		void forEachNode(std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> func) {
-			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func) {
+			std::shared_lock<std::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			std::for_each(nodes->begin(), nodes->end(), func);
 		};
-		boost::shared_ptr<GraphNode> getNode(size_t hash) {
-			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+		std::shared_ptr<GraphNode> getNode(size_t hash) {
+			std::shared_lock<std::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			auto it = Chunk::nodes->find(hash);
 			if (it == Chunk::nodes->end()) return NULL;
 			return it->second;
 		};
-		boost::shared_ptr<GraphNode> findNode(Vector3 position) {
-			boost::shared_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
-			boost::shared_ptr<GraphNode> closest;
+		std::shared_ptr<GraphNode> findNode(Vector3 position) {
+			std::shared_lock<std::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+			std::shared_ptr<GraphNode> closest;
 			float minDist = numeric_limits<float>::max();
 			float dist;
 			for (auto node : *nodes) {
@@ -145,7 +143,7 @@ namespace godot {
 		};
 		// setter
 		void setOffset(Vector3 offset) {
-			boost::unique_lock<boost::shared_timed_mutex> lock(OFFSET_MUTEX);
+			std::unique_lock<std::shared_timed_mutex> lock(OFFSET_MUTEX);
 			Chunk::offset = offset;
 		};
 		void setNavigatable() {
@@ -160,18 +158,18 @@ namespace godot {
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
 
-		void addNode(boost::shared_ptr<GraphNode> node) {
-			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+		void addNode(std::shared_ptr<GraphNode> node) {
+			std::unique_lock<std::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			try {
 				size_t hash = node->getHash();
-				Chunk::nodes->insert(pair<size_t, boost::shared_ptr<GraphNode>>(hash, node));
+				Chunk::nodes->insert(pair<size_t, std::shared_ptr<GraphNode>>(hash, node));
 			}
 			catch (const std::exception & e) {
 				std::cerr << boost::diagnostic_information(e);
 			}
 		};
-		void removeNode(boost::shared_ptr<GraphNode> node) {
-			boost::unique_lock<boost::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
+		void removeNode(std::shared_ptr<GraphNode> node) {
+			std::unique_lock<std::shared_timed_mutex> lock(CHUNK_NODES_MUTEX);
 			try {
 				size_t hash = node->getHash();
 				if (Chunk::nodes->find(hash) == Chunk::nodes->end()) return;

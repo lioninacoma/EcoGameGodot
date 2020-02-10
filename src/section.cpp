@@ -11,7 +11,7 @@ Section::Section(Vector2 offset, int sectionSize) {
 	Section::offset = offset;
 	Section::sectionSize = sectionSize;
 	Section::sectionChunksLen = sectionSize * sectionSize;
-	chunks = new boost::shared_ptr<Chunk>[sectionChunksLen * sizeof(*chunks)];
+	chunks = new std::shared_ptr<Chunk>[sectionChunksLen * sizeof(*chunks)];
 
 	memset(chunks, 0, sectionChunksLen * sizeof(*chunks));
 
@@ -26,20 +26,20 @@ Section::~Section() {
 	delete[] chunks;
 }
 
-boost::shared_ptr<Chunk> Section::intersection(int x, int y, int z) {
-	boost::shared_ptr<Chunk> chunk = getChunk(x - offset.x, z - offset.y);
+std::shared_ptr<Chunk> Section::intersection(int x, int y, int z) {
+	std::shared_ptr<Chunk> chunk = getChunk(x - offset.x, z - offset.y);
 	if (!chunk) return NULL;
 
 	return chunk;
 }
 
-vector<boost::shared_ptr<Chunk>> Section::getChunksRay(Vector3 from, Vector3 to) {
+vector<std::shared_ptr<Chunk>> Section::getChunksRay(Vector3 from, Vector3 to) {
 	from = fn::toChunkCoords(from);
 	to = fn::toChunkCoords(to);
 
-	vector<boost::shared_ptr<Chunk>> list;
-	boost::function<boost::shared_ptr<Chunk>(int, int, int)> intersection(boost::bind(&Section::intersection, this, _1, _2, _3));
-	return Intersection::get<boost::shared_ptr<Chunk>>(from, to, false, intersection, list);
+	vector<std::shared_ptr<Chunk>> list;
+	boost::function<std::shared_ptr<Chunk>(int, int, int)> intersection(boost::bind(&Section::intersection, this, _1, _2, _3));
+	return Intersection::get<std::shared_ptr<Chunk>>(from, to, false, intersection, list);
 }
 
 float Section::getVoxelAssetChance(int x, int y, float scale) {
@@ -48,10 +48,10 @@ float Section::getVoxelAssetChance(int x, int y, float scale) {
 		(y + offset.y * CHUNK_SIZE_Z) * scale) / 2.0 + 0.5;
 }
 
-void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_ptr<ChunkBuilder> builder, Node* game) {
+void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder> builder, Node* game) {
 	VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 	int i, areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	Vector2 start = Vector2(startV.x, startV.z);
 	Vector2 end = start + Vector2(areaSize, areaSize);
 	Area area = Area(start, end, startV.y);
@@ -67,16 +67,16 @@ void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_p
 
 Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end) {
 	Array voxels;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	int i, x, y, z, cx, cz;
 	float nx, ny, nz, voxel;
 	Vector2 chunkOffset;
-	boost::shared_ptr<Vector3> point;
-	boost::shared_ptr<GraphNode> current;
-	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
+	std::shared_ptr<Vector3> point;
+	std::shared_ptr<GraphNode> current;
+	unordered_map<size_t, std::shared_ptr<GraphNode>> nodeCache;
 	deque<size_t> queue, volume;
 	unordered_set<size_t> inque, ready;
-	vector<vector<boost::shared_ptr<GraphNode>>*> areas;
+	vector<vector<std::shared_ptr<GraphNode>>*> areas;
 	vector<bool> areaOutOfBounds;
 	int areaIndex = 0;
 	size_t cHash, nHash;
@@ -109,7 +109,7 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 					y % CHUNK_SIZE_Y,
 					z % CHUNK_SIZE_Z);
 				if (voxel) {
-					current = boost::shared_ptr<GraphNode>(new GraphNode(Vector3(x, y, z), voxel));
+					current = std::shared_ptr<GraphNode>(new GraphNode(Vector3(x, y, z), voxel));
 					nodeCache.emplace(current->getHash(), current);
 					volume.push_back(current->getHash());
 				}
@@ -118,7 +118,7 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 	}
 
 	while (true) {
-		auto area = new vector<boost::shared_ptr<GraphNode>>();
+		auto area = new vector<std::shared_ptr<GraphNode>>();
 		areaOutOfBounds.push_back(false);
 
 		while (!volume.empty()) {
@@ -204,7 +204,7 @@ PoolVector3Array Section::findVoxelsInRange(Vector3 startV, float radius, int vo
 	PoolVector3Array voxels;
 
 	int x, y, z, cx, cz, ci, dy;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	Vector2 chunkOffset;
 	Vector3 start = startV - Vector3(radius, radius, radius);
 	Vector3 end = startV + Vector3(radius, radius, radius);
@@ -240,7 +240,7 @@ bool Section::voxelAssetFits(Vector3 start, VoxelAssetType type) {
 	int maxDeltaY = voxelAsset->getMaxDeltaY();
 	int areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
 	int x, y, z, cx, cz, ci, dy;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	Vector2 chunkOffset, end = Vector2(start.x, start.z) + Vector2(areaSize, areaSize);
 	y = (int)start.y;
 
@@ -267,10 +267,10 @@ bool Section::voxelAssetFits(Vector3 start, VoxelAssetType type) {
 	return true;
 }
 
-void Section::setVoxel(Vector3 position, int voxel, boost::shared_ptr<ChunkBuilder> builder, Node* game) {
+void Section::setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder, Node* game) {
 	int x, y, z, cx, cz, ci;
 	Vector2 chunkOffset;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	chunkOffset.x = position.x;
 	chunkOffset.y = position.z;
 	chunkOffset = fn::toChunkCoords(chunkOffset);
@@ -295,7 +295,7 @@ void Section::setVoxel(Vector3 position, int voxel, boost::shared_ptr<ChunkBuild
 int Section::getVoxel(Vector3 position) {
 	int x, y, z, cx, cz, ci;
 	Vector2 chunkOffset;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	chunkOffset.x = position.x;
 	chunkOffset.y = position.z;
 	chunkOffset = fn::toChunkCoords(chunkOffset);
@@ -316,11 +316,11 @@ int Section::getVoxel(Vector3 position) {
 		z % CHUNK_SIZE_Z);
 }
 
-boost::shared_ptr<GraphNode> Section::getNode(Vector3 position) {
+std::shared_ptr<GraphNode> Section::getNode(Vector3 position) {
 	int x, y, z, cx, cz, ci;
 	Vector2 chunkOffset;
-	boost::shared_ptr<Chunk> chunk;
-	boost::shared_ptr<GraphNode> node;
+	std::shared_ptr<Chunk> chunk;
+	std::shared_ptr<GraphNode> node;
 	chunkOffset.x = position.x;
 	chunkOffset.y = position.z;
 	chunkOffset = fn::toChunkCoords(chunkOffset);
@@ -340,32 +340,32 @@ boost::shared_ptr<GraphNode> Section::getNode(Vector3 position) {
 	return chunk->findNode(position);
 }
 
-void Section::setChunk(int x, int z, boost::shared_ptr<Chunk> chunk) {
+void Section::setChunk(int x, int z, std::shared_ptr<Chunk> chunk) {
 	int i = fn::fi2(x, z, sectionSize);
 	return setChunk(i, chunk);
 }
 
-void Section::setChunk(int i, boost::shared_ptr<Chunk> chunk) {
-	boost::unique_lock<boost::shared_timed_mutex> lock(CHUNKS_MUTEX);
+void Section::setChunk(int i, std::shared_ptr<Chunk> chunk) {
+	std::unique_lock<std::shared_timed_mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= sectionChunksLen) return;
 	chunks[i] = chunk;
 }
 
-boost::shared_ptr<Chunk> Section::getChunk(int x, int z) {
+std::shared_ptr<Chunk> Section::getChunk(int x, int z) {
 	int i = fn::fi2(x, z, sectionSize);
 	return getChunk(i);
 }
 
-boost::shared_ptr<Chunk> Section::getChunk(int i) {
-	boost::shared_lock<boost::shared_timed_mutex> lock(CHUNKS_MUTEX);
+std::shared_ptr<Chunk> Section::getChunk(int i) {
+	std::shared_lock<std::shared_timed_mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= sectionChunksLen) return NULL;
 	return chunks[i];
 }
 
 void Section::fill(EcoGame* lib, int sectionSize) {
 	int xS, xE, zS, zE, x, z, sx, sy, cx, cz, ci, si;
-	boost::shared_ptr<Section> section;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Section> section;
+	std::shared_ptr<Chunk> chunk;
 	Vector3 tl, br, chunkCoords;
 
 	tl = Vector3(offset.x, 0, offset.y);
@@ -390,12 +390,7 @@ void Section::fill(EcoGame* lib, int sectionSize) {
 
 			for (sy = 0; sy < sectionSize; sy++) {
 				for (sx = 0; sx < sectionSize; sx++) {
-					try {
-						chunk = section->getChunk(sx, sy);
-					}
-					catch (const std::exception & e) {
-						std::cerr << boost::diagnostic_information(e);
-					}
+					chunk = section->getChunk(sx, sy);
 					if (!chunk) continue;
 
 					chunkCoords = chunk->getOffset();
@@ -412,13 +407,13 @@ void Section::fill(EcoGame* lib, int sectionSize) {
 	}
 }
 
-void Section::build(boost::shared_ptr<ChunkBuilder> builder, Node* game) {
+void Section::build(std::shared_ptr<ChunkBuilder> builder, Node* game) {
 	int x, y, i;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 
 	for (y = 0; y < sectionSize; y++) {
 		for (x = 0; x < sectionSize; x++) {
-			chunk = boost::shared_ptr<Chunk>(Chunk::_new());
+			chunk = std::shared_ptr<Chunk>(Chunk::_new());
 			chunk->setOffset(Vector3((x + offset.x) * CHUNK_SIZE_X, 0, (y + offset.y) * CHUNK_SIZE_Z));
 			setChunk(x, y, chunk);
 			chunk->buildVolume();
@@ -438,7 +433,7 @@ void Section::build(boost::shared_ptr<ChunkBuilder> builder, Node* game) {
 }
 
 Vector2 Section::getOffset() {
-	boost::shared_lock<boost::shared_timed_mutex> lock(OFFSET_MUTEX);
+	std::shared_lock<std::shared_timed_mutex> lock(OFFSET_MUTEX);
 	return Section::offset;
 }
 
@@ -452,7 +447,7 @@ void Section::buildAreasByType(VoxelAssetType type) {
 	int currentY, currentType, currentIndex, deltaY, lastY = -1, ci, i, j, it, vx, vz;
 	Vector2 areasOffset, start;
 	Vector3 chunkOffset;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	vector<Area> areas;
 	vector<int> yValues;
 
@@ -533,7 +528,7 @@ void Section::buildAreasByType(VoxelAssetType type) {
 
 void Section::buildArea(Area area, VoxelAssetType type) {
 	int voxelType, vx, vy, vz, ci, cx, cz, ay = area.getY() + 1;
-	boost::shared_ptr<Chunk> chunk;
+	std::shared_ptr<Chunk> chunk;
 	Vector2 chunkOffset;
 	Vector2 start = area.getStart() + area.getOffset();
 	vector<Voxel>* voxels = VoxelAssetManager::get()->getVoxels(type);

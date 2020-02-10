@@ -5,9 +5,7 @@
 #include <Vector3.hpp>
 
 #include <unordered_map>
-
-#include <boost/atomic.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
+#include <atomic>
 
 #include "constants.h"
 #include "fn.h"
@@ -19,23 +17,23 @@ namespace godot {
 
 	class GraphEdge {
 	private:
-		boost::shared_ptr<GraphNode> a;
-		boost::shared_ptr<GraphNode> b;
-		boost::atomic<float> cost;
+		std::shared_ptr<GraphNode> a;
+		std::shared_ptr<GraphNode> b;
+		std::atomic<float> cost;
 	public:
-		GraphEdge(boost::shared_ptr<GraphNode> a, boost::shared_ptr<GraphNode> b, float cost) {
+		GraphEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost) {
 			GraphEdge::a = a;
 			GraphEdge::b = b;
 			GraphEdge::cost = cost;
 		};
 		~GraphEdge() {
-			a.reset();
-			b.reset();
+			//a.reset();
+			//b.reset();
 		};
-		boost::shared_ptr<GraphNode> getA() {
+		std::shared_ptr<GraphNode> getA() {
 			return a;
 		};
-		boost::shared_ptr<GraphNode> getB() {
+		std::shared_ptr<GraphNode> getB() {
 			return b;
 		};
 		float getCost() {

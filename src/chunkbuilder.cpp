@@ -8,7 +8,11 @@
 
 using namespace godot;
 
-void ChunkBuilder::Worker::run(boost::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder) {
+ChunkBuilder::ChunkBuilder() {
+	ChunkBuilder::threadStarted = false;
+}
+
+void ChunkBuilder::Worker::run(std::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder) {
 	//Godot::print(String("building chunk at {0} ...").format(Array::make(chunk->getOffset())));
 	if (!chunk || !game) return;
 
@@ -116,34 +120,49 @@ void ChunkBuilder::Worker::run(boost::shared_ptr<Chunk> chunk, Node* game, Chunk
 
 	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
 	chunk->setBuilding(false);
+	builder->BUILD_QUEUE_WAIT_CV.notify_one();
 }
 
 void ChunkBuilder::processQueue(Node* game) {
-	boost::shared_lock<boost::shared_timed_mutex> lock(BUILD_QUEUE_MUTEX);
-	if (buildQueue.empty()) return;
-	boost::shared_ptr<Chunk> chunk = buildQueue.front();
-	buildQueue.pop_front();
-	size_t hash = fn::hash(chunk->getOffset());
-	inque.erase(hash);
-	build(chunk, game);
+	while (true) {
+		std::unique_lock<std::mutex> lock(BUILD_QUEUE_WAIT);
+		BUILD_QUEUE_WAIT_CV.wait(lock);
+		if (buildQueue.empty()) continue;
+
+		BUILD_QUEUE_MUTEX.lock();
+		std::shared_ptr<Chunk> chunk = buildQueue.front();
+		buildQueue.pop_front();
+		BUILD_QUEUE_MUTEX.unlock();
+
+		size_t hash = fn::hash(chunk->getOffset());
+		inque.erase(hash);
+		build(chunk, game);
+	}
 }
 
-void ChunkBuilder::queueChunk(boost::shared_ptr<Chunk> chunk) {
-	boost::shared_lock<boost::shared_timed_mutex> lock(BUILD_QUEUE_MUTEX);
+void ChunkBuilder::queueChunk(std::shared_ptr<Chunk> chunk) {
+	std::unique_lock<std::shared_timed_mutex> lock(BUILD_QUEUE_MUTEX);
+
 	size_t hash = fn::hash(chunk->getOffset());
 	if (inque.find(hash) != inque.end()) return;
 	inque.insert(hash);
 	buildQueue.push_back(chunk);
 }
 
-void ChunkBuilder::build(boost::shared_ptr<Chunk> chunk, Node* game) {
+void ChunkBuilder::build(std::shared_ptr<Chunk> chunk, Node* game) {
 	Worker* worker = new Worker();
+
+	if (!threadStarted) {
+		threadStarted = true;
+		boost::thread t(&ChunkBuilder::processQueue, this, game);
+	}
+
 	if (chunk->isBuilding()) {
 		//Godot::print(String("chunk at {0} is already building").format(Array::make(chunk->getOffset())));
 		queueChunk(chunk);
 		return;
 	}
+
 	chunk->setBuilding(true);
 	ThreadPool::get()->submitTask(boost::bind(&Worker::run, worker, chunk, game, this));
-	ThreadPool::get()->submitTask(boost::bind(&ChunkBuilder::processQueue, this, game));
 }

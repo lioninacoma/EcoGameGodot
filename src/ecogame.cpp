@@ -5,16 +5,6 @@
 #include <boost/exception/diagnostic_information.hpp> 
 #include <boost/exception_ptr.hpp> 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <tchar.h>
-
-void SignalHandler(int signal) {
-	printf("Signal %d", signal);
-	throw "!Access Violation!";
-}
-
 using namespace godot;
 
 void EcoGame::_register_methods() {
@@ -36,13 +26,8 @@ void EcoGame::_register_methods() {
 }
 
 EcoGame::EcoGame() {
-	typedef void (*SignalHandlerPointer)(int);
-
-	SignalHandlerPointer previousHandler;
-	previousHandler = signal(SIGSEGV, SignalHandler);
-
-	chunkBuilder = boost::shared_ptr<ChunkBuilder>(new ChunkBuilder());
-	sections = new boost::shared_ptr<Section>[SECTIONS_LEN * sizeof(*sections)];
+	chunkBuilder = std::shared_ptr<ChunkBuilder>(new ChunkBuilder());
+	sections = new std::shared_ptr<Section>[SECTIONS_LEN * sizeof(*sections)];
 
 	memset(sections, 0, SECTIONS_LEN * sizeof(*sections));
 }
@@ -57,7 +42,7 @@ void EcoGame::_init() {
 }
 
 Array EcoGame::getDisconnectedVoxels(Vector3 position, float radius) {
-	boost::shared_ptr<Section> section;
+	std::shared_ptr<Section> section;
 
 	Vector3 start = position - Vector3(radius, radius, radius);
 	Vector3 end = position + Vector3(radius, radius, radius);
@@ -71,7 +56,7 @@ Array EcoGame::getDisconnectedVoxels(Vector3 position, float radius) {
 		Vector2 offset = Vector2(tl.x, tl.z);
 		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section = std::shared_ptr<Section>(new Section(offset, sectionSize));
 		section->fill(this, SECTION_SIZE);
 		Array voxels = section->getDisconnectedVoxels(position, start, end);
 		section.reset();
@@ -88,7 +73,7 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 	int i, j;
 	PoolVector3Array currentVoxels, result;
 	unordered_map<size_t, Vector3> voxels;
-	boost::shared_ptr<Section> section;
+	std::shared_ptr<Section> section;
 	Vector3 tl = start;
 	Vector3 br = end;
 	Vector3 current;
@@ -103,14 +88,14 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 		int sectionChunksLen = sectionSize * sectionSize;
 
-		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section = std::shared_ptr<Section>(new Section(offset, sectionSize));
 		section->fill(this, SECTION_SIZE);
 
 		for (i = 0; i < sectionChunksLen; i++) {
 			auto chunk = section->getChunk(i);
 			if (!chunk) continue;
 
-			std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+			std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
 				currentVoxels = chunk->getReachableVoxelsOfType(*next.second->getPoint(), voxel);
 			
 				for (j = 0; j < currentVoxels.size(); j++) {
@@ -134,12 +119,12 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 	return result;
 }
 
-boost::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
-	boost::shared_ptr<Section> section = NULL;
+std::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
+	std::shared_ptr<Section> section = NULL;
 
 	try {
 		//Godot::print(String("Section: {0}").format(Array::make(Vector3(x, y, z))));
-		boost::shared_ptr<Section> section = getSection(x, z);
+		std::shared_ptr<Section> section = getSection(x, z);
 		if (!section) return NULL;
 	}
 	catch (const std::exception & e) {
@@ -149,15 +134,15 @@ boost::shared_ptr<Section> EcoGame::intersection(int x, int y, int z) {
 	return section;
 }
 
-vector<boost::shared_ptr<Section>> EcoGame::getSectionsRay(Vector3 from, Vector3 to) {
+vector<std::shared_ptr<Section>> EcoGame::getSectionsRay(Vector3 from, Vector3 to) {
 	from = fn::toSectionCoords(from);
 	to = fn::toSectionCoords(to);
-	vector<boost::shared_ptr<Section>> sections;
+	vector<std::shared_ptr<Section>> sections;
 
 	try {
-		vector<boost::shared_ptr<Section>> list;
-		boost::function<boost::shared_ptr<Section>(int, int, int)> intersection(boost::bind(&EcoGame::intersection, this, _1, _2, _3));
-		sections = Intersection::get<boost::shared_ptr<Section>>(from, to, false, intersection, list);
+		vector<std::shared_ptr<Section>> list;
+		boost::function<std::shared_ptr<Section>(int, int, int)> intersection(boost::bind(&EcoGame::intersection, this, _1, _2, _3));
+		sections = Intersection::get<std::shared_ptr<Section>>(from, to, false, intersection, list);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -166,12 +151,12 @@ vector<boost::shared_ptr<Section>> EcoGame::getSectionsRay(Vector3 from, Vector3
 	return sections;
 }
 
-vector<boost::shared_ptr<Chunk>> EcoGame::getChunksRay(Vector3 from, Vector3 to) {
-	vector<boost::shared_ptr<Chunk>> list;
-	vector<boost::shared_ptr<Chunk>> chunks;
+vector<std::shared_ptr<Chunk>> EcoGame::getChunksRay(Vector3 from, Vector3 to) {
+	vector<std::shared_ptr<Chunk>> list;
+	vector<std::shared_ptr<Chunk>> chunks;
 	
 	try {
-		vector<boost::shared_ptr<Section>> sections = getSectionsRay(from, to);
+		vector<std::shared_ptr<Section>> sections = getSectionsRay(from, to);
 
 		for (auto section : sections) {
 			chunks = section->getChunksRay(from, to);
@@ -185,13 +170,13 @@ vector<boost::shared_ptr<Chunk>> EcoGame::getChunksRay(Vector3 from, Vector3 to)
 	return list;
 }
 
-vector<boost::shared_ptr<Chunk>> EcoGame::getChunksInRange(Vector3 center, float radius) {
-	vector<boost::shared_ptr<Chunk>> list;
+vector<std::shared_ptr<Chunk>> EcoGame::getChunksInRange(Vector3 center, float radius) {
+	vector<std::shared_ptr<Chunk>> list;
 	int x, z, i;
 	int dist = radius / (SECTION_SIZE * CHUNK_SIZE_X);
 	Vector3 p = Vector3(center.x, 0, center.z);
 	Vector3 cc = Vector3(CHUNK_SIZE_X / 2, 0, CHUNK_SIZE_Z / 2);
-	boost::shared_ptr<Section> section;
+	std::shared_ptr<Section> section;
 
 	try {
 		p = fn::toSectionCoords(p);
@@ -241,7 +226,7 @@ void EcoGame::setVoxel(Vector3 position, int voxel) {
 	try {
 		Node* game = get_tree()->get_root()->get_node("EcoGame");
 		Vector3 p = position;
-		boost::shared_ptr<Section> section;
+		std::shared_ptr<Section> section;
 		p = fn::toSectionCoords(p);
 		section = getSection(p.x, p.z);
 		if (!section) return;
@@ -256,7 +241,7 @@ int EcoGame::getVoxel(Vector3 position) {
 	int voxel = 0;
 	try {
 		Vector3 p = position;
-		boost::shared_ptr<Section> section;
+		std::shared_ptr<Section> section;
 		p = fn::toSectionCoords(p);
 		section = getSection(p.x, p.z);
 		if (!section) return 0;
@@ -268,11 +253,11 @@ int EcoGame::getVoxel(Vector3 position) {
 	return voxel;
 }
 
-boost::shared_ptr<GraphNode> EcoGame::getNode(Vector3 position) {
-	boost::shared_ptr<GraphNode> node;
+std::shared_ptr<GraphNode> EcoGame::getNode(Vector3 position) {
+	std::shared_ptr<GraphNode> node;
 	try {
 		Vector3 p = position;
-		boost::shared_ptr<Section> section;
+		std::shared_ptr<Section> section;
 		p = fn::toSectionCoords(p);
 		section = getSection(p.x, p.z);
 		if (!section) return NULL;
@@ -286,23 +271,23 @@ boost::shared_ptr<GraphNode> EcoGame::getNode(Vector3 position) {
 
 void EcoGame::updateGraph(Variant vChunk) {
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	boost::shared_ptr<Chunk> chunk = boost::shared_ptr<Chunk>(as<Chunk>(vChunk.operator Object * ()));
+	std::shared_ptr<Chunk> chunk = std::shared_ptr<Chunk>(as<Chunk>(vChunk.operator Object * ()));
 
 	ThreadPool::get()->submitTask(boost::bind(&EcoGame::updateGraphTask, this, chunk, game));
 }
 
-void EcoGame::updateGraphTask(boost::shared_ptr<Chunk> chunk, Node* game) {
+void EcoGame::updateGraphTask(std::shared_ptr<Chunk> chunk, Node* game) {
 	Navigator::get()->updateGraph(chunk, game);
 }
 
-void EcoGame::setSection(int x, int z, boost::shared_ptr<Section> section) {
+void EcoGame::setSection(int x, int z, std::shared_ptr<Section> section) {
 	int i = fn::fi2(x, z, SECTIONS_SIZE);
 	return setSection(i, section);
 }
 
-void EcoGame::setSection(int i, boost::shared_ptr<Section> section) {
+void EcoGame::setSection(int i, std::shared_ptr<Section> section) {
 	try {
-		boost::unique_lock<boost::shared_timed_mutex> lock(SECTIONS_MUTEX);
+		std::unique_lock<std::shared_timed_mutex> lock(SECTIONS_MUTEX);
 		if (i < 0 || i >= SECTIONS_LEN) return;
 		sections[i] = section;
 	}
@@ -311,15 +296,15 @@ void EcoGame::setSection(int i, boost::shared_ptr<Section> section) {
 	}
 }
 
-boost::shared_ptr<Section> EcoGame::getSection(int x, int z) {
+std::shared_ptr<Section> EcoGame::getSection(int x, int z) {
 	int i = fn::fi2(x, z, SECTIONS_SIZE);
 	return getSection(i);
 }
 
-boost::shared_ptr<Section> EcoGame::getSection(int i) {
-	boost::shared_ptr<Section> section;
+std::shared_ptr<Section> EcoGame::getSection(int i) {
+	std::shared_ptr<Section> section;
 	try {
-		boost::shared_lock<boost::shared_timed_mutex> lock(SECTIONS_MUTEX);
+		std::shared_lock<std::shared_timed_mutex> lock(SECTIONS_MUTEX);
 		if (i < 0 || i >= SECTIONS_LEN) return NULL;
 		section = sections[i];
 	}
@@ -334,7 +319,7 @@ void EcoGame::updateGraphs(Vector3 center, float radius) {
 	int x, z, i;
 	int dist = radius / (SECTION_SIZE * CHUNK_SIZE_X);
 	Vector3 p = Vector3(center.x, 0, center.z);
-	boost::shared_ptr<Section> section;
+	std::shared_ptr<Section> section;
 	
 	p = fn::toSectionCoords(p);
 
@@ -361,7 +346,7 @@ void EcoGame::buildSections(Vector3 pos, float d, int maxSectionsBuilt) {
 	int it = 0;
 	int maxIt = (int)((Math_PI * d * d) / (CHUNK_SIZE_X * SECTION_CHUNKS_LEN));
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
-	boost::shared_ptr<Section> section;
+	std::shared_ptr<Section> section;
 	Vector3 p = Vector3(pos.x, 0, pos.z);
 
 	p = fn::toSectionCoords(p);
@@ -376,7 +361,7 @@ void EcoGame::buildSections(Vector3 pos, float d, int maxSectionsBuilt) {
 				if (sections[fn::fi2(x, z, SECTIONS_SIZE)]) continue;
 
 				Godot::print(String("section {0} building ...").format(Array::make(Vector2(x * SECTION_SIZE, z * SECTION_SIZE))));
-				section = boost::shared_ptr<Section>(new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE)));
+				section = std::shared_ptr<Section>(new Section(Vector2(x * SECTION_SIZE, z * SECTION_SIZE)));
 				setSection(x, z, section);
 				ThreadPool::get()->submitTask(boost::bind(&EcoGame::buildSection, this, section, game));
 
@@ -387,12 +372,12 @@ void EcoGame::buildSections(Vector3 pos, float d, int maxSectionsBuilt) {
 	}
 }
 
-void EcoGame::buildSection(boost::shared_ptr<Section> section, Node* game) {
+void EcoGame::buildSection(std::shared_ptr<Section> section, Node* game) {
 	section->build(chunkBuilder, game);
 }
 
 void EcoGame::buildChunk(Variant vChunk) {
-	boost::shared_ptr<Chunk> chunk = boost::shared_ptr<Chunk>(as<Chunk>(vChunk.operator Object * ()));
+	std::shared_ptr<Chunk> chunk = std::shared_ptr<Chunk>(as<Chunk>(vChunk.operator Object * ()));
 	Node* game = get_tree()->get_root()->get_node("EcoGame");
 	chunkBuilder->build(chunk, game);
 }
@@ -400,7 +385,7 @@ void EcoGame::buildChunk(Variant vChunk) {
 PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int voxel) {
 	PoolVector3Array voxels;
 	try {
-		boost::shared_ptr<Section> section;
+		std::shared_ptr<Section> section;
 
 		Vector3 start = startV - Vector3(radius, radius, radius);
 		Vector3 end = startV + Vector3(radius, radius, radius);
@@ -413,7 +398,7 @@ PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int vo
 		Vector2 offset = Vector2(tl.x, tl.z);
 		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section = std::shared_ptr<Section>(new Section(offset, sectionSize));
 		section->fill(this, SECTION_SIZE);
 		voxels = section->findVoxelsInRange(startV, radius, voxel);
 		section.reset();
@@ -431,7 +416,7 @@ bool EcoGame::voxelAssetFits(Vector3 startV, int type) {
 		VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(vat);
 		float width = asset->getWidth();
 		float depth = asset->getDepth();
-		boost::shared_ptr<Section> section;
+		std::shared_ptr<Section> section;
 		int w2 = (int)(width / 2.0);
 		int d2 = (int)(depth / 2.0);
 
@@ -446,7 +431,7 @@ bool EcoGame::voxelAssetFits(Vector3 startV, int type) {
 		Vector2 offset = Vector2(tl.x, tl.z);
 		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section = std::shared_ptr<Section>(new Section(offset, sectionSize));
 		section->fill(this, SECTION_SIZE);
 		fits = section->voxelAssetFits(start, vat);
 		section.reset();
@@ -464,7 +449,7 @@ void EcoGame::addVoxelAsset(Vector3 startV, int type) {
 		Node* game = get_tree()->get_root()->get_node("EcoGame");
 		float width = asset->getWidth();
 		float depth = asset->getDepth();
-		boost::shared_ptr<Section> section;
+		std::shared_ptr<Section> section;
 		int w2 = (int)(width / 2.0);
 		int d2 = (int)(depth / 2.0);
 
@@ -479,7 +464,7 @@ void EcoGame::addVoxelAsset(Vector3 startV, int type) {
 		Vector2 offset = Vector2(tl.x, tl.z);
 		int sectionSize = max(abs(br.x - tl.x), abs(br.z - tl.z)) + 1;
 
-		section = boost::shared_ptr<Section>(new Section(offset, sectionSize));
+		section = std::shared_ptr<Section>(new Section(offset, sectionSize));
 		section->fill(this, SECTION_SIZE);
 		section->addVoxelAsset(start, vat, chunkBuilder, game);
 		section.reset();

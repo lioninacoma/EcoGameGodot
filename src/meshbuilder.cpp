@@ -21,12 +21,12 @@ vector<int> MeshBuilder::buildVertices(VoxelAssetType type, Vector3 offset, floa
 	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, offset, DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(boost::shared_ptr<Chunk> chunk, float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen) {
 	const int DIMS[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
 	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, chunk->getOffset(), DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boost::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen) {
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
 	long ms = 0;
@@ -167,7 +167,7 @@ vector<int> MeshBuilder::buildVertices(boost::shared_ptr<VoxelData> volume, boos
 									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 1.0) {
 										for (nx = bl[0] + 0.5; nx < br[0]; nx += 1.0) {
 											if (volume->get((int)nx, (int)ny, (int)nz) == 0 && volume->get((int)nx, (int)ny - 1, (int)nz) != 6) {
-												chunk->addNode(boost::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+												chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
 											}
 										}
 									}

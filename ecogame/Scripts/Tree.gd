@@ -1,7 +1,7 @@
 extends Spatial
 
 const COLLAPSE_TIMEOUT = 0.5
-const DELETE_TIMEOUT = 1.5
+const DELETE_TIMEOUT = 2.5
 
 var asset
 var volume : Array

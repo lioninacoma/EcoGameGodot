@@ -1,16 +1,15 @@
 #ifndef OBJECTPOOL_H
 #define OBJECTPOOL_H
 
-#include <boost/pool/pool_alloc.hpp>
-#include <boost/pool/simple_segregated_storage.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_types.hpp>
-
 #include <vector>
 #include <list>
 #include <cstddef>
 #include <cassert>
 #include <iostream>
+
+#include <boost/thread/mutex.hpp>
+#include <boost/pool/pool_alloc.hpp>
+#include <boost/pool/simple_segregated_storage.hpp>
 
 #include "constants.h"
 #include "semaphore.h"

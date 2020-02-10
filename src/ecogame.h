@@ -13,12 +13,10 @@
 #include <iostream>
 #include <unordered_map> 
 #include <iterator>
-
-#include <boost/atomic.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_types.hpp>
+#include <exception>
+#include <stdexcept>
+#include <shared_mutex>
+#include <mutex>
 
 #include "constants.h"
 #include "fn.h"
@@ -38,13 +36,13 @@ namespace godot {
 		GODOT_CLASS(EcoGame, Node)
 
 	private:
-		boost::shared_ptr<Section>* sections;
-		boost::shared_ptr<ChunkBuilder> chunkBuilder;
+		std::shared_ptr<Section>* sections;
+		std::shared_ptr<ChunkBuilder> chunkBuilder;
 
-		boost::shared_timed_mutex SECTIONS_MUTEX;
+		std::shared_timed_mutex SECTIONS_MUTEX;
 
-		void buildSection(boost::shared_ptr<Section> section, Node* game);
-		void updateGraphTask(boost::shared_ptr<Chunk> chunk, Node* game);
+		void buildSection(std::shared_ptr<Section> section, Node* game);
+		void updateGraphTask(std::shared_ptr<Chunk> chunk, Node* game);
 		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game);
 		void navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib);
 	public:
@@ -55,16 +53,16 @@ namespace godot {
 
 		void _init();
 
-		boost::shared_ptr<Section> intersection(int x, int y, int z);
-		vector<boost::shared_ptr<Section>> getSectionsRay(Vector3 from, Vector3 to);
-		vector<boost::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
-		vector<boost::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
+		std::shared_ptr<Section> intersection(int x, int y, int z);
+		vector<std::shared_ptr<Section>> getSectionsRay(Vector3 from, Vector3 to);
+		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
+		vector<std::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
 		Array getDisconnectedVoxels(Vector3 position, float radius);
 		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
-		void setSection(int x, int z, boost::shared_ptr<Section> section);
-		void setSection(int i, boost::shared_ptr<Section> section);
-		boost::shared_ptr<Section> getSection(int x, int z);
-		boost::shared_ptr<Section> getSection(int i);
+		void setSection(int x, int z, std::shared_ptr<Section> section);
+		void setSection(int i, std::shared_ptr<Section> section);
+		std::shared_ptr<Section> getSection(int x, int z);
+		std::shared_ptr<Section> getSection(int i);
 		void buildSections(Vector3 center, float radius, int maxSectionsBuilt);
 		void buildChunk(Variant vChunk);
 		void setVoxel(Vector3 position, int voxel);
@@ -79,7 +77,7 @@ namespace godot {
 		void updateGraph(Variant vChunk);
 		void updateGraphs(Vector3 center, float radius);
 		int getVoxel(Vector3 position);
-		boost::shared_ptr<GraphNode> getNode(Vector3 position);
+		std::shared_ptr<GraphNode> getNode(Vector3 position);
 	};
 
 }

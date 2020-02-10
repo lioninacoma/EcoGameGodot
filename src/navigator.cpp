@@ -8,36 +8,36 @@
 using namespace godot;
 
 Navigator::Navigator() {
-	nodes = new unordered_map<size_t, boost::shared_ptr<GraphNode>>();
+	nodes = new unordered_map<size_t, std::shared_ptr<GraphNode>>();
 }
 
 Navigator::~Navigator() {
 	delete nodes;
 }
 
-void Navigator::addEdge(boost::shared_ptr<GraphNode> a, boost::shared_ptr<GraphNode> b, float cost) {
+void Navigator::addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost) {
 	// ~600 MB
-	auto edge = boost::shared_ptr<GraphEdge>(new GraphEdge(a, b, cost));
+	auto edge = std::shared_ptr<GraphEdge>(new GraphEdge(a, b, cost));
 	a->addEdge(edge);
 	b->addEdge(edge);
 }
 
-void Navigator::addNode(boost::shared_ptr<GraphNode> node) {
-	boost::unique_lock<boost::shared_timed_mutex> lock(NAV_NODES_MUTEX);
+void Navigator::addNode(std::shared_ptr<GraphNode> node) {
+	std::unique_lock<std::shared_timed_mutex> lock(NAV_NODES_MUTEX);
 	nodes->emplace(node->getHash(), node);
 }
 
-void Navigator::removeNode(boost::shared_ptr<GraphNode> node) {
-	boost::unique_lock<boost::shared_timed_mutex> lock(NAV_NODES_MUTEX);
+void Navigator::removeNode(std::shared_ptr<GraphNode> node) {
+	std::unique_lock<std::shared_timed_mutex> lock(NAV_NODES_MUTEX);
 	try {
 		size_t hash = node->getHash();
 		auto it = nodes->find(hash);
 
 		if (it == nodes->end()) return;
 
-		boost::shared_ptr<GraphNode> neighbour;
+		std::shared_ptr<GraphNode> neighbour;
 
-		std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> lambda = [&](auto next) {
+		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> lambda = [&](auto next) {
 			neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
 			neighbour->removeEdgeWithNode(hash);
 		};
@@ -51,20 +51,20 @@ void Navigator::removeNode(boost::shared_ptr<GraphNode> node) {
 	}
 }
 
-boost::shared_ptr<GraphNode> Navigator::getNode(size_t h) {
-	boost::shared_lock<boost::shared_timed_mutex> lock(NAV_NODES_MUTEX);
+std::shared_ptr<GraphNode> Navigator::getNode(size_t h) {
+	std::shared_lock<std::shared_timed_mutex> lock(NAV_NODES_MUTEX);
 	auto it = nodes->find(h);
 	if (it == nodes->end()) return NULL;
 	return it->second;
 }
 
-void Navigator::addNode(boost::shared_ptr<GraphNode> node, Chunk* chunk) {
+void Navigator::addNode(std::shared_ptr<GraphNode> node, Chunk* chunk) {
 	try {
 		int x, y, z;
 		float nx, ny, nz;
 		Vector3 chunkOffset;
-		boost::shared_ptr<Vector3> point;
-		boost::shared_ptr<GraphNode> neighbour;
+		std::shared_ptr<Vector3> point;
+		std::shared_ptr<GraphNode> neighbour;
 		size_t nHash;
 
 		addNode(node);
@@ -108,20 +108,20 @@ void Navigator::addNode(boost::shared_ptr<GraphNode> node, Chunk* chunk) {
 	}
 }
 
-void Navigator::updateGraph(boost::shared_ptr<Chunk> chunk, Node* game) {
+void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 	//Godot::print(String("updating graph at {0} ...").format(Array::make(chunk->getOffset())));
 	int x, y, z, drawOffsetY = 1;
 	float nx, ny, nz;
 	Vector3 chunkOffset;
-	boost::shared_ptr<Vector3> point;
-	boost::shared_ptr<GraphNode> current, neighbour;
+	std::shared_ptr<Vector3> point;
+	std::shared_ptr<GraphNode> current, neighbour;
 
-	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
+	unordered_map<size_t, std::shared_ptr<GraphNode>> nodeCache;
 	deque<size_t> queue, volume;
 	unordered_set<size_t> inque, ready;
 	size_t cHash, nHash;
 
-	std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+	std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
 		addNode(next.second);
 		nodeCache.insert(next);
 		volume.push_back(next.first);
@@ -213,37 +213,37 @@ float Navigator::w(float distanceToGoal, float maxDistance) {
 	return 1 + w * w;
 }
 
-float Navigator::h(boost::shared_ptr<GraphNode> node, boost::shared_ptr<GraphNode> goal, float maxDistance) {
+float Navigator::h(std::shared_ptr<GraphNode> node, std::shared_ptr<GraphNode> goal, float maxDistance) {
 	float distanceToGoal = manhattan(fn::unreference(node->getPoint()), fn::unreference(goal->getPoint()));
 	return w(distanceToGoal, maxDistance) * distanceToGoal;
 }
 
 void Navigator::setPathActor(PoolVector3Array path, int actorInstanceId, Node* game) {
-	//boost::unique_lock<boost::shared_timed_mutex> lock(SET_PATH_MUTEX);
+	//std::unique_lock<std::shared_timed_mutex> lock(SET_PATH_MUTEX);
 	game->call_deferred("set_path_actor", path, actorInstanceId);
 }
 
 void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib) {
 	//Godot::print(String("find path from {0} to closest voxel of type {1}").format(Array::make(startV, voxel)));
 	PoolVector3Array path;
-	boost::shared_ptr<GraphNode> startNode = lib->getNode(startV);
+	std::shared_ptr<GraphNode> startNode = lib->getNode(startV);
 
 	if (!startNode) {
 		setPathActor(path, actorInstanceId, game);
 		return;
 	}
 
-	boost::shared_ptr<Vector3> currentPoint;
-	boost::shared_ptr<GraphNode> currentNode;
-	boost::shared_ptr<GraphNode> neighbourNode;
+	std::shared_ptr<Vector3> currentPoint;
+	std::shared_ptr<GraphNode> currentNode;
+	std::shared_ptr<GraphNode> neighbourNode;
 
 	float maxDist = 96;
-	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
-	vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksInRange(fn::unreference(startNode->getPoint()), maxDist);
+	unordered_map<size_t, std::shared_ptr<GraphNode>> nodeCache;
+	vector<std::shared_ptr<Chunk>> chunks = lib->getChunksInRange(fn::unreference(startNode->getPoint()), maxDist);
 	//Godot::print(String("chunks {0}").format(Array::make(chunks.size())));
 
 	for (auto chunk : chunks) {
-		std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+		std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
 			nodeCache.insert(next);
 		};
 		chunk->forEachNode(nodeFn);
@@ -305,6 +305,8 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 
 				cHash = cameFrom[cHash];
 				currentNode = currentNode->getNeighbour(cHash);
+				if (!currentNode) currentNode = getNode(cHash);
+				if (!currentNode) return;
 				currentPoint = currentNode->getPoint();
 
 				path.insert(0, fn::unreference(currentPoint));
@@ -318,7 +320,7 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 			return;
 		}
 
-		std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
+		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
 			neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
 			nHash = neighbourNode->getHash();
 			float newCost = costSoFar[cHash] + next.second->getCost();
@@ -339,23 +341,23 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game, EcoGame* lib) {
 	//Godot::print(String("find path from {0} to {1}").format(Array::make(startV, goalV)));
 	PoolVector3Array path;
-	boost::shared_ptr<GraphNode> startNode = lib->getNode(startV);
-	boost::shared_ptr<GraphNode> goalNode = lib->getNode(goalV);
+	std::shared_ptr<GraphNode> startNode = lib->getNode(startV);
+	std::shared_ptr<GraphNode> goalNode = lib->getNode(goalV);
 
 	if (!startNode || !goalNode) {
 		setPathActor(path, actorInstanceId, game);
 		return;
 	}
 
-	boost::shared_ptr<Vector3> currentPoint;
-	boost::shared_ptr<GraphNode> currentNode;
-	boost::shared_ptr<GraphNode> neighbourNode;
+	std::shared_ptr<Vector3> currentPoint;
+	std::shared_ptr<GraphNode> currentNode;
+	std::shared_ptr<GraphNode> neighbourNode;
 
-	unordered_map<size_t, boost::shared_ptr<GraphNode>> nodeCache;
-	vector<boost::shared_ptr<Chunk>> chunks = lib->getChunksRay(fn::unreference(startNode->getPoint()), fn::unreference(goalNode->getPoint()));
+	unordered_map<size_t, std::shared_ptr<GraphNode>> nodeCache;
+	vector<std::shared_ptr<Chunk>> chunks = lib->getChunksRay(fn::unreference(startNode->getPoint()), fn::unreference(goalNode->getPoint()));
 
 	for (auto chunk : chunks) {
-		std::function<void(std::pair<size_t, boost::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+		std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
 			nodeCache.insert(next);
 		};
 		chunk->forEachNode(nodeFn);
@@ -397,6 +399,8 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 
 				cHash = cameFrom[cHash];
 				currentNode = currentNode->getNeighbour(cHash);
+				if (!currentNode) currentNode = getNode(cHash);
+				if (!currentNode) return;
 				currentPoint = currentNode->getPoint();
 
 				path.insert(0, fn::unreference(currentPoint));
@@ -410,7 +414,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 			return;
 		}
 
-		std::function<void(std::pair<size_t, boost::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
+		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
 			neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
 			nHash = neighbourNode->getHash();
 			float newCost = costSoFar[cHash] + next.second->getCost();

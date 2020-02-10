@@ -9,12 +9,12 @@
 
 #include <iostream>
 #include <string>
+#include <exception>
+#include <stdexcept>
+#include <atomic>
+#include <shared_mutex>
+#include <mutex>
 
-#include <boost/atomic.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/thread/shared_mutex.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/lock_types.hpp>
 #include <boost/exception/diagnostic_information.hpp> 
 #include <boost/exception_ptr.hpp> 
 
@@ -37,16 +37,16 @@ namespace godot {
 		GODOT_CLASS(Section, Reference)
 
 	private:
-		boost::shared_ptr<Chunk>* chunks;
-		boost::atomic<int> sectionSize;
-		boost::atomic<int> sectionChunksLen;
+		std::shared_ptr<Chunk>* chunks;
+		std::atomic<int> sectionSize;
+		std::atomic<int> sectionChunksLen;
 		OpenSimplexNoise* noise;
 
 		Vector2 offset;
 
-		boost::shared_timed_mutex CHUNKS_MUTEX;
-		boost::shared_timed_mutex OFFSET_MUTEX;
-		boost::shared_ptr<Chunk> intersection(int x, int y, int z);
+		std::shared_timed_mutex CHUNKS_MUTEX;
+		std::shared_timed_mutex OFFSET_MUTEX;
+		std::shared_ptr<Chunk> intersection(int x, int y, int z);
 	public:
 		static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4>& getIntBufferPool() {
 			static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4> pool;
@@ -66,21 +66,21 @@ namespace godot {
 
 		}
 
-		vector<boost::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
+		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		float getVoxelAssetChance(int x, int y, float scale);
-		void addVoxelAsset(Vector3 startV, VoxelAssetType type, boost::shared_ptr<ChunkBuilder> builder, Node* game);
+		void addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder> builder, Node* game);
 		Array getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end);
 		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		bool voxelAssetFits(Vector3 start, VoxelAssetType type);
-		void setVoxel(Vector3 position, int voxel, boost::shared_ptr<ChunkBuilder> builder, Node* game);
+		void setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder, Node* game);
 		int getVoxel(Vector3 position);
-		boost::shared_ptr<GraphNode> getNode(Vector3 position);
-		boost::shared_ptr<Chunk> getChunk(int x, int z);
-		boost::shared_ptr<Chunk> getChunk(int i);
-		void setChunk(int x, int z, boost::shared_ptr<Chunk> chunk);
-		void setChunk(int i, boost::shared_ptr<Chunk> chunk);
+		std::shared_ptr<GraphNode> getNode(Vector3 position);
+		std::shared_ptr<Chunk> getChunk(int x, int z);
+		std::shared_ptr<Chunk> getChunk(int i);
+		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
+		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void fill(EcoGame* lib, int sectionSize);
-		void build(boost::shared_ptr<ChunkBuilder> builder, Node* game);
+		void build(std::shared_ptr<ChunkBuilder> builder, Node* game);
 		Vector2 getOffset();
 		void buildAreasByType(VoxelAssetType type);
 		void buildArea(Area area, VoxelAssetType type);
