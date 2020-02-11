@@ -10,7 +10,6 @@
 [sub_resource type="Environment" id=2]
 background_mode = 2
 background_sky = SubResource( 1 )
-ssao_enabled = true
 
 [sub_resource type="CubeMesh" id=3]
 

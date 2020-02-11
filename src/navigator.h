@@ -7,15 +7,15 @@
 #include <Texture.hpp>
 #include <ImmediateGeometry.hpp>
 
-#include <shared_mutex>
-#include <mutex>
 #include <deque>
 #include <queue>
 #include <unordered_set>
 #include <unordered_map>
 #include <limits>
 
+#include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "constants.h"
 #include "fn.h"
@@ -61,8 +61,7 @@ namespace godot {
 		void setPathActor(PoolVector3Array path, int actorInstanceId, Node* game);
 
 		unordered_map<size_t, std::shared_ptr<GraphNode>>* nodes;
-		std::shared_timed_mutex NAV_NODES_MUTEX;
-		std::shared_timed_mutex SET_PATH_MUTEX;
+		boost::shared_mutex NAV_NODES_MUTEX;
 	public:
 		static std::shared_ptr<Navigator> get() {
 			static auto navigator = std::shared_ptr<Navigator>(new Navigator());

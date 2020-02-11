@@ -6,7 +6,6 @@
 #include <atomic>
 
 #include <boost/thread/mutex.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
 #include "constants.h"
 #include "fn.h"

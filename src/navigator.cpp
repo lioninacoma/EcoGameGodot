@@ -23,18 +23,13 @@ void Navigator::addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode>
 }
 
 void Navigator::addNode(std::shared_ptr<GraphNode> node) {
-	std::unique_lock<std::shared_timed_mutex> lock(NAV_NODES_MUTEX);
+	boost::unique_lock<boost::shared_mutex> lock(NAV_NODES_MUTEX);
 	nodes->emplace(node->getHash(), node);
 }
 
 void Navigator::removeNode(std::shared_ptr<GraphNode> node) {
-	std::unique_lock<std::shared_timed_mutex> lock(NAV_NODES_MUTEX);
 	try {
 		size_t hash = node->getHash();
-		auto it = nodes->find(hash);
-
-		if (it == nodes->end()) return;
-
 		std::shared_ptr<GraphNode> neighbour;
 
 		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> lambda = [&](auto next) {
@@ -43,7 +38,10 @@ void Navigator::removeNode(std::shared_ptr<GraphNode> node) {
 		};
 		node->forEachEdge(lambda);
 
+		NAV_NODES_MUTEX.lock();
 		nodes->erase(hash);
+		NAV_NODES_MUTEX.unlock();
+
 		//node.reset();
 	}
 	catch (const std::exception & e) {
@@ -52,7 +50,7 @@ void Navigator::removeNode(std::shared_ptr<GraphNode> node) {
 }
 
 std::shared_ptr<GraphNode> Navigator::getNode(size_t h) {
-	std::shared_lock<std::shared_timed_mutex> lock(NAV_NODES_MUTEX);
+	boost::shared_lock<boost::shared_mutex> lock(NAV_NODES_MUTEX);
 	auto it = nodes->find(h);
 	if (it == nodes->end()) return NULL;
 	return it->second;
@@ -219,7 +217,6 @@ float Navigator::h(std::shared_ptr<GraphNode> node, std::shared_ptr<GraphNode> g
 }
 
 void Navigator::setPathActor(PoolVector3Array path, int actorInstanceId, Node* game) {
-	//std::unique_lock<std::shared_timed_mutex> lock(SET_PATH_MUTEX);
 	game->call_deferred("set_path_actor", path, actorInstanceId);
 }
 
@@ -305,7 +302,7 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 
 				cHash = cameFrom[cHash];
 				currentNode = currentNode->getNeighbour(cHash);
-				if (!currentNode) currentNode = getNode(cHash);
+				//if (!currentNode) currentNode = getNode(cHash);
 				if (!currentNode) return;
 				currentPoint = currentNode->getPoint();
 
@@ -340,6 +337,12 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 
 void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game, EcoGame* lib) {
 	//Godot::print(String("find path from {0} to {1}").format(Array::make(startV, goalV)));
+	bpt::ptime start, stop;
+	bpt::time_duration dur;
+	long ms = 0;
+
+	start = bpt::microsec_clock::local_time();
+
 	PoolVector3Array path;
 	std::shared_ptr<GraphNode> startNode = lib->getNode(startV);
 	std::shared_ptr<GraphNode> goalNode = lib->getNode(goalV);
@@ -399,7 +402,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 
 				cHash = cameFrom[cHash];
 				currentNode = currentNode->getNeighbour(cHash);
-				if (!currentNode) currentNode = getNode(cHash);
+				//if (!currentNode) currentNode = getNode(cHash);
 				if (!currentNode) return;
 				currentPoint = currentNode->getPoint();
 
@@ -411,6 +414,12 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 			game->call_deferred("draw_debug", geo);*/
 
 			setPathActor(path, actorInstanceId, game);
+
+			stop = bpt::microsec_clock::local_time();
+			dur = stop - start;
+			ms = dur.total_milliseconds();
+
+			//Godot::print(String("path from {0} to {1} found in {2} ms").format(Array::make(startV, goalV, ms)));
 			return;
 		}
 

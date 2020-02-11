@@ -119,9 +119,12 @@ switch_rts={
 
 [physics]
 
-common/physics_fps=30
 3d/active_soft_world=false
 
 [rendering]
 
+quality/filters/anisotropic_filter_level=2
+quality/reflections/texture_array_reflections=false
+quality/reflections/high_quality_ggx=false
+quality/depth/hdr=false
 environment/default_environment="res://default_env.tres"

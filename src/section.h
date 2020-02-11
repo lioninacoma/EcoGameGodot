@@ -12,11 +12,10 @@
 #include <exception>
 #include <stdexcept>
 #include <atomic>
-#include <shared_mutex>
-#include <mutex>
 
+#include <boost/thread/mutex.hpp>
 #include <boost/exception/diagnostic_information.hpp> 
-#include <boost/exception_ptr.hpp> 
+#include <boost/exception_ptr.hpp>
 
 #include "voxelassetmanager.h"
 #include "constants.h"
@@ -44,8 +43,7 @@ namespace godot {
 
 		Vector2 offset;
 
-		std::shared_timed_mutex CHUNKS_MUTEX;
-		std::shared_timed_mutex OFFSET_MUTEX;
+		boost::mutex CHUNKS_MUTEX;
 		std::shared_ptr<Chunk> intersection(int x, int y, int z);
 	public:
 		static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4>& getIntBufferPool() {

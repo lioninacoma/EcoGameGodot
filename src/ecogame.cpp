@@ -42,6 +42,13 @@ void EcoGame::_init() {
 }
 
 Array EcoGame::getDisconnectedVoxels(Vector3 position, float radius) {
+	bpt::ptime startTime, stopTime;
+	bpt::time_duration dur;
+	long ms = 0;
+
+	startTime = bpt::microsec_clock::local_time();
+
+	Array voxels;
 	std::shared_ptr<Section> section;
 
 	Vector3 start = position - Vector3(radius, radius, radius);
@@ -58,18 +65,29 @@ Array EcoGame::getDisconnectedVoxels(Vector3 position, float radius) {
 
 		section = std::shared_ptr<Section>(new Section(offset, sectionSize));
 		section->fill(this, SECTION_SIZE);
-		Array voxels = section->getDisconnectedVoxels(position, start, end);
+		voxels = section->getDisconnectedVoxels(position, start, end);
 		section.reset();
-		return voxels;
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
 	}
 
-	return Array();
+	stopTime = bpt::microsec_clock::local_time();
+	dur = stopTime - startTime;
+	ms = dur.total_milliseconds();
+
+	//Godot::print(String("disconnected voxels at {0} in range {1} got in {2} ms").format(Array::make(position, radius, ms)));
+
+	return voxels;
 }
 
 PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel) {
+	bpt::ptime startTime, stopTime;
+	bpt::time_duration dur;
+	long ms = 0;
+
+	startTime = bpt::microsec_clock::local_time();
+
 	int i, j;
 	PoolVector3Array currentVoxels, result;
 	unordered_map<size_t, Vector3> voxels;
@@ -115,6 +133,12 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
 	}
+
+	stopTime = bpt::microsec_clock::local_time();
+	dur = stopTime - startTime;
+	ms = dur.total_milliseconds();
+
+	//Godot::print(String("voxels of type {0} from {1} to {2} got in {3} ms").format(Array::make(voxel, start, end, ms)));
 
 	return result;
 }
@@ -287,7 +311,7 @@ void EcoGame::setSection(int x, int z, std::shared_ptr<Section> section) {
 
 void EcoGame::setSection(int i, std::shared_ptr<Section> section) {
 	try {
-		std::unique_lock<std::shared_timed_mutex> lock(SECTIONS_MUTEX);
+		boost::unique_lock<boost::mutex> lock(SECTIONS_MUTEX);
 		if (i < 0 || i >= SECTIONS_LEN) return;
 		sections[i] = section;
 	}
@@ -302,9 +326,9 @@ std::shared_ptr<Section> EcoGame::getSection(int x, int z) {
 }
 
 std::shared_ptr<Section> EcoGame::getSection(int i) {
+	boost::unique_lock<boost::mutex> lock(SECTIONS_MUTEX);
 	std::shared_ptr<Section> section;
 	try {
-		std::shared_lock<std::shared_timed_mutex> lock(SECTIONS_MUTEX);
 		if (i < 0 || i >= SECTIONS_LEN) return NULL;
 		section = sections[i];
 	}
@@ -383,6 +407,12 @@ void EcoGame::buildChunk(Variant vChunk) {
 }
 
 PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int voxel) {
+	bpt::ptime startTime, stopTime;
+	bpt::time_duration dur;
+	long ms = 0;
+
+	startTime = bpt::microsec_clock::local_time();
+
 	PoolVector3Array voxels;
 	try {
 		std::shared_ptr<Section> section;
@@ -406,6 +436,13 @@ PoolVector3Array EcoGame::findVoxelsInRange(Vector3 startV, float radius, int vo
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
 	}
+
+	stopTime = bpt::microsec_clock::local_time();
+	dur = stopTime - startTime;
+	ms = dur.total_milliseconds();
+
+	//Godot::print(String("found voxels of type {0} at {1} in range {2} in {3} ms").format(Array::make(voxel, startV, radius, ms)));
+
 	return voxels;
 }
 

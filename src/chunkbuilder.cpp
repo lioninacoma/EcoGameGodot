@@ -12,7 +12,7 @@ ChunkBuilder::ChunkBuilder() {
 	ChunkBuilder::threadStarted = false;
 }
 
-void ChunkBuilder::Worker::run(std::shared_ptr<Chunk> chunk, Node* game, ChunkBuilder* builder) {
+void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk, Node* game) {
 	//Godot::print(String("building chunk at {0} ...").format(Array::make(chunk->getOffset())));
 	if (!chunk || !game) return;
 
@@ -31,14 +31,16 @@ void ChunkBuilder::Worker::run(std::shared_ptr<Chunk> chunk, Node* game, ChunkBu
 	float** buffers;
 	float* vertices;
 
-	try {
-		buffers = Worker::getVerticesPool().borrow(TYPES);
+	buffers = getVerticesPool().borrow(TYPES);
 
+	try {
 		for (i = 0; i < TYPES; i++) {
 			memset(buffers[i], 0, MAX_VERTICES_SIZE * sizeof(*buffers[i]));
 		}
 
+		BUILD_MESH_MUTEX.lock();
 		vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES);
+		BUILD_MESH_MUTEX.unlock();
 
 		if (!chunk->isNavigatable())
 			Navigator::get()->updateGraph(chunk, game);
@@ -107,41 +109,41 @@ void ChunkBuilder::Worker::run(std::shared_ptr<Chunk> chunk, Node* game, ChunkBu
 		}
 
 		Variant v = game->call_deferred("build_chunk", meshes, Ref<Chunk>(chunk.get()));
-
-		Worker::getVerticesPool().ret(buffers, TYPES);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
 	}
 
+	getVerticesPool().ret(buffers, TYPES);
+
 	stop = bpt::microsec_clock::local_time();
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
+	//Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
 	chunk->setBuilding(false);
-	builder->BUILD_QUEUE_WAIT_CV.notify_one();
+	BUILD_QUEUE_CV.notify_one();
 }
 
 void ChunkBuilder::processQueue(Node* game) {
 	while (true) {
-		std::unique_lock<std::mutex> lock(BUILD_QUEUE_WAIT);
-		BUILD_QUEUE_WAIT_CV.wait(lock);
+		boost::unique_lock<boost::mutex> lock(BUILD_QUEUE_WAIT);
+		BUILD_QUEUE_CV.wait(lock);
 		if (buildQueue.empty()) continue;
 
 		BUILD_QUEUE_MUTEX.lock();
 		std::shared_ptr<Chunk> chunk = buildQueue.front();
 		buildQueue.pop_front();
-		BUILD_QUEUE_MUTEX.unlock();
-
 		size_t hash = fn::hash(chunk->getOffset());
 		inque.erase(hash);
+		BUILD_QUEUE_MUTEX.unlock();
+
 		build(chunk, game);
 	}
 }
 
 void ChunkBuilder::queueChunk(std::shared_ptr<Chunk> chunk) {
-	std::unique_lock<std::shared_timed_mutex> lock(BUILD_QUEUE_MUTEX);
+	boost::unique_lock<boost::mutex> lock(BUILD_QUEUE_MUTEX);
 
 	size_t hash = fn::hash(chunk->getOffset());
 	if (inque.find(hash) != inque.end()) return;
@@ -150,8 +152,6 @@ void ChunkBuilder::queueChunk(std::shared_ptr<Chunk> chunk) {
 }
 
 void ChunkBuilder::build(std::shared_ptr<Chunk> chunk, Node* game) {
-	Worker* worker = new Worker();
-
 	if (!threadStarted) {
 		threadStarted = true;
 		boost::thread t(&ChunkBuilder::processQueue, this, game);
@@ -164,5 +164,5 @@ void ChunkBuilder::build(std::shared_ptr<Chunk> chunk, Node* game) {
 	}
 
 	chunk->setBuilding(true);
-	ThreadPool::get()->submitTask(boost::bind(&Worker::run, worker, chunk, game, this));
+	ThreadPool::get()->submitTask(boost::bind(&ChunkBuilder::buildChunk, this, chunk, game));
 }

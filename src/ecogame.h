@@ -15,8 +15,7 @@
 #include <iterator>
 #include <exception>
 #include <stdexcept>
-#include <shared_mutex>
-#include <mutex>
+#include <boost/thread/mutex.hpp>
 
 #include "constants.h"
 #include "fn.h"
@@ -39,7 +38,7 @@ namespace godot {
 		std::shared_ptr<Section>* sections;
 		std::shared_ptr<ChunkBuilder> chunkBuilder;
 
-		std::shared_timed_mutex SECTIONS_MUTEX;
+		boost::mutex SECTIONS_MUTEX;
 
 		void buildSection(std::shared_ptr<Section> section, Node* game);
 		void updateGraphTask(std::shared_ptr<Chunk> chunk, Node* game);

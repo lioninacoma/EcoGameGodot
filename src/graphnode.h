@@ -25,7 +25,7 @@ namespace godot {
 		unordered_map<size_t, std::shared_ptr<GraphEdge>> edges;
 		std::atomic<size_t> hash;
 		std::atomic<char> voxel;
-		boost::mutex EDGES_MUTEX;
+		boost::shared_mutex EDGES_MUTEX;
 	public:
 		GraphNode(Vector3 point, char voxel) {
 			GraphNode::point = std::shared_ptr<Vector3>(new Vector3(point));
@@ -39,18 +39,18 @@ namespace godot {
 			edges.clear();
 		};
 		void addEdge(std::shared_ptr<GraphEdge> edge) {
-			boost::unique_lock<boost::mutex> lock(EDGES_MUTEX);
+			boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
 			size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
 			edges[nHash] = edge;
 		};
 		void removeEdgeWithNode(size_t nHash) {
-			boost::unique_lock<boost::mutex> lock(EDGES_MUTEX);
+			boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
 			auto it = edges.find(nHash);
 			if (it == edges.end()) return;
 			edges.erase(nHash);
 		};
 		std::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash) {
-			boost::unique_lock<boost::mutex> lock(EDGES_MUTEX);
+			boost::shared_lock<boost::shared_mutex> lock(EDGES_MUTEX);
 			auto it = edges.find(nHash);
 			if (it == edges.end()) return NULL;
 			return it->second;
@@ -61,7 +61,7 @@ namespace godot {
 			return (edge->getA()->getHash() != hash) ? edge->getA() : edge->getB();
 		};
 		void forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func) {
-			boost::unique_lock<boost::mutex> lock(EDGES_MUTEX);
+			boost::shared_lock<boost::shared_mutex> lock(EDGES_MUTEX);
 			std::for_each(edges.begin(), edges.end(), func);
 		};
 		std::shared_ptr<Vector3> getPoint() {

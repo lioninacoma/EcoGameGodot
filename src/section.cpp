@@ -346,7 +346,7 @@ void Section::setChunk(int x, int z, std::shared_ptr<Chunk> chunk) {
 }
 
 void Section::setChunk(int i, std::shared_ptr<Chunk> chunk) {
-	std::unique_lock<std::shared_timed_mutex> lock(CHUNKS_MUTEX);
+	boost::unique_lock<boost::mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= sectionChunksLen) return;
 	chunks[i] = chunk;
 }
@@ -357,7 +357,7 @@ std::shared_ptr<Chunk> Section::getChunk(int x, int z) {
 }
 
 std::shared_ptr<Chunk> Section::getChunk(int i) {
-	std::shared_lock<std::shared_timed_mutex> lock(CHUNKS_MUTEX);
+	boost::unique_lock<boost::mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= sectionChunksLen) return NULL;
 	return chunks[i];
 }
@@ -433,7 +433,6 @@ void Section::build(std::shared_ptr<ChunkBuilder> builder, Node* game) {
 }
 
 Vector2 Section::getOffset() {
-	std::shared_lock<std::shared_timed_mutex> lock(OFFSET_MUTEX);
 	return Section::offset;
 }
 
