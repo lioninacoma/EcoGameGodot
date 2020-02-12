@@ -193,7 +193,7 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 	}
 
 	chunk->setNavigatable();
-	Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset())));
+	//Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset())));
 }
 
 float Navigator::manhattan(Vector3 a, Vector3 b) {

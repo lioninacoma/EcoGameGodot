@@ -513,19 +513,18 @@ void EcoGame::addVoxelAsset(Vector3 startV, int type) {
 
 Array EcoGame::buildVoxelAsset(VoxelAsset* asset) {
 	Array meshes;
+	MeshBuilder meshBuilder;
+	int w = asset->getWidth();
+	int h = asset->getHeight();
+	int d = asset->getDepth();
+	const int BUFFER = max(w * h * d, 4);
+	const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
+
+	int i, j, o, n, offset, amountVertices, amountIndices;
+	float* vertices;
+	float** buffers = new float* [TYPES];
 
 	try {
-		MeshBuilder meshBuilder;
-		int w = asset->getWidth();
-		int h = asset->getHeight();
-		int d = asset->getDepth();
-		const int BUFFER = max(w * h * d, 4);
-		const int MAX_VERTICES = (BUFFER * VERTEX_SIZE * 6 * 4) / 2;
-
-		int i, j, o, n, offset, amountVertices, amountIndices;
-		float* vertices;
-		float** buffers = new float* [TYPES];
-
 		for (i = 0; i < TYPES; i++) {
 			buffers[i] = new float[MAX_VERTICES];
 			memset(buffers[i], 0, MAX_VERTICES * sizeof(*buffers[i]));
@@ -595,15 +594,15 @@ Array EcoGame::buildVoxelAsset(VoxelAsset* asset) {
 
 			meshes.push_back(meshData);
 		}
-
-		for (i = 0; i < TYPES; i++) {
-			delete[] buffers[i];
-		}
-		delete[] buffers;
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
 	}
+
+	for (i = 0; i < TYPES; i++) {
+		delete[] buffers[i];
+	}
+	delete[] buffers;
 
 	return meshes;
 }
