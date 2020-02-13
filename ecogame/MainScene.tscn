@@ -54,7 +54,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 128, 128 )
 script = ExtResource( 3 )
 
 [node name="Capsule" type="CollisionShape" parent="Player"]
-transform = Transform( 1, 0, 0, 0, -4.37114e-008, 1, 0, -1, -4.37114e-008, 0, 0, 0 )
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0 )
 shape = SubResource( 5 )
 disabled = true
 
@@ -65,7 +65,6 @@ transform = Transform( -0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, -0.707107,
 far = 800.0
 
 [node name="Floor" type="MeshInstance" parent="."]
-editor/display_folded = true
 transform = Transform( 400, 0, 0, 0, 0.54, 0, 0, 0, 400, 390, -0.5, 390 )
 visible = false
 mesh = SubResource( 6 )
@@ -81,7 +80,6 @@ margin_right = 40.0
 margin_bottom = 14.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
-editor/display_folded = true
 anchor_right = 1.0
 anchor_bottom = 1.0
 alignment = 1
