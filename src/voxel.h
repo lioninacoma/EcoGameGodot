@@ -2,13 +2,13 @@
 #define VOXEL_H
 
 #include <Godot.hpp>
-#include <Reference.hpp>
+#include <Node.hpp>
 #include <Vector3.hpp>
 
 namespace godot {
 
-	class Voxel : public Reference {
-		GODOT_CLASS(Voxel, Reference)
+	class Voxel : public Node {
+		GODOT_CLASS(Voxel, Node)
 
 	private:
 		Vector3 position;

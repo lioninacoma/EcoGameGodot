@@ -108,7 +108,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk, Node* game) {
 			meshes.push_back(meshData);
 		}
 
-		game->call_deferred("build_chunk", meshes, Ref<Chunk>(chunk.get()));
+		game->call_deferred("build_chunk", meshes, chunk.get());
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

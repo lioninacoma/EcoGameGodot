@@ -2,7 +2,7 @@
 #define SECTION_H
 
 #include <Godot.hpp>
-#include <Reference.hpp>
+#include <Node.hpp>
 #include <Vector3.hpp>
 #include <Texture.hpp>
 #include <OpenSimplexNoise.hpp>
@@ -32,8 +32,8 @@ namespace godot {
 
 	class EcoGame;
 
-	class Section : public Reference {
-		GODOT_CLASS(Section, Reference)
+	class Section : public Node {
+		GODOT_CLASS(Section, Node)
 
 	private:
 		std::shared_ptr<Chunk>* chunks;

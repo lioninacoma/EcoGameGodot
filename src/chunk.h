@@ -2,7 +2,7 @@
 #define CHUNK_H
 
 #include <Godot.hpp>
-#include <Reference.hpp>
+#include <Node.hpp>
 #include <MeshInstance.hpp>
 #include <OpenSimplexNoise.hpp>
 
@@ -29,8 +29,8 @@ using namespace std;
 
 namespace godot {
 
-	class Chunk : public Reference {
-		GODOT_CLASS(Chunk, Reference)
+	class Chunk : public Node {
+		GODOT_CLASS(Chunk, Node)
 	private:
 		std::atomic<int> amountNodes = 0;
 		std::atomic<int> amountVoxel = 0;
@@ -81,7 +81,7 @@ namespace godot {
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
-		Ref<Voxel> getVoxelRay(Vector3 from, Vector3 to);
+		Voxel* getVoxelRay(Vector3 from, Vector3 to);
 		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func) {
 			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 			std::for_each(nodes->begin(), nodes->end(), func);

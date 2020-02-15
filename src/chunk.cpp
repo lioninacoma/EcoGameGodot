@@ -14,6 +14,11 @@ void Chunk::_register_methods() {
 
 Chunk::Chunk(Vector3 offset) {
 	Chunk::offset = offset;
+	Chunk::volume = std::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
+	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
+	Chunk::nodes = new unordered_map<size_t, std::shared_ptr<GraphNode>>();
+
+	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
 }
 
 Chunk::~Chunk() {
@@ -23,12 +28,6 @@ Chunk::~Chunk() {
 }
 
 void Chunk::_init() {
-	Chunk::volume = std::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
-	Chunk::nodes = new unordered_map<size_t, std::shared_ptr<GraphNode>>();
-
-	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
-
 	Chunk::noise = OpenSimplexNoise::_new();
 	Chunk::noise->set_seed(NOISE_SEED);
 	Chunk::noise->set_octaves(4);
@@ -99,15 +98,15 @@ int Chunk::getCurrentSurfaceY(int i) {
 	return surfaceY[i];
 }
 
-Ref<Voxel> Chunk::getVoxelRay(Vector3 from, Vector3 to) {
+Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 	vector<Voxel*> list;
-	Ref<Voxel> voxel = NULL;
+	Voxel* voxel = NULL;
 
 	boost::function<Voxel*(int, int, int)> intersection(boost::bind(&Chunk::intersection, this, _1, _2, _3));
 	list = Intersection::get<Voxel*>(from, to, true, intersection, list);
 	
 	if (!list.empty()) {
-		voxel = Ref<Voxel>(list.front());
+		voxel = list.front();
 	}
 
 	return voxel;
