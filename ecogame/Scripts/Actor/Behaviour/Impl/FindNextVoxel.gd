@@ -1,18 +1,17 @@
-extends Task
+extends Behaviour
+class_name FindNextVoxel
 
-var voxel
+var voxel = null
 
-func _init(voxel):
-	self.voxel = voxel
-	self.init("SetNextVoxelInArea")
+func reset(context):
+	.reset(context)
+	context.set("next_voxel_location", null)
 
-func perform(delta : float, actor) -> bool:
-	if finished:
-		actor.task_handler.set_task_data("next_voxel", null)
-		finished = false
-		return true
-
-	var voxels = actor.task_handler.get_task_data("voxels_in_area")
+func run(actor, context) -> bool:
+	if voxel == null:
+		return false
+	
+	var voxels = context.get("voxels_in_area")
 	var next_voxel = null
 	
 	if voxels != null && voxels.size() > 0:
@@ -38,11 +37,11 @@ func perform(delta : float, actor) -> bool:
 				next_voxel = closest
 		
 		if voxels.size() == 0:
-			actor.task_handler.set_task_data("voxels_in_area", null)
+			context.set("voxels_in_area", null)
 	
 	if next_voxel:
-		actor.task_handler.set_task_data("next_voxel", next_voxel)
+		context.set("next_voxel_location", next_voxel)
 	else:
-		actor.task_handler.set_task_data("next_voxel", null)
+		context.set("next_voxel_location", null)
 	
-	return true
+	return false

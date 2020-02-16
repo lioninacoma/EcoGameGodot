@@ -120,7 +120,7 @@ func build_chunk_queued(chunk):
 
 func set_path_actor(path : PoolVector3Array, actor_instance_id : int):
 	var actor = instance_from_id(actor_instance_id)
-	actor.task_handler.set_task_data("path", path)
+	actor.get_node("BehaviourContext").set("path", path)
 
 func draw_debug(geometry : ImmediateGeometry):
 	var m = SpatialMaterial.new()
