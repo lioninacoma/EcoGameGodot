@@ -47,7 +47,8 @@ func notify(actor, event_name : String, args : Array = [], config : Dictionary =
 
 # Child class implements this method
 func perform(delta : float, actor) -> bool:
-	return true
+	if finished: return true
+	return false
 
 func update(event : TaskEvent) -> void:
 	for f in event_listeners[event.event_name]:

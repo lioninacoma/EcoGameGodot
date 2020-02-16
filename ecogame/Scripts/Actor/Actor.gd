@@ -24,11 +24,13 @@ var gravity = Vector3(0, -9.8, 0)
 const MAX_SPEED = 6
 const ACCEL = 2
 
-onready var EcoGame = get_tree().get_root().get_node("EcoGame")
+onready var eco_game = get_tree().get_root().get_node("EcoGame")
+onready var actor_manager = eco_game.get_node("ActorManager")
+
 var task_handler
 
 func _ready():
-	task_handler = TaskHandler.new(self, EcoGame.task_manager)
+	task_handler = TaskHandler.new(self, actor_manager.task_manager)
 
 func get_class():
 	return "Actor"
