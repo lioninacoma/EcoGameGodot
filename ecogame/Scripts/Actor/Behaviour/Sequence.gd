@@ -9,7 +9,7 @@ func reset(context):
 		if behaviour is Behaviour:
 			behaviour.reset(context)
 
-func run(actor, context) -> bool:
+func run(actor, context, global_context) -> bool:
 	if current_behaviour != null:
 		var finished = current_behaviour.get_state() == STATE.FINISHED
 		var stopped = current_behaviour.get_state() == STATE.STOPPED

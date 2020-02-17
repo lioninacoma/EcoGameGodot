@@ -7,14 +7,17 @@ func reset(context):
 	.reset(context)
 	context.set("path", null)
 
-func run(actor, context) -> bool:
+func run(actor, context, global_context) -> bool:
 	if to_key == null:
 		return false
 	
 	var to = context.get(to_key)
 		
 	if to == null:
-		return false
+		to = global_context.get(to_key)
+		
+		if to == null:
+			return false
 	
 	var path = context.get("path")
 	

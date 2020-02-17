@@ -2,26 +2,23 @@ extends Behaviour
 
 var Tree = load("res://Scripts/Tree.gd")
 
-func run(actor, context) -> bool:
-	var position = actor.global_transform.origin
-	var voxels = Lib.instance.findVoxelsInRange(position, 4, 4)
-	var closest = null
-	var closest_dist = INF
-	if voxels.size() > 0:
-		for v in voxels:
-			var dist = position.distance_to(v)
-			if dist < closest_dist:
-				closest = v
-				closest_dist = dist
+func reset(context):
+	.reset(context)
+
+func run(actor, context, global_context) -> bool:
+	var tree_location = context.get("next_voxel_location")
 	
-	position = closest
-	if position != null:
-		Lib.instance.setVoxel(position, 0)
+	if tree_location != null:
+		Lib.instance.setVoxel(tree_location, 0)
+		context.set("next_voxel_location", null)
 		
-		var volume = Lib.instance.getDisconnectedVoxels(position, 6)
-		if volume.size() <= 0: return true
+		var volume = Lib.instance.getDisconnectedVoxels(tree_location, 6)
+		if volume.size() <= 0: return false
+		for v in volume:
+			if v.getType() != 5:
+				return false
 		var meshes = Lib.instance.buildVoxelAssetByVolume(volume)
-		if meshes.size() <= 0: return true
+		if meshes.size() <= 0: return false
 		for v in volume:
 			Lib.instance.setVoxel(v.getPosition(), 0)
 
@@ -33,7 +30,7 @@ func run(actor, context) -> bool:
 		var h = aabb.end.y - aabb.position.y
 		var d = aabb.end.z - aabb.position.z
 
-		tree.global_transform.origin.x = position.x + 0.5
-		tree.global_transform.origin.y = position.y + 1 + (h/2)
-		tree.global_transform.origin.z = position.z + 0.5
+		tree.global_transform.origin.x = tree_location.x + 0.5
+		tree.global_transform.origin.y = tree_location.y + 1 + (h/2)
+		tree.global_transform.origin.z = tree_location.z + 0.5
 	return false

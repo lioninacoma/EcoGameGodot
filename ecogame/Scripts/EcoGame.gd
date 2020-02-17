@@ -101,11 +101,10 @@ func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 		var mi = mesh_data[2] - 1
 		if mesh_data[3] <= 0: continue
 		
-		var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
-		
 		mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
 		mesh.surface_set_material(surface_index, WorldVariables.materials[mi])
 
+		var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
 		polygon_shape.set_faces(mesh_data[1])
 		var owner_id = static_body.create_shape_owner(owner)
 		static_body.shape_owner_add_shape(owner_id, polygon_shape)

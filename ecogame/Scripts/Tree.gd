@@ -24,7 +24,8 @@ func get_mesh():
 func _process(delta : float) -> void:
 	time += delta
 	
-	if time > DELETE_TIMEOUT:
+	if !deleted && time > DELETE_TIMEOUT:
+		deleted = true
 		for i in range(voxel_assets.size() - 1, -1, -1):
 			var voxel_asset = voxel_assets[i]
 			if voxel_asset[0] == 4:
@@ -43,21 +44,23 @@ func _process(delta : float) -> void:
 	
 	if !collapsed && time > COLLAPSE_TIMEOUT:
 		collapsed = true
-		for voxel in volume:
+		for i in range(volume.size()):
+			if randf() > 0.25: continue
+			var voxel = volume[i]
 			var voxel_pos = voxel.getPosition()
 			var meshes = Lib.instance.buildVoxelAssetByVolume([voxel])
 			if meshes.size() <= 0: continue
 
 			var voxel_asset = Lib.game.build_asset(meshes, null)
 			add_child(voxel_asset)
-			
+
 			voxel_pos = voxel_asset.to_local(voxel_pos)
 			voxel_asset.transform.origin = voxel_pos + Vector3(0.5, 0.5, 0.5);
 			voxel_assets.push_back([voxel.getType(), voxel_asset])
-		
+
 		var delta_pos : Vector3 = get_body().global_transform.origin - global_transform.origin
 		translate(delta_pos)
-		
+
 		var r : Vector3 = get_body().get_rotation()
 		rotate(Vector3(1, 0, 0), r.x)
 		rotate(Vector3(0, 1, 0), r.y)

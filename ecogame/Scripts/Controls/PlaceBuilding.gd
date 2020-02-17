@@ -47,10 +47,18 @@ func _input(event : InputEvent) -> void:
 					var fits = Lib.instance.voxelAssetFits(voxel_position, asset_type)
 					if !fits: return
 					Lib.instance.addVoxelAsset(voxel_position, asset_type)
-					controls.building_location = voxel_position
+					
 					current_asset.queue_free()
 					current_asset = null
 					asset_type = -1
+					
+					var size = 64
+					var start = voxel_position + Vector3(-size, 0, -size)
+					var end = voxel_position + Vector3(size, 0, size)
+					var voxels_in_area = Lib.instance.getVoxelsInArea(start, end, 4)
+					
+					BehaviourGlobals.global_context.set("voxels_in_area", voxels_in_area)
+					BehaviourGlobals.global_context.set("storehouse_location", voxel_position)
 				else:
 					asset_type = 1
 					var meshes = Lib.instance.buildVoxelAssetByType(asset_type)

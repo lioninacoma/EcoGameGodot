@@ -27,7 +27,7 @@ func reset(context):
 func get_state():
 	return state
 
-func run(actor, context) -> bool:
+func run(actor, context, global_context) -> bool:
 	return false
 
 static func update_behaviour(behaviour, actor, context):
@@ -36,7 +36,7 @@ static func update_behaviour(behaviour, actor, context):
 	var stopped = behaviour.get_state() == STATE.STOPPED
 	if !finished && !stopped:
 		behaviour.state = STATE.RUNNING
-		if !behaviour.run(actor, context):
+		if !behaviour.run(actor, context, BehaviourGlobals.global_context):
 			behaviour.end()
 			if behaviour.repeat:
 				behaviour.reset(context)

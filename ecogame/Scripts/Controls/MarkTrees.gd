@@ -12,8 +12,9 @@ func _input(event : InputEvent) -> void:
 			var result = space_state.intersect_ray(from, to)
 		
 			if result:
-				var size = 16
+				var size = 64
 				var voxel_position = controls.get_voxel_position(result)
 				var start = voxel_position + Vector3(-size, 0, -size)
 				var end = voxel_position + Vector3(size, 0, size)
-				controls.voxels_in_area = Lib.instance.getVoxelsInArea(start, end, 4)
+				var voxels_in_area = Lib.instance.getVoxelsInArea(start, end, 4)
+				BehaviourGlobals.global_context.set("voxels_in_area", voxels_in_area)

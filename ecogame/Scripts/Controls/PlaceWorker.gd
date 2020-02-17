@@ -10,9 +10,6 @@ func _process(delta : float) -> void:
 		actor.global_transform.origin.x = controls.middle_pressed_location.x + 0.5
 		actor.global_transform.origin.y = controls.middle_pressed_location.y + 1
 		actor.global_transform.origin.z = controls.middle_pressed_location.z + 0.5
-		if controls.building_location != Vector3():
-			actor.get_node("BehaviourContext").set("storehouse_location", controls.building_location)
-			actor.get_node("BehaviourContext").set("voxels_in_area", controls.voxels_in_area)
 		print("%s actors created."%[actor_manager.amount_actors()])
 
 func _input(event : InputEvent) -> void:
@@ -29,7 +26,4 @@ func _input(event : InputEvent) -> void:
 				actor.global_transform.origin.x = voxel_position.x + 0.5
 				actor.global_transform.origin.y = voxel_position.y + 1
 				actor.global_transform.origin.z = voxel_position.z + 0.5
-				if controls.building_location != Vector3():
-					actor.get_node("BehaviourContext").set("storehouse_location", controls.building_location)
-					actor.get_node("BehaviourContext").set("voxels_in_area", controls.voxels_in_area)
 				print("%s actors created."%[actor_manager.amount_actors()])

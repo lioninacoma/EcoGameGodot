@@ -5,14 +5,13 @@ var voxel = null
 
 func reset(context):
 	.reset(context)
-	context.set("next_voxel_location", null)
 
-func run(actor, context) -> bool:
+func run(actor, context, global_context) -> bool:
 	if voxel == null:
 		return false
 	
-	var voxels = context.get("voxels_in_area")
 	var next_voxel = null
+	var voxels = global_context.get("voxels_in_area")
 	
 	if voxels != null && voxels.size() > 0:
 		var position = actor.global_transform.origin
@@ -32,16 +31,11 @@ func run(actor, context) -> bool:
 				i += 1
 			
 			voxels.remove(closest_i)
+			global_context.set("voxels_in_area", voxels)
+			
 			var nearby = Lib.instance.findVoxelsInRange(closest, 4, voxel)
 			if nearby.size() > 0:
 				next_voxel = closest
-		
-		if voxels.size() == 0:
-			context.set("voxels_in_area", null)
 	
-	if next_voxel:
-		context.set("next_voxel_location", next_voxel)
-	else:
-		context.set("next_voxel_location", null)
-	
+	context.set("next_voxel_location", next_voxel)
 	return false

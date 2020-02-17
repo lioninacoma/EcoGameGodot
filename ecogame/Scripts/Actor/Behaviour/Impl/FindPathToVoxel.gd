@@ -7,7 +7,7 @@ func reset(context):
 	.reset(context)
 	context.set("path", null)
 
-func run(actor, context) -> bool:
+func run(actor, context, global_context) -> bool:
 	if voxel == null:
 		return false
 	

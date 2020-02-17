@@ -54,6 +54,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://Scripts/Actor/Behaviour/Impl/FindPathToVoxel.gd"
 }, {
+"base": "Behaviour",
+"class": "FindVoxelNearby",
+"language": "GDScript",
+"path": "res://Scripts/Actor/Behaviour/Impl/FindVoxelNearby.gd"
+}, {
 "base": "Node",
 "class": "ObjectPool",
 "language": "GDScript",
@@ -79,6 +84,7 @@ _global_script_class_icons={
 "FindNextVoxel": "",
 "FindPath": "",
 "FindPathToVoxel": "",
+"FindVoxelNearby": "",
 "ObjectPool": "",
 "Sequence": "",
 "ThreadPool": ""
@@ -94,6 +100,7 @@ config/icon="res://icon.png"
 
 WorldVariables="*res://Scripts/Globals/WorldVariables.gd"
 Lib="*res://Scripts/Globals/Lib.gd"
+BehaviourGlobals="*res://Scripts/Actor/Behaviour/BehaviourGlobals.gd"
 
 [input]
 

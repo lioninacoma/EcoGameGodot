@@ -9,7 +9,7 @@
 [ext_resource path="res://Scripts/FPSLabel.gd" type="Script" id=7]
 [ext_resource path="res://Scripts/Controls/PlaceBuilding.gd" type="Script" id=8]
 [ext_resource path="res://Scripts/Controls/PlaceWorker.gd" type="Script" id=9]
-[ext_resource path="res://Scripts/Controls/MarkTrees.gd" type="Script" id=10]
+[ext_resource path="res://Scripts/Controls/PlaceVoxel.gd" type="Script" id=10]
 
 [sub_resource type="ProceduralSky" id=1]
 
@@ -53,7 +53,7 @@ script = ExtResource( 8 )
 [node name="PlaceWorker" type="Node" parent="Player/Controls"]
 script = ExtResource( 9 )
 
-[node name="MarkTrees" type="Node" parent="Player/Controls"]
+[node name="PlaceVoxel" type="Node" parent="Player/Controls"]
 script = ExtResource( 10 )
 
 [node name="Capsule" type="CollisionShape" parent="Player"]

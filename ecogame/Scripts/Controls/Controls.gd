@@ -9,7 +9,6 @@ var middle_pressed : bool = false
 var middle_pressed_location : Vector3 = Vector3()
 
 var building_location : Vector3 = Vector3()
-var voxels_in_area : Array
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)

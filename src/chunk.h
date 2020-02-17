@@ -110,9 +110,10 @@ namespace godot {
 			PoolVector3Array voxels;
 			Vector3 chunkOffset;
 			int x, y, z, nx, ny, nz, v;
-			for (z = -1; z < 2; z++)
-				for (x = -1; x < 2; x++)
-					for (y = -1; y < 2; y++) {
+
+			for (y = 2; y > -3; y--)
+				for (z = -2; z < 3; z++)
+					for (x = -2; x < 3; x++) {
 						nx = point.x + x;
 						ny = point.y + y;
 						nz = point.z + z;

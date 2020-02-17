@@ -15,7 +15,7 @@ func move_to_waypoint(actor):
 	direction = direction.normalized()
 	actor.velocity = direction * actor.MAX_SPEED
 
-func run(actor, context) -> bool:
+func run(actor, context, global_context) -> bool:
 	if path == null:
 		path = context.get("path")
 		
