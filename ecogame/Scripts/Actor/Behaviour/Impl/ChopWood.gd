@@ -29,6 +29,13 @@ func run(actor, context, global_context) -> bool:
 		var w = aabb.end.x - aabb.position.x
 		var h = aabb.end.y - aabb.position.y
 		var d = aabb.end.z - aabb.position.z
+		
+		var body = tree.get_body()
+		body.set_axis_lock(PhysicsServer.BODY_AXIS_ANGULAR_X, true)
+		body.set_axis_lock(PhysicsServer.BODY_AXIS_ANGULAR_Y, true)
+		body.set_axis_lock(PhysicsServer.BODY_AXIS_ANGULAR_Z, true)
+		body.set_collision_layer(0)
+		body.set_collision_mask(0)
 
 		tree.global_transform.origin.x = tree_location.x + 0.5
 		tree.global_transform.origin.y = tree_location.y + 1 + (h/2)

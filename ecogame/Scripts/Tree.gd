@@ -1,7 +1,7 @@
 extends Spatial
 
 const COLLAPSE_TIMEOUT = 0.5
-const DELETE_TIMEOUT = 2.5
+const DELETE_TIMEOUT = 2
 
 var asset
 var volume : Array
@@ -24,28 +24,31 @@ func get_mesh():
 func _process(delta : float) -> void:
 	time += delta
 	
-	if !deleted && time > DELETE_TIMEOUT:
-		deleted = true
-		for i in range(voxel_assets.size() - 1, -1, -1):
-			var voxel_asset = voxel_assets[i]
-			if voxel_asset[0] == 4:
-				var voxel_asset_body = voxel_asset[1].get_node("body")
-				var velocity_len = voxel_asset_body.get_linear_velocity().length()
-				if velocity_len > 0.05: continue
-				var vx = int(voxel_asset_body.global_transform.origin.x)
-				var vy = int(voxel_asset_body.global_transform.origin.y)
-				var vz = int(voxel_asset_body.global_transform.origin.z)
-				Lib.instance.setVoxel(Vector3(vx, vy, vz), 4)
-				voxel_asset[1].queue_free()
-				voxel_assets.remove(i)
-			else:
-				voxel_asset[1].queue_free()
-				voxel_assets.remove(i)
+	if time > DELETE_TIMEOUT:
+		if voxel_assets.empty():
+			queue_free()
+			return
+		time = DELETE_TIMEOUT - 0.02
+		var i = int(randf() * voxel_assets.size())
+		var voxel_asset = voxel_assets[i]
+		if voxel_asset[0] == 4:
+			var body = voxel_asset[1].get_node("body")
+			var velocity_len = body.get_linear_velocity().length()
+			if velocity_len > 0.05: return
+			var vx = int(body.global_transform.origin.x)
+			var vy = int(body.global_transform.origin.y)
+			var vz = int(body.global_transform.origin.z)
+			Lib.instance.setVoxel(Vector3(vx, vy, vz), 4)
+			voxel_asset[1].queue_free()
+			voxel_assets.remove(i)
+		else:
+			voxel_asset[1].queue_free()
+			voxel_assets.remove(i)
 	
 	if !collapsed && time > COLLAPSE_TIMEOUT:
 		collapsed = true
 		for i in range(volume.size()):
-			if randf() > 0.25: continue
+			if randf() > 0.2: continue
 			var voxel = volume[i]
 			var voxel_pos = voxel.getPosition()
 			var meshes = Lib.instance.buildVoxelAssetByVolume([voxel])
@@ -57,6 +60,9 @@ func _process(delta : float) -> void:
 			voxel_pos = voxel_asset.to_local(voxel_pos)
 			voxel_asset.transform.origin = voxel_pos + Vector3(0.5, 0.5, 0.5);
 			voxel_assets.push_back([voxel.getType(), voxel_asset])
+			
+			var body = voxel_asset.get_node("body")
+			body.set_linear_velocity(get_body().get_linear_velocity())
 
 		var delta_pos : Vector3 = get_body().global_transform.origin - global_transform.origin
 		translate(delta_pos)
