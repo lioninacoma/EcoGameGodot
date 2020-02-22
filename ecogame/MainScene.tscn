@@ -5,9 +5,9 @@
 [ext_resource path="res://Scripts/Player.gd" type="Script" id=3]
 [ext_resource path="res://Images/crosshair.png" type="Texture" id=4]
 [ext_resource path="res://Scripts/ActorManager.gd" type="Script" id=5]
-[ext_resource path="res://Scripts/Controls/Controls.gd" type="Script" id=6]
+[ext_resource path="res://Scripts/Controls/PlaceWaypoint.gd" type="Script" id=6]
 [ext_resource path="res://Scripts/FPSLabel.gd" type="Script" id=7]
-[ext_resource path="res://Scripts/Controls/PlaceBuilding.gd" type="Script" id=8]
+[ext_resource path="res://Scripts/Controls/Controls.gd" type="Script" id=8]
 [ext_resource path="res://Scripts/Controls/PlaceWorker.gd" type="Script" id=9]
 [ext_resource path="res://Scripts/Controls/PlaceVoxel.gd" type="Script" id=10]
 
@@ -41,14 +41,14 @@ directional_shadow_max_distance = 300.0
 [node name="Ball" parent="." instance=ExtResource( 2 )]
 
 [node name="Player" type="KinematicBody" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 128, 128 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 256, 128 )
 script = ExtResource( 3 )
 
 [node name="Controls" type="Node" parent="Player"]
-script = ExtResource( 6 )
-
-[node name="PlaceBuilding" type="Node" parent="Player/Controls"]
 script = ExtResource( 8 )
+
+[node name="PlaceWaypoint" type="Node" parent="Player/Controls"]
+script = ExtResource( 6 )
 
 [node name="PlaceWorker" type="Node" parent="Player/Controls"]
 script = ExtResource( 9 )

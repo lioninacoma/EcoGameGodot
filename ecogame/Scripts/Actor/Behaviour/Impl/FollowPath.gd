@@ -31,7 +31,7 @@ func run(actor, context, global_context) -> bool:
 	
 	move_to_waypoint(actor)
 	
-	if waypoint != null && actor.global_transform.origin.distance_to(waypoint) <= 0.4:
+	if waypoint != null && actor.global_transform.origin.distance_to(waypoint) <= 0.5:
 		if path.size() > 0:
 			waypoint = path[0]
 			path.remove(0)

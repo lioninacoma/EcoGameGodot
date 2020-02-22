@@ -78,6 +78,7 @@ namespace godot {
 		bool isBuilding() {
 			return building;
 		};
+		bool isVoxel(int x, int y, int z);
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
@@ -155,6 +156,7 @@ namespace godot {
 		};
 		void setVoxel(int x, int y, int z, int v);
 		int buildVolume();
+		int buildVolume2();
 
 		void addNode(std::shared_ptr<GraphNode> node) {
 			boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);

@@ -35,7 +35,7 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 
 	//if (chunk) Godot::print(String("building mesh at {0} ...").format(Array::make(chunk->getOffset())));
 
-	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj;
+	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj, nxi, nyi, nzi;
 	float nx, ny, nz;
 	bool backFace, b, done = false, initializeNodes = false;
 
@@ -162,14 +162,98 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 								idx = mask[n] - 1;
 								vertexOffsets[idx] = quad(offset, bl, tl, tr, br, buffers[idx], side, mask[n], vertexOffsets[idx]);
 
-								if (chunk && initializeNodes && side == TOP && bl[1] + 1 < DIMS[1]) {
-									ny = bl[1];
-									for (nz = bl[2] + 0.5; nz < tl[2]; nz += 1.0) {
-										for (nx = bl[0] + 0.5; nx < br[0]; nx += 1.0) {
-											if (volume->get((int)nx, (int)ny, (int)nz) == 0 && volume->get((int)nx, (int)ny - 1, (int)nz) != 6) {
-												chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+								if (chunk && initializeNodes /*&& bl[1] + 1 < DIMS[1]*/) {
+									switch (side) {
+										case TOP:
+											//float w = TEXTURE_SCALE * abs(bl[2] - tl[2]);
+											//float h = TEXTURE_SCALE * abs(bl[0] - br[0]);
+											nyi = bl[1];
+											ny = nyi + 0.5;
+											for (nzi = bl[2]; nzi < tl[2]; nzi++) {
+												for (nxi = bl[0]; nxi < br[0]; nxi++) {
+													if (!chunk->isVoxel(nxi, nyi, nzi)) {
+														nx = nxi + 0.5;
+														nz = nzi + 0.5;
+														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+													}
+												}
 											}
-										}
+											break;
+										case BOTTOM:
+											//float w = TEXTURE_SCALE * abs(bl[0] - br[0]);
+											//float h = TEXTURE_SCALE * abs(bl[2] - tl[2]);
+											nyi = bl[1];
+											ny = nyi - 0.5;
+											for (nzi = bl[2]; nzi < tl[2]; nzi++) {
+												for (nxi = bl[0]; nxi < br[0]; nxi++) {
+													if (!chunk->isVoxel(nxi, nyi - 1, nzi)) {
+														nx = nxi + 0.5;
+														nz = nzi + 0.5;
+														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+													}
+												}
+											}
+											break;
+										case WEST:
+											//float w = TEXTURE_SCALE * abs(bl[2] - br[2]);
+											//float h = TEXTURE_SCALE * abs(bl[1] - tl[1]);
+											nxi = bl[0];
+											nx = nxi - 0.5;
+											for (nzi = bl[2]; nzi < br[2]; nzi++) {
+												for (nyi = bl[1]; nyi < tl[1]; nyi++) {
+													if (!chunk->isVoxel(nxi - 1, nyi, nzi)) {
+														ny = nyi + 0.5;
+														nz = nzi + 0.5;
+														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+													}
+												}
+											}
+											break;
+										case EAST:
+											//float w = TEXTURE_SCALE * abs(bl[1] - tl[1]);
+											//float h = TEXTURE_SCALE * abs(bl[2] - br[2]);
+											nxi = bl[0];
+											nx = nxi + 0.5;
+											for (nzi = bl[2]; nzi < br[2]; nzi++) {
+												for (nyi = bl[1]; nyi < tl[1]; nyi++) {
+													if (!chunk->isVoxel(nxi + 1, nyi, nzi)) {
+														ny = nyi + 0.5;
+														nz = nzi + 0.5;
+														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+													}
+												}
+											}
+											break;
+										case NORTH:
+											//float w = TEXTURE_SCALE * abs(bl[0] - tl[0]);
+											//float h = TEXTURE_SCALE * abs(bl[1] - br[1]);
+											nzi = bl[2];
+											nz = nzi + 0.5;
+											for (nyi = bl[1]; nyi < br[1]; nyi++) {
+												for (nxi = bl[0]; nxi < tl[0]; nxi++) {
+													if (!chunk->isVoxel(nxi, nyi, nzi + 1)) {
+														nx = nxi + 0.5;
+														ny = nyi + 0.5;
+														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+													}
+												}
+											}
+											break;
+										case SOUTH:
+											//float w = TEXTURE_SCALE * abs(bl[1] - br[1]);
+											//float h = TEXTURE_SCALE * abs(bl[0] - tl[0]);
+											nzi = bl[2];
+											nz = nzi - 0.5;
+											for (nyi = bl[1]; nyi < br[1]; nyi++) {
+												for (nxi = bl[0]; nxi < tl[0]; nxi++) {
+													if (!chunk->isVoxel(nxi, nyi, nzi - 1)) {
+														nx = nxi + 0.5;
+														ny = nyi + 0.5;
+														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+													}
+												}
+											}
+											break;
 									}
 								}
 							}

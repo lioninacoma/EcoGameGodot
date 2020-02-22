@@ -10,7 +10,7 @@
 
 #define WORLD_SIZE 8	 // Chunks
 #define CHUNK_SIZE_X 32  // Voxels
-#define CHUNK_SIZE_Y 128 // Voxels
+#define CHUNK_SIZE_Y 256 // Voxels
 #define CHUNK_SIZE_Z 32  // Voxels
 #define SECTION_SIZE 4 // Chunks
 
@@ -30,7 +30,7 @@
 #define NOISE_SEED 123
 #define WATER_LEVEL 48
 #define VOXEL_CHANCE_T 0.7
-#define VOXEL_CHANCE_NOISE_SCALE 1.0
+#define VOXEL_CHANCE_NOISE_SCALE 1.25
 #define VOXEL_Y_NOISE_SCALE 1.0
 
 #define POOL_SIZE 4

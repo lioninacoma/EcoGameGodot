@@ -6,6 +6,7 @@ var to_key = null
 func reset(context):
 	.reset(context)
 	context.set("path", null)
+	context.set("path_requested", false)
 
 func run(actor, context, global_context) -> bool:
 	if to_key == null:
@@ -27,6 +28,10 @@ func run(actor, context, global_context) -> bool:
 			return true
 	
 		var from = actor.global_transform.origin
+		
+		if from.distance_to(to) <= 0.5:
+			return false
+		
 		Lib.instance.navigate(from, to, actor.get_instance_id())
 		context.set("path_requested", true)
 		return true

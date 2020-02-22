@@ -119,12 +119,22 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 	unordered_set<size_t> inque, ready;
 	size_t cHash, nHash;
 
+
+	auto geo = ImmediateGeometry::_new();
+	geo->begin(Mesh::PRIMITIVE_POINTS);
+	geo->set_color(Color(1, 0, 0, 1));
+
 	std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
 		addNode(next.second);
 		nodeCache.insert(next);
 		volume.push_back(next.first);
+		Vector3 point = *next.second->getPoint();
+		geo->add_vertex(point);
 	};
 	chunk->forEachNode(nodeFn);
+
+	geo->end();
+	game->call_deferred("draw_debug_dots", geo);
 
 	while (true) {
 		while (!volume.empty()) {
@@ -388,8 +398,6 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 		currentPoint = currentNode->getPoint();
 
 		if (cHash == gHash) {
-			//Godot::print("path found");
-
 			/*auto geo = ImmediateGeometry::_new();
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(1, 0, 0, 1));*/
@@ -402,7 +410,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 
 				cHash = cameFrom[cHash];
 				currentNode = currentNode->getNeighbour(cHash);
-				//if (!currentNode) currentNode = getNode(cHash);
+				if (!currentNode) currentNode = getNode(cHash);
 				if (!currentNode) return;
 				currentPoint = currentNode->getPoint();
 

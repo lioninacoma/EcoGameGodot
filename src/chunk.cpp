@@ -59,13 +59,6 @@ int Chunk::getVoxelY(int x, int z) {
 	return 0;
 }
 
-float Chunk::getVoxelChance(int x, int y, int z) {
-	return noise->get_noise_3d(
-		(x + offset.x) * VOXEL_CHANCE_NOISE_SCALE,
-		(y + offset.y) * VOXEL_CHANCE_NOISE_SCALE,
-		(z + offset.z) * VOXEL_CHANCE_NOISE_SCALE) / 2.0 + 0.5;
-}
-
 Voxel* Chunk::intersection(int x, int y, int z) {
 	int chunkX = (int) offset.x;
 	int chunkY = (int) offset.y;
@@ -186,7 +179,56 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	}
 }
 
+const float NOISE_CHANCE = 1.5;
+float Chunk::getVoxelChance(int x, int y, int z) {
+	return noise->get_noise_3d(
+		(x + offset.x) * NOISE_CHANCE,
+		(y + offset.y) * NOISE_CHANCE,
+		(z + offset.z) * NOISE_CHANCE) / 2.0 + 0.5;
+}
+
+float chance2(float x) {
+	return -abs(2.0 * x - 1.0) + 1.0;
+}
+
+float chance(float x) {
+	return sqrt(1.0 - (2.0 * x - 1.0) * (2.0 * x - 1.0));
+}
+
+bool Chunk::isVoxel(int x, int y, int z) {
+	float ix = (offset.x + x) / ((float)CHUNK_SIZE_X * (float)WORLD_SIZE);
+	float iy = y / (float)CHUNK_SIZE_Y;
+	float iz = (offset.z + z) / ((float)CHUNK_SIZE_Z * (float)WORLD_SIZE);
+	float cx = chance(ix);
+	float cy = chance(iy);
+	float cz = chance(iz);
+	float c = cx * cy * cz;
+
+	c *= getVoxelChance(x, y, z);
+	return c > 0.3;
+}
+
 int Chunk::buildVolume() {
+	int x, y, z, i, diff;
+
+	if (volumeBuilt) return amountVoxel;
+	amountVoxel = 0;
+
+	for (z = 0; z < CHUNK_SIZE_Z; z++) {
+		for (x = 0; x < CHUNK_SIZE_X; x++) {
+			for (y = 0; y < CHUNK_SIZE_Y; y++) {
+				if (isVoxel(x, y, z)) {
+					setVoxel(x, y, z, 1);
+				}
+			}
+		}
+	}
+
+	volumeBuilt = true;
+	return amountVoxel;
+}
+
+int Chunk::buildVolume2() {
 	int x, y, z, i, diff;
 	float c;
 

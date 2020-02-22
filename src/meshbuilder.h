@@ -22,12 +22,12 @@ namespace godot {
 
 	class MeshBuilder {
 	private:
-		const int SOUTH = 0;
-		const int NORTH = 1;
-		const int EAST = 2;
-		const int WEST = 3;
-		const int TOP = 4;
-		const int BOTTOM = 5;
+		static const int SOUTH = 0;
+		static const int NORTH = 1;
+		static const int EAST = 2;
+		static const int WEST = 3;
+		static const int TOP = 4;
+		static const int BOTTOM = 5;
 
 		static ObjectPool<int, BUFFER_SIZE, MAX_CHUNKS_BUILT_ASYNCH>& getMaskPool() {
 			static ObjectPool<int, BUFFER_SIZE, MAX_CHUNKS_BUILT_ASYNCH> pool;

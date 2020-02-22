@@ -420,7 +420,7 @@ void Section::build(std::shared_ptr<ChunkBuilder> builder, Node* game) {
 		}
 	}
 
-	buildAreasByType(VoxelAssetType::PINE_TREE);
+	//buildAreasByType(VoxelAssetType::PINE_TREE);
 	//buildAreasByType(VoxelAssetType::HOUSE_6X6);
 	//buildAreasByType(VoxelAssetType::HOUSE_4X4);
 
