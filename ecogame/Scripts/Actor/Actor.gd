@@ -9,8 +9,11 @@ var gravity = Vector3(0, -9.8, 0)
 const MAX_SPEED = 6
 const ACCEL = 2
 
-func get_class():
-	return "Actor"
+onready var context = $BehaviourContext
+
+func _ready():
+#	context.set("group", 0)
+	pass
 
 func _process(delta : float) -> void:
 	update(delta)
