@@ -13,19 +13,20 @@
 #include <unordered_map>
 #include <limits>
 
+#include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "constants.h"
 #include "fn.h"
-#include "graphnode.h"
-#include "graphedge.h"
 
 using namespace std;
 
 namespace godot {
 
+	class GraphNavNode;
+	class GraphEdge;
 	class EcoGame;
 	class Chunk;
 
@@ -56,11 +57,11 @@ namespace godot {
 		float manhattan(Vector3 a, Vector3 b);
 		float euclidean(Vector3 a, Vector3 b);
 		float w(float distanceToGoal, float maxDistance);
-		float h(std::shared_ptr<GraphNode> node, std::shared_ptr<GraphNode> goal, float maxDistance);
-		std::shared_ptr<GraphNode> getNode(size_t h);
-		void setPathActor(PoolVector3Array path, int actorInstanceId, Node* game);
+		float h(std::shared_ptr<GraphNavNode> node, std::shared_ptr<GraphNavNode> goal, float maxDistance);
+		std::shared_ptr<GraphNavNode> getNode(size_t h);
+		void setPathActor(Array path, int actorInstanceId, Node* game);
 
-		unordered_map<size_t, std::shared_ptr<GraphNode>>* nodes;
+		unordered_map<size_t, std::shared_ptr<GraphNavNode>>* nodes;
 		boost::shared_mutex NAV_NODES_MUTEX;
 	public:
 		static std::shared_ptr<Navigator> get() {
@@ -71,10 +72,10 @@ namespace godot {
 		Navigator();
 		~Navigator();
 
-		void addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost);
-		void addNode(std::shared_ptr<GraphNode> node);
-		void removeNode(std::shared_ptr<GraphNode> node);
-		void addNode(std::shared_ptr<GraphNode> node, Chunk* chunk);
+		void addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost);
+		void addNode(std::shared_ptr<GraphNavNode> node);
+		void removeNode(std::shared_ptr<GraphNavNode> node);
+		void addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk);
 		void updateGraph(std::shared_ptr<Chunk> chunk, Node* game);
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game, EcoGame* lib);

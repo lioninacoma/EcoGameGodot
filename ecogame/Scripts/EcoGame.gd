@@ -117,7 +117,7 @@ func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 func build_chunk_queued(chunk):
 	build_stack.push_front(chunk)
 
-func set_path_actor(path : PoolVector3Array, actor_instance_id : int):
+func set_path_actor(path, actor_instance_id : int):
 	var actor = instance_from_id(actor_instance_id)
 	actor.get_node("BehaviourContext").set("path", path)
 

@@ -23,13 +23,13 @@
 #include "fn.h"
 #include "chunk.h"
 #include "area.h"
-#include "graphnode.h"
 #include "voxel.h"
 
 using namespace std;
 
 namespace godot {
 
+	class GraphNavNode;
 	class EcoGame;
 
 	class Section : public Node {
@@ -72,7 +72,7 @@ namespace godot {
 		bool voxelAssetFits(Vector3 start, VoxelAssetType type);
 		void setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder, Node* game);
 		int getVoxel(Vector3 position);
-		std::shared_ptr<GraphNode> getNode(Vector3 position);
+		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
 		std::shared_ptr<Chunk> getChunk(int x, int z);
 		std::shared_ptr<Chunk> getChunk(int i);
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);

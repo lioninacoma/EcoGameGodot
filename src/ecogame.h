@@ -24,13 +24,14 @@
 #include "voxelassetmanager.h"
 #include "section.h"
 #include "meshbuilder.h"
-#include "graphnode.h"
 #include "intersection.h"
 #include "voxel.h"
 
 using namespace std;
 
 namespace godot {
+	class GraphNavNode;
+
 	class EcoGame : public Node {
 		GODOT_CLASS(EcoGame, Node)
 
@@ -76,7 +77,7 @@ namespace godot {
 		void updateGraph(Variant vChunk);
 		void updateGraphs(Vector3 center, float radius);
 		int getVoxel(Vector3 position);
-		std::shared_ptr<GraphNode> getNode(Vector3 position);
+		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
 	};
 
 }

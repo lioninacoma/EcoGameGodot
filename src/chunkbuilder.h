@@ -8,6 +8,7 @@
 #include <ArrayMesh.hpp>
 
 #include <deque>
+#include <unordered_set>
 #include <vector>
 #include <iostream>
 

@@ -1,6 +1,7 @@
 #include "ecogame.h"
 #include "navigator.h"
 #include "threadpool.h"
+#include "graphnode.h"
 
 #include <boost/exception/diagnostic_information.hpp> 
 #include <boost/exception_ptr.hpp> 
@@ -113,7 +114,7 @@ PoolVector3Array EcoGame::getVoxelsInArea(Vector3 start, Vector3 end, int voxel)
 			auto chunk = section->getChunk(i);
 			if (!chunk) continue;
 
-			std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
+			std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> nodeFn = [&](auto next) {
 				currentVoxels = chunk->getReachableVoxelsOfType(*next.second->getPoint(), voxel);
 			
 				for (j = 0; j < currentVoxels.size(); j++) {
@@ -277,8 +278,8 @@ int EcoGame::getVoxel(Vector3 position) {
 	return voxel;
 }
 
-std::shared_ptr<GraphNode> EcoGame::getNode(Vector3 position) {
-	std::shared_ptr<GraphNode> node;
+std::shared_ptr<GraphNavNode> EcoGame::getNode(Vector3 position) {
+	std::shared_ptr<GraphNavNode> node;
 	try {
 		Vector3 p = position;
 		std::shared_ptr<Section> section;

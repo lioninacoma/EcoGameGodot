@@ -16,6 +16,7 @@
 [sub_resource type="Environment" id=2]
 background_mode = 2
 background_sky = SubResource( 1 )
+background_color = Color( 0.027451, 0.0156863, 0.0705882, 1 )
 
 [sub_resource type="CapsuleShape" id=3]
 radius = 0.403117
@@ -39,9 +40,11 @@ directional_shadow_bias_split_scale = 0.3
 directional_shadow_max_distance = 300.0
 
 [node name="Ball" parent="." instance=ExtResource( 2 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 128 )
+mode = 1
 
 [node name="Player" type="KinematicBody" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 256, 128 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 100, 0 )
 script = ExtResource( 3 )
 
 [node name="Controls" type="Node" parent="Player"]

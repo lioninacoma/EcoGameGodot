@@ -2,6 +2,7 @@
 #define GRAPHNODE_H
 
 #include <Godot.hpp>
+#include <Node.hpp>
 #include <Vector3.hpp>
 
 #include <unordered_set>
@@ -14,69 +15,55 @@
 
 #include "constants.h"
 #include "fn.h"
-#include "graphedge.h"
 
 using namespace std;
 
 namespace godot {
-	class GraphNode {
+
+	class GraphEdge;
+
+	class GraphNavNode : public Node {
+		GODOT_CLASS(GraphNavNode, Node)
 	private:
-		std::shared_ptr<Vector3> point;
 		unordered_map<size_t, std::shared_ptr<GraphEdge>> edges;
+
+		std::shared_ptr<Vector3> point;
+		std::shared_ptr<Vector3> gravity;
+
 		std::atomic<size_t> hash;
 		std::atomic<char> voxel;
+
 		boost::shared_mutex EDGES_MUTEX;
 	public:
-		GraphNode(Vector3 point, char voxel) {
-			GraphNode::point = std::shared_ptr<Vector3>(new Vector3(point));
-			GraphNode::hash = fn::hash(point);
-			GraphNode::voxel = voxel;
-		};
-		~GraphNode() {
-			point.reset();
-			for (auto edge : edges)
-				edge.second.reset();
-			edges.clear();
-		};
-		void addEdge(std::shared_ptr<GraphEdge> edge) {
-			boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
-			size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
-			edges[nHash] = edge;
-		};
-		void removeEdgeWithNode(size_t nHash) {
-			boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
-			auto it = edges.find(nHash);
-			if (it == edges.end()) return;
-			edges.erase(nHash);
-		};
-		std::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash) {
-			boost::shared_lock<boost::shared_mutex> lock(EDGES_MUTEX);
-			auto it = edges.find(nHash);
-			if (it == edges.end()) return NULL;
-			return it->second;
-		};
-		std::shared_ptr<GraphNode> getNeighbour(size_t nHash) {
-			std::shared_ptr<GraphEdge> edge = getEdgeWithNode(nHash);
-			if (!edge) return NULL;
-			return (edge->getA()->getHash() != hash) ? edge->getA() : edge->getB();
-		};
-		void forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func) {
-			boost::shared_lock<boost::shared_mutex> lock(EDGES_MUTEX);
-			std::for_each(edges.begin(), edges.end(), func);
-		};
-		std::shared_ptr<Vector3> getPoint() {
-			return point;
-		};
-		size_t getHash() {
-			return hash;
-		};
-		char getVoxel() {
-			return voxel;
-		};
-		bool operator == (const GraphNode& o) const {
+		static void _register_methods();
+
+		GraphNavNode() : GraphNavNode(Vector3(), 0) {};
+		GraphNavNode(Vector3 point, char voxel);
+		~GraphNavNode();
+
+		void _init(); // our initializer called by Godot
+
+		void addEdge(std::shared_ptr<GraphEdge> edge);
+		void removeEdgeWithNode(size_t nHash);
+		void setPoint(Vector3 point);
+		void setVoxel(char voxel);
+		void determineGravity(Vector3 cog);
+
+		void forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func);
+		std::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash);
+		std::shared_ptr<GraphNavNode> getNeighbour(size_t nHash);
+		std::shared_ptr<Vector3> getPoint();
+		std::shared_ptr<Vector3> getGravity();
+		Vector3 getPointU();
+		Vector3 getGravityU();
+		size_t getHash();
+		char getVoxel();
+
+		bool operator == (const GraphNavNode& o) const {
 			return hash == o.hash;
 		};
 	};
+
 }
 
 #endif

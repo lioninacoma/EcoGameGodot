@@ -28,3 +28,10 @@ func update(delta : float) -> void:
 		velocity *= MAX_SPEED
 	move_and_slide(velocity, Vector3(0, 1, 0))
 	acceleration *= 0
+
+func balance(g : Vector3):
+	var basis = get_global_transform().basis
+	var at = basis.z.cross(g)
+	var pos = global_transform.origin
+	look_at_from_position(Vector3(0, 0, 0), at, basis.y)
+	global_transform.origin = pos

@@ -1,5 +1,6 @@
 #include "section.h"
 #include "ecogame.h"
+#include "graphnode.h"
 
 using namespace godot;
 
@@ -72,11 +73,11 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 	float nx, ny, nz, voxel;
 	Vector2 chunkOffset;
 	std::shared_ptr<Vector3> point;
-	std::shared_ptr<GraphNode> current;
-	unordered_map<size_t, std::shared_ptr<GraphNode>> nodeCache;
+	std::shared_ptr<GraphNavNode> current;
+	unordered_map<size_t, std::shared_ptr<GraphNavNode>> nodeCache;
 	deque<size_t> queue, volume;
 	unordered_set<size_t> inque, ready;
-	vector<vector<std::shared_ptr<GraphNode>>*> areas;
+	vector<vector<std::shared_ptr<GraphNavNode>>*> areas;
 	vector<bool> areaOutOfBounds;
 	int areaIndex = 0;
 	size_t cHash, nHash;
@@ -109,7 +110,10 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 					y % CHUNK_SIZE_Y,
 					z % CHUNK_SIZE_Z);
 				if (voxel) {
-					current = std::shared_ptr<GraphNode>(new GraphNode(Vector3(x, y, z), voxel));
+					GraphNavNode* node = GraphNavNode::_new();
+					node->setPoint(Vector3(x, y, z));
+					node->setVoxel(voxel);
+					current = std::shared_ptr<GraphNavNode>(node);
 					nodeCache.emplace(current->getHash(), current);
 					volume.push_back(current->getHash());
 				}
@@ -118,7 +122,7 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 	}
 
 	while (true) {
-		auto area = new vector<std::shared_ptr<GraphNode>>();
+		auto area = new vector<std::shared_ptr<GraphNavNode>>();
 		areaOutOfBounds.push_back(false);
 
 		while (!volume.empty()) {
@@ -316,11 +320,11 @@ int Section::getVoxel(Vector3 position) {
 		z % CHUNK_SIZE_Z);
 }
 
-std::shared_ptr<GraphNode> Section::getNode(Vector3 position) {
+std::shared_ptr<GraphNavNode> Section::getNode(Vector3 position) {
 	int x, y, z, cx, cz, ci;
 	Vector2 chunkOffset;
 	std::shared_ptr<Chunk> chunk;
-	std::shared_ptr<GraphNode> node;
+	std::shared_ptr<GraphNavNode> node;
 	chunkOffset.x = position.x;
 	chunkOffset.y = position.z;
 	chunkOffset = fn::toChunkCoords(chunkOffset);
@@ -411,10 +415,17 @@ void Section::build(std::shared_ptr<ChunkBuilder> builder, Node* game) {
 	int x, y, i;
 	std::shared_ptr<Chunk> chunk;
 
+	float world_width_2 = CHUNK_SIZE_X * WORLD_SIZE / 2;
+	float world_height_2 = CHUNK_SIZE_Y / 2;
+	float world_depth_2 = CHUNK_SIZE_Z * WORLD_SIZE / 2;
+	Vector3 cog = Vector3(world_width_2, world_height_2, world_depth_2);
+
 	for (y = 0; y < sectionSize; y++) {
 		for (x = 0; x < sectionSize; x++) {
 			chunk = std::shared_ptr<Chunk>(Chunk::_new());
 			chunk->setOffset(Vector3((x + offset.x) * CHUNK_SIZE_X, 0, (y + offset.y) * CHUNK_SIZE_Z));
+			chunk->setSection(std::shared_ptr<Section>(this));
+			chunk->setCenterOfGravity(cog);
 			setChunk(x, y, chunk);
 			chunk->buildVolume();
 		}

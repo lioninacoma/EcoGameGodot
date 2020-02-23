@@ -170,6 +170,7 @@
   <ItemGroup>
     <ClCompile Include="src\chunk.cpp" />
     <ClCompile Include="src\chunkbuilder.cpp" />
+    <ClCompile Include="src\graphnode.cpp" />
     <ClCompile Include="src\meshbuilder.cpp" />
     <ClCompile Include="src\ecogame.cpp" />
     <ClCompile Include="src\gdlibrary.cpp" />

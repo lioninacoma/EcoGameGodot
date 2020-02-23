@@ -1,4 +1,5 @@
 #include "meshbuilder.h"
+#include "graphnode.h"
 
 using namespace godot;
 
@@ -174,7 +175,10 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 													if (!chunk->isVoxel(nxi, nyi, nzi)) {
 														nx = nxi + 0.5;
 														nz = nzi + 0.5;
-														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+														auto node = GraphNavNode::_new();
+														node->setPoint(offset + Vector3(nx, ny, nz));
+														node->setVoxel(mask[n]);
+														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 													}
 												}
 											}
@@ -189,7 +193,10 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 													if (!chunk->isVoxel(nxi, nyi - 1, nzi)) {
 														nx = nxi + 0.5;
 														nz = nzi + 0.5;
-														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+														auto node = GraphNavNode::_new();
+														node->setPoint(offset + Vector3(nx, ny, nz));
+														node->setVoxel(mask[n]);
+														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 													}
 												}
 											}
@@ -204,7 +211,10 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 													if (!chunk->isVoxel(nxi - 1, nyi, nzi)) {
 														ny = nyi + 0.5;
 														nz = nzi + 0.5;
-														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+														auto node = GraphNavNode::_new();
+														node->setPoint(offset + Vector3(nx, ny, nz));
+														node->setVoxel(mask[n]);
+														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 													}
 												}
 											}
@@ -219,7 +229,10 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 													if (!chunk->isVoxel(nxi + 1, nyi, nzi)) {
 														ny = nyi + 0.5;
 														nz = nzi + 0.5;
-														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+														auto node = GraphNavNode::_new();
+														node->setPoint(offset + Vector3(nx, ny, nz));
+														node->setVoxel(mask[n]);
+														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 													}
 												}
 											}
@@ -234,7 +247,10 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 													if (!chunk->isVoxel(nxi, nyi, nzi + 1)) {
 														nx = nxi + 0.5;
 														ny = nyi + 0.5;
-														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+														auto node = GraphNavNode::_new();
+														node->setPoint(offset + Vector3(nx, ny, nz));
+														node->setVoxel(mask[n]);
+														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 													}
 												}
 											}
@@ -249,7 +265,10 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 													if (!chunk->isVoxel(nxi, nyi, nzi - 1)) {
 														nx = nxi + 0.5;
 														ny = nyi + 0.5;
-														chunk->addNode(std::shared_ptr<GraphNode>(new GraphNode(offset + Vector3(nx, ny, nz), mask[n])));
+														auto node = GraphNavNode::_new();
+														node->setPoint(offset + Vector3(nx, ny, nz));
+														node->setVoxel(mask[n]);
+														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 													}
 												}
 											}
