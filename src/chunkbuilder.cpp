@@ -1,6 +1,5 @@
 #include "chunkbuilder.h"
 #include "ecogame.h"
-#include "navigator.h"
 #include "threadpool.h"
 
 #include <boost/exception/diagnostic_information.hpp> 
@@ -39,11 +38,8 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk, Node* game) {
 		}
 
 		BUILD_MESH_MUTEX.lock();
-		vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES);
+		vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES, game);
 		BUILD_MESH_MUTEX.unlock();
-
-		if (!chunk->isNavigatable())
-			Navigator::get()->updateGraph(chunk, game);
 
 		for (o = 0; o < offsets.size(); o++) {
 			offset = offsets[o];
@@ -120,7 +116,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk, Node* game) {
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	//Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
+	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
 	chunk->setBuilding(false);
 	BUILD_QUEUE_CV.notify_one();
 }

@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/thread/thread.hpp>
 
 #include "constants.h"
 #include "objectpool.h"
@@ -35,6 +36,15 @@ namespace godot {
 			return pool;
 		};
 
+		struct NodeUpdateData {
+			int bl[3];
+			int tl[3]; 
+			int tr[3];
+			int br[3];
+			int side;
+			int type;
+		};
+
 		float getU(int type);
 		float getV(int type);
 		int quad(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int side, int type, int vertexOffset);
@@ -44,15 +54,17 @@ namespace godot {
 		int createRight(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
+		void updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData data);
+		void updateGraph(std::shared_ptr<Chunk> chunk, vector<NodeUpdateData> updateData, Node* game);
 
-		vector<int> buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen);
+		vector<int> buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen, Node* game);
 	public:
 		MeshBuilder();
 		~MeshBuilder();
 
-		vector<int> buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen);
-		vector<int> buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen);
-		vector<int> buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen);
+		vector<int> buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen, Node* game);
+		vector<int> buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen, Node* game);
+		vector<int> buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen, Node* game);
 	};
 
 }

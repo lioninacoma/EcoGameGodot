@@ -1,5 +1,7 @@
 #include "meshbuilder.h"
 #include "graphnode.h"
+#include "navigator.h"
+#include "threadpool.h"
 
 using namespace godot;
 
@@ -11,23 +13,23 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen, Node* game) {
 	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
-	return MeshBuilder::buildVertices(asset->getVolume(), NULL, offset, DIMS, buffers, buffersLen);
+	return MeshBuilder::buildVertices(asset->getVolume(), NULL, offset, DIMS, buffers, buffersLen, game);
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen, Node* game) {
 	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(type);
 	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
-	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, offset, DIMS, buffers, buffersLen);
+	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, offset, DIMS, buffers, buffersLen, game);
 }
 
-vector<int> MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen, Node* game) {
 	const int DIMS[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
-	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, chunk->getOffset(), DIMS, buffers, buffersLen);
+	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, chunk->getOffset(), DIMS, buffers, buffersLen, game);
 }
 
-vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen) {
+vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen, Node* game) {
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
 	long ms = 0;
@@ -36,13 +38,13 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 
 	//if (chunk) Godot::print(String("building mesh at {0} ...").format(Array::make(chunk->getOffset())));
 
-	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx, ni, nj, nxi, nyi, nzi;
-	float nx, ny, nz;
-	bool backFace, b, done = false, initializeNodes = false;
+	int i, j, k, l, w, h, u, v, n, d, side = 0, face = -1, v0 = -1, v1 = -1, idx;
+	bool backFace, b, done = false, doInitializeNodes = false;
 
-	if (chunk) initializeNodes = !chunk->isNavigatable();
+	if (chunk) doInitializeNodes = !chunk->isNavigatable();
 
 	vector<int> vertexOffsets;
+	vector<NodeUpdateData> updateData;
 	vertexOffsets.resize(buffersLen);
 
 	for (i = 0; i < vertexOffsets.size(); i++) {
@@ -163,117 +165,15 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 								idx = mask[n] - 1;
 								vertexOffsets[idx] = quad(offset, bl, tl, tr, br, buffers[idx], side, mask[n], vertexOffsets[idx]);
 
-								if (chunk && initializeNodes /*&& bl[1] + 1 < DIMS[1]*/) {
-									switch (side) {
-										case TOP:
-											//float w = TEXTURE_SCALE * abs(bl[2] - tl[2]);
-											//float h = TEXTURE_SCALE * abs(bl[0] - br[0]);
-											nyi = bl[1];
-											ny = nyi + 0.5;
-											for (nzi = bl[2]; nzi < tl[2]; nzi++) {
-												for (nxi = bl[0]; nxi < br[0]; nxi++) {
-													if (!chunk->isVoxel(nxi, nyi, nzi)) {
-														nx = nxi + 0.5;
-														nz = nzi + 0.5;
-														auto node = GraphNavNode::_new();
-														node->setPoint(offset + Vector3(nx, ny, nz));
-														node->setVoxel(mask[n]);
-														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
-													}
-												}
-											}
-											break;
-										case BOTTOM:
-											//float w = TEXTURE_SCALE * abs(bl[0] - br[0]);
-											//float h = TEXTURE_SCALE * abs(bl[2] - tl[2]);
-											nyi = bl[1];
-											ny = nyi - 0.5;
-											for (nzi = bl[2]; nzi < tl[2]; nzi++) {
-												for (nxi = bl[0]; nxi < br[0]; nxi++) {
-													if (!chunk->isVoxel(nxi, nyi - 1, nzi)) {
-														nx = nxi + 0.5;
-														nz = nzi + 0.5;
-														auto node = GraphNavNode::_new();
-														node->setPoint(offset + Vector3(nx, ny, nz));
-														node->setVoxel(mask[n]);
-														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
-													}
-												}
-											}
-											break;
-										case WEST:
-											//float w = TEXTURE_SCALE * abs(bl[2] - br[2]);
-											//float h = TEXTURE_SCALE * abs(bl[1] - tl[1]);
-											nxi = bl[0];
-											nx = nxi - 0.5;
-											for (nzi = bl[2]; nzi < br[2]; nzi++) {
-												for (nyi = bl[1]; nyi < tl[1]; nyi++) {
-													if (!chunk->isVoxel(nxi - 1, nyi, nzi)) {
-														ny = nyi + 0.5;
-														nz = nzi + 0.5;
-														auto node = GraphNavNode::_new();
-														node->setPoint(offset + Vector3(nx, ny, nz));
-														node->setVoxel(mask[n]);
-														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
-													}
-												}
-											}
-											break;
-										case EAST:
-											//float w = TEXTURE_SCALE * abs(bl[1] - tl[1]);
-											//float h = TEXTURE_SCALE * abs(bl[2] - br[2]);
-											nxi = bl[0];
-											nx = nxi + 0.5;
-											for (nzi = bl[2]; nzi < br[2]; nzi++) {
-												for (nyi = bl[1]; nyi < tl[1]; nyi++) {
-													if (!chunk->isVoxel(nxi + 1, nyi, nzi)) {
-														ny = nyi + 0.5;
-														nz = nzi + 0.5;
-														auto node = GraphNavNode::_new();
-														node->setPoint(offset + Vector3(nx, ny, nz));
-														node->setVoxel(mask[n]);
-														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
-													}
-												}
-											}
-											break;
-										case NORTH:
-											//float w = TEXTURE_SCALE * abs(bl[0] - tl[0]);
-											//float h = TEXTURE_SCALE * abs(bl[1] - br[1]);
-											nzi = bl[2];
-											nz = nzi + 0.5;
-											for (nyi = bl[1]; nyi < br[1]; nyi++) {
-												for (nxi = bl[0]; nxi < tl[0]; nxi++) {
-													if (!chunk->isVoxel(nxi, nyi, nzi + 1)) {
-														nx = nxi + 0.5;
-														ny = nyi + 0.5;
-														auto node = GraphNavNode::_new();
-														node->setPoint(offset + Vector3(nx, ny, nz));
-														node->setVoxel(mask[n]);
-														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
-													}
-												}
-											}
-											break;
-										case SOUTH:
-											//float w = TEXTURE_SCALE * abs(bl[1] - br[1]);
-											//float h = TEXTURE_SCALE * abs(bl[0] - tl[0]);
-											nzi = bl[2];
-											nz = nzi - 0.5;
-											for (nyi = bl[1]; nyi < br[1]; nyi++) {
-												for (nxi = bl[0]; nxi < tl[0]; nxi++) {
-													if (!chunk->isVoxel(nxi, nyi, nzi - 1)) {
-														nx = nxi + 0.5;
-														ny = nyi + 0.5;
-														auto node = GraphNavNode::_new();
-														node->setPoint(offset + Vector3(nx, ny, nz));
-														node->setVoxel(mask[n]);
-														chunk->addNode(std::shared_ptr<GraphNavNode>(node));
-													}
-												}
-											}
-											break;
-									}
+								if (chunk && doInitializeNodes) {
+									NodeUpdateData data;
+									data.bl[0] = bl[0]; data.bl[1] = bl[1]; data.bl[2] = bl[2];
+									data.tl[0] = tl[0]; data.tl[1] = tl[1]; data.tl[2] = tl[2];
+									data.tr[0] = tr[0]; data.tr[1] = tr[1]; data.tr[2] = tr[2];
+									data.br[0] = br[0]; data.br[1] = br[1]; data.br[2] = br[2];
+									data.side = side;
+									data.type = mask[n];
+									updateData.push_back(data);
 								}
 							}
 
@@ -298,6 +198,9 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 		}
 	}
 
+	if (!updateData.empty())
+		ThreadPool::getNav()->submitTask(boost::bind(&MeshBuilder::updateGraph, this, chunk, updateData, game));
+
 	stop = bpt::microsec_clock::local_time();
 	dur = stop - start;
 	ms = dur.total_milliseconds();
@@ -307,6 +210,132 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 
 	MeshBuilder::getMaskPool().ret(mask);
 	return vertexOffsets;
+}
+
+void MeshBuilder::updateGraph(std::shared_ptr<Chunk> chunk, vector<NodeUpdateData> updateData, Node* game) {
+	while (!updateData.empty()) {
+		updateGraphNode(chunk, updateData.back());
+		updateData.pop_back();
+	}
+
+	Navigator::get()->updateGraph(chunk, game);
+}
+
+void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData data) {
+	int nxi, nyi, nzi;
+	float nx, ny, nz;
+	Vector3 offset = chunk->getOffset();
+
+	switch (data.side) {
+	case TOP:
+		//float w = TEXTURE_SCALE * abs(bl[2] - tl[2]);
+		//float h = TEXTURE_SCALE * abs(bl[0] - br[0]);
+		nyi = data.bl[1];
+		ny = nyi + 0.5;
+		for (nzi = data.bl[2]; nzi < data.tl[2]; nzi++) {
+			for (nxi = data.bl[0]; nxi < data.br[0]; nxi++) {
+				if (!chunk->isVoxel(nxi, nyi, nzi)) {
+					nx = nxi + 0.5;
+					nz = nzi + 0.5;
+					auto node = GraphNavNode::_new();
+					node->setPoint(offset + Vector3(nx, ny, nz));
+					node->setVoxel(data.type);
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+				}
+			}
+		}
+		break;
+	case BOTTOM:
+		//float w = TEXTURE_SCALE * abs(bl[0] - br[0]);
+		//float h = TEXTURE_SCALE * abs(bl[2] - tl[2]);
+		nyi = data.bl[1];
+		ny = nyi - 0.5;
+		for (nzi = data.bl[2]; nzi < data.tl[2]; nzi++) {
+			for (nxi = data.bl[0]; nxi < data.br[0]; nxi++) {
+				if (!chunk->isVoxel(nxi, nyi - 1, nzi)) {
+					nx = nxi + 0.5;
+					nz = nzi + 0.5;
+					auto node = GraphNavNode::_new();
+					node->setPoint(offset + Vector3(nx, ny, nz));
+					node->setVoxel(data.type);
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+				}
+			}
+		}
+		break;
+	case WEST:
+		//float w = TEXTURE_SCALE * abs(bl[2] - br[2]);
+		//float h = TEXTURE_SCALE * abs(bl[1] - tl[1]);
+		nxi = data.bl[0];
+		nx = nxi - 0.5;
+		for (nzi = data.bl[2]; nzi < data.br[2]; nzi++) {
+			for (nyi = data.bl[1]; nyi < data.tl[1]; nyi++) {
+				if (!chunk->isVoxel(nxi - 1, nyi, nzi)) {
+					ny = nyi + 0.5;
+					nz = nzi + 0.5;
+					auto node = GraphNavNode::_new();
+					node->setPoint(offset + Vector3(nx, ny, nz));
+					node->setVoxel(data.type);
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+				}
+			}
+		}
+		break;
+	case EAST:
+		//float w = TEXTURE_SCALE * abs(bl[1] - tl[1]);
+		//float h = TEXTURE_SCALE * abs(bl[2] - br[2]);
+		nxi = data.bl[0];
+		nx = nxi + 0.5;
+		for (nzi = data.bl[2]; nzi < data.br[2]; nzi++) {
+			for (nyi = data.bl[1]; nyi < data.tl[1]; nyi++) {
+				if (!chunk->isVoxel(nxi + 1, nyi, nzi)) {
+					ny = nyi + 0.5;
+					nz = nzi + 0.5;
+					auto node = GraphNavNode::_new();
+					node->setPoint(offset + Vector3(nx, ny, nz));
+					node->setVoxel(data.type);
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+				}
+			}
+		}
+		break;
+	case NORTH:
+		//float w = TEXTURE_SCALE * abs(bl[0] - tl[0]);
+		//float h = TEXTURE_SCALE * abs(bl[1] - br[1]);
+		nzi = data.bl[2];
+		nz = nzi + 0.5;
+		for (nyi = data.bl[1]; nyi < data.br[1]; nyi++) {
+			for (nxi = data.bl[0]; nxi < data.tl[0]; nxi++) {
+				if (!chunk->isVoxel(nxi, nyi, nzi + 1)) {
+					nx = nxi + 0.5;
+					ny = nyi + 0.5;
+					auto node = GraphNavNode::_new();
+					node->setPoint(offset + Vector3(nx, ny, nz));
+					node->setVoxel(data.type);
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+				}
+			}
+		}
+		break;
+	case SOUTH:
+		//float w = TEXTURE_SCALE * abs(bl[1] - br[1]);
+		//float h = TEXTURE_SCALE * abs(bl[0] - tl[0]);
+		nzi = data.bl[2];
+		nz = nzi - 0.5;
+		for (nyi = data.bl[1]; nyi < data.br[1]; nyi++) {
+			for (nxi = data.bl[0]; nxi < data.tl[0]; nxi++) {
+				if (!chunk->isVoxel(nxi, nyi, nzi - 1)) {
+					nx = nxi + 0.5;
+					ny = nyi + 0.5;
+					auto node = GraphNavNode::_new();
+					node->setPoint(offset + Vector3(nx, ny, nz));
+					node->setVoxel(data.type);
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+				}
+			}
+		}
+		break;
+	}
 }
 
 float MeshBuilder::getU(int type) {

@@ -9,10 +9,16 @@
 //#define SECTION_SIZE 4 // Chunks
 
 #define WORLD_SIZE 8	 // Chunks
-#define CHUNK_SIZE_X 32  // Voxels
-#define CHUNK_SIZE_Y 256 // Voxels
-#define CHUNK_SIZE_Z 32  // Voxels
+#define CHUNK_SIZE_X 24  // Voxels
+#define CHUNK_SIZE_Y 192 // Voxels
+#define CHUNK_SIZE_Z 24  // Voxels
 #define SECTION_SIZE 8 // Chunks
+
+//#define WORLD_SIZE 8	 // Chunks
+//#define CHUNK_SIZE_X 32  // Voxels
+//#define CHUNK_SIZE_Y 128 // Voxels
+//#define CHUNK_SIZE_Z 32  // Voxels
+//#define SECTION_SIZE 4 // Chunks
 
 #define VERTEX_SIZE 8
 #define BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z

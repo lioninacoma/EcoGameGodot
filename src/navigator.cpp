@@ -109,6 +109,12 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 }
 
 void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
+	bpt::ptime start, stop;
+	bpt::time_duration dur;
+	long ms = 0;
+
+	start = bpt::microsec_clock::local_time();
+
 	//Godot::print(String("updating graph at {0} ...").format(Array::make(chunk->getOffset())));
 	int x, y, z, drawOffsetY = 1;
 	float nx, ny, nz;
@@ -122,21 +128,21 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 	size_t cHash, nHash;
 
 
-	/*auto geo = ImmediateGeometry::_new();
+	auto geo = ImmediateGeometry::_new();
 	geo->begin(Mesh::PRIMITIVE_POINTS);
-	geo->set_color(Color(1, 0, 0, 1));*/
+	geo->set_color(Color(1, 0, 0, 1));
 
 	std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> nodeFn = [&](auto next) {
 		addNode(next.second);
 		nodeCache.insert(next);
 		volume.push_back(next.first);
 		Vector3 point = *next.second->getPoint();
-		//geo->add_vertex(point);
+		geo->add_vertex(point);
 	};
 	chunk->forEachNode(nodeFn);
 
-	/*geo->end();
-	game->call_deferred("draw_debug_dots", geo);*/
+	geo->end();
+	game->call_deferred("draw_debug_dots", geo);
 
 	while (true) {
 		while (!volume.empty()) {
@@ -205,7 +211,12 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 	}
 
 	chunk->setNavigatable();
-	//Godot::print(String("graph at {0} updated.").format(Array::make(chunk->getOffset())));
+
+	stop = bpt::microsec_clock::local_time();
+	dur = stop - start;
+	ms = dur.total_milliseconds();
+
+	Godot::print(String("graph at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
 }
 
 float Navigator::manhattan(Vector3 a, Vector3 b) {
