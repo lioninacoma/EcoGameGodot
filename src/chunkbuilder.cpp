@@ -150,7 +150,7 @@ void ChunkBuilder::queueChunk(std::shared_ptr<Chunk> chunk) {
 void ChunkBuilder::build(std::shared_ptr<Chunk> chunk, Node* game) {
 	if (!threadStarted) {
 		threadStarted = true;
-		boost::thread t(&ChunkBuilder::processQueue, this, game);
+		queueThread = std::make_shared<boost::thread>(&ChunkBuilder::processQueue, this, game);
 	}
 
 	if (chunk->isBuilding()) {

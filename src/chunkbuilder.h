@@ -34,6 +34,7 @@ namespace godot {
 			return pool;
 		};
 
+		std::shared_ptr<boost::thread> queueThread;
 		deque<std::shared_ptr<Chunk>> buildQueue;
 		unordered_set<size_t> inque;
 		void processQueue(Node* game);
@@ -48,7 +49,10 @@ namespace godot {
 		std::atomic<bool> threadStarted = false;
 	public:
 		ChunkBuilder();
-		~ChunkBuilder() {};
+		~ChunkBuilder() {
+			queueThread->interrupt();
+			queueThread->join();
+		};
 		void build(std::shared_ptr<Chunk> chunk, Node* game);
 	};
 

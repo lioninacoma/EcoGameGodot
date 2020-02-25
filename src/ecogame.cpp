@@ -3,8 +3,8 @@
 #include "threadpool.h"
 #include "graphnode.h"
 
-#include <boost/exception/diagnostic_information.hpp> 
-#include <boost/exception_ptr.hpp> 
+#include <boost/exception/diagnostic_information.hpp>
+#include <boost/exception_ptr.hpp>
 
 using namespace godot;
 
@@ -36,6 +36,7 @@ EcoGame::EcoGame() {
 EcoGame::~EcoGame() {
 	delete[] sections;
 	chunkBuilder.reset();
+	cout << "free" << endl;
 }
 
 void EcoGame::_init() {
