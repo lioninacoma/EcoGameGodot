@@ -8,7 +8,7 @@ func _process(delta : float) -> void:
 	if controls.middle_pressed:
 		var actor = actor_manager.create_actor()
 		actor.global_transform.origin.x = controls.middle_pressed_location.x + 0.5
-		actor.global_transform.origin.y = controls.middle_pressed_location.y + 1.5
+		actor.global_transform.origin.y = controls.middle_pressed_location.y + 0.5
 		actor.global_transform.origin.z = controls.middle_pressed_location.z + 0.5
 		print("%s actors created."%[actor_manager.amount_actors()])
 
@@ -24,6 +24,6 @@ func _input(event : InputEvent) -> void:
 				var voxel_position = controls.get_voxel_position(result)
 				var actor = actor_manager.create_actor()
 				actor.global_transform.origin.x = voxel_position.x + 0.5
-				actor.global_transform.origin.y = voxel_position.y + 1.5
+				actor.global_transform.origin.y = voxel_position.y + 0.5
 				actor.global_transform.origin.z = voxel_position.z + 0.5
 				print("%s actors created."%[actor_manager.amount_actors()])
