@@ -37,9 +37,9 @@ namespace godot {
 		std::shared_ptr<boost::thread> queueThread;
 		deque<std::shared_ptr<Chunk>> buildQueue;
 		unordered_set<size_t> inque;
-		void processQueue(Node* game);
+		void processQueue();
 		void queueChunk(std::shared_ptr<Chunk> chunk);
-		void buildChunk(std::shared_ptr<Chunk> chunk, Node* game);
+		void buildChunk(std::shared_ptr<Chunk> chunk);
 
 		MeshBuilder meshBuilder;
 		boost::mutex BUILD_QUEUE_MUTEX;
@@ -53,7 +53,7 @@ namespace godot {
 			queueThread->interrupt();
 			queueThread->join();
 		};
-		void build(std::shared_ptr<Chunk> chunk, Node* game);
+		void build(std::shared_ptr<Chunk> chunk);
 	};
 
 }

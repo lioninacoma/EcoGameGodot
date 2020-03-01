@@ -35,3 +35,6 @@ func _ready() -> void:
 	materials.push_back(woodMaterial)
 	materials.push_back(leavesMaterial)
 	materials.push_back(waterMaterial)
+	
+#	for material in materials:
+#		material.set_blend_mode(3)

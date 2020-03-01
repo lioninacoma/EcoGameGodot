@@ -11,9 +11,10 @@ ChunkBuilder::ChunkBuilder() {
 	ChunkBuilder::threadStarted = false;
 }
 
-void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk, Node* game) {
+void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	//Godot::print(String("building chunk at {0} ...").format(Array::make(chunk->getOffset())));
-	if (!chunk || !game) return;
+	if (!chunk) return;
+	Node* game = EcoGame::get()->getNode();
 
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
@@ -38,7 +39,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk, Node* game) {
 		}
 
 		BUILD_MESH_MUTEX.lock();
-		vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES, game);
+		vector<int> offsets = meshBuilder.buildVertices(chunk, buffers, TYPES);
 		BUILD_MESH_MUTEX.unlock();
 
 		for (o = 0; o < offsets.size(); o++) {
@@ -121,7 +122,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk, Node* game) {
 	BUILD_QUEUE_CV.notify_one();
 }
 
-void ChunkBuilder::processQueue(Node* game) {
+void ChunkBuilder::processQueue() {
 	while (true) {
 		boost::unique_lock<boost::mutex> lock(BUILD_QUEUE_WAIT);
 		BUILD_QUEUE_CV.wait(lock);
@@ -134,7 +135,7 @@ void ChunkBuilder::processQueue(Node* game) {
 		inque.erase(hash);
 		BUILD_QUEUE_MUTEX.unlock();
 
-		build(chunk, game);
+		build(chunk);
 	}
 }
 
@@ -147,10 +148,10 @@ void ChunkBuilder::queueChunk(std::shared_ptr<Chunk> chunk) {
 	buildQueue.push_back(chunk);
 }
 
-void ChunkBuilder::build(std::shared_ptr<Chunk> chunk, Node* game) {
+void ChunkBuilder::build(std::shared_ptr<Chunk> chunk) {
 	if (!threadStarted) {
 		threadStarted = true;
-		queueThread = std::make_shared<boost::thread>(&ChunkBuilder::processQueue, this, game);
+		queueThread = std::make_shared<boost::thread>(&ChunkBuilder::processQueue, this);
 	}
 
 	if (chunk->isBuilding()) {
@@ -160,5 +161,5 @@ void ChunkBuilder::build(std::shared_ptr<Chunk> chunk, Node* game) {
 	}
 
 	chunk->setBuilding(true);
-	ThreadPool::get()->submitTask(boost::bind(&ChunkBuilder::buildChunk, this, chunk, game));
+	ThreadPool::get()->submitTask(boost::bind(&ChunkBuilder::buildChunk, this, chunk));
 }

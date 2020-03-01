@@ -54,17 +54,17 @@ namespace godot {
 		int createRight(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createFront(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
 		int createBack(Vector3 offset, int bl[], int tl[], int tr[], int br[], float* vertices, int type, int vertexOffset);
-		void updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData data);
-		void updateGraph(std::shared_ptr<Chunk> chunk, vector<NodeUpdateData> updateData, Node* game);
+		void updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<NodeUpdateData> data);
+		void updateGraph(std::shared_ptr<Chunk> chunk, vector<std::shared_ptr<NodeUpdateData>> updateData);
 
-		vector<int> buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen, Node* game);
+		vector<int> buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen);
 	public:
 		MeshBuilder();
 		~MeshBuilder();
 
-		vector<int> buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen, Node* game);
-		vector<int> buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen, Node* game);
-		vector<int> buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen, Node* game);
+		vector<int> buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen);
+		vector<int> buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen);
+		vector<int> buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen);
 	};
 
 }

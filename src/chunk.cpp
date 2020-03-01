@@ -2,6 +2,7 @@
 #include "navigator.h"
 #include "section.h"
 #include "graphnode.h"
+#include "ecogame.h"
 
 using namespace godot;
 
@@ -169,28 +170,24 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	
 	volume->set(x, y, z, v);
 	int dy = surfaceY[fn::fi2(x, z)];
+
+	int i;
+	std::shared_ptr<GraphNavNode> currentNode;
+	Vector3 position;
+	Vector3 nodePosition;
 	
 	if (v == 0) {
 		if (navigatable) {
 			try {
-				Vector3 node = offset + Vector3(x + 0.5, y + 1, z + 0.5);
-				size_t hash = fn::hash(node);
-				auto it = nodes->find(hash);
+				position = offset + Vector3(x, y, z);
+				nodePosition = position + Vector3(0.5, 0.5, 0.5);
+				currentNode = getNode(fn::hash(nodePosition));
 
-				if (it != nodes->end()) {
-					Navigator::get()->removeNode(it->second);
-					removeNode(it->second);
-				}
-
-				int voxelBelow = volume->get(x, y - 1, z);
-				if (y - 1 >= 0 && voxelBelow && voxelBelow != 6) {
-					Vector3 newNode = node + Vector3(0, -1, 0);
-					auto gn = GraphNavNode::_new();
-					gn->setPoint(newNode);
-					gn->setVoxel(v);
-					auto n = std::shared_ptr<GraphNavNode>(gn);
-					Navigator::get()->addNode(n, this);
-					addNode(n);
+				if (currentNode) {
+					Godot::print(String("remove node at: {0}").format(Array::make(nodePosition)));
+					Navigator::get()->removeNode(currentNode);
+					removeNode(currentNode);
+					updateNodesAt(position);
 				}
 			}
 			catch (const std::exception & e) {
@@ -213,23 +210,19 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	else {
 		if (navigatable) {
 			try {
-				Vector3 node = offset + Vector3(x + 0.5, y, z + 0.5);
-				size_t hash = fn::hash(node);
-				auto it = nodes->find(hash);
+				position = offset + Vector3(x, y, z);
+				nodePosition = position + Vector3(0.5, 0.5, 0.5);
+				currentNode = getNode(fn::hash(nodePosition));
 
-				if (it != nodes->end()) {
-					Navigator::get()->removeNode(it->second);
-					removeNode(it->second);
-				}
-
-				if (y + 1 < CHUNK_SIZE_Y && !volume->get(x, y + 1, z) && v != 6) {
-					Vector3 newNode = node + Vector3(0, 1, 0);
+				if (!currentNode) {
+					Godot::print(String("add node at: {0}").format(Array::make(nodePosition)));
 					auto gn = GraphNavNode::_new();
-					gn->setPoint(newNode);
+					gn->setPoint(nodePosition);
 					gn->setVoxel(v);
-					auto n = std::shared_ptr<GraphNavNode>(gn);
-					Navigator::get()->addNode(n, this);
-					addNode(n);
+					currentNode = std::shared_ptr<GraphNavNode>(gn);
+					Navigator::get()->addNode(currentNode, this);
+					addNode(currentNode);
+					updateNodesAt(position);
 				}
 			}
 			catch (const std::exception & e) {
@@ -264,18 +257,81 @@ std::shared_ptr<GraphNavNode> Chunk::findNode(Vector3 position) {
 	return closest;
 }
 
-PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 point, int type) {
-	PoolVector3Array voxels;
+vector<std::shared_ptr<GraphNavNode>> Chunk::getVoxelNodes(Vector3 voxelPosition) {
+	auto lib = EcoGame::get();
+
+	vector<std::shared_ptr<GraphNavNode>> nodes;
+	std::shared_ptr<GraphNavNode> node;
+	Vector3 chunkOffset;
+	int i, x, y, z;
+	float nx, ny, nz;
+	size_t nHash;
+
+	// von Neumann neighbourhood (3D)
+	int neighbours[7][3] = {
+		{ 0,  0,  0 },
+		{ 1,  0,  0 },
+		{ 0,  0,  1 },
+		{-1,  0,  0 },
+		{ 0,  0, -1 },
+		{ 0,  1,  0 },
+		{ 0, -1,  0 }
+	};
+
+	// center voxel position
+	voxelPosition += Vector3(0.5, 0.5, 0.5);
+
+	for (i = 0; i < 7; i++) {
+		x = neighbours[i][0];
+		y = neighbours[i][1];
+		z = neighbours[i][2];
+
+		nx = voxelPosition.x + x;
+		ny = voxelPosition.y + y;
+		nz = voxelPosition.z + z;
+		nHash = fn::hash(Vector3(nx, ny, nz));
+
+		chunkOffset.x = nx;
+		chunkOffset.y = ny;
+		chunkOffset.z = nz;
+		chunkOffset = fn::toChunkCoords(chunkOffset);
+		chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+		if (offset != chunkOffset) {
+			node = lib->getNode(Vector3(nx, ny, nz));
+		}
+		else {
+			node = getNode(nHash);
+		}
+
+		if (!node) {
+			continue;
+		}
+
+		nodes.push_back(node);
+	}
+	return nodes;
+}
+
+vector<std::shared_ptr<GraphNavNode>> Chunk::getReachableNodes(std::shared_ptr<GraphNavNode> node) {
+	auto lib = EcoGame::get();
+
+	vector<std::shared_ptr<GraphNavNode>> nodes;
+	std::shared_ptr<GraphNavNode> reachable;
+	Vector3 position = fn::unreference(node->getPoint());
 	Vector3 chunkOffset;
 	int x, y, z, nx, ny, nz, v;
+	size_t nHash;
+	
+	for (z = -1; z < 2; z++)
+		for (y = -1; y < 2; y++)
+			for (x = -1; x < 2; x++) {
+				if (!x && !y && !z) continue;
 
-	for (y = 2; y > -3; y--)
-		for (z = -2; z < 3; z++)
-			for (x = -2; x < 3; x++) {
-				nx = point.x + x;
-				ny = point.y + y;
-				nz = point.z + z;
-				//Godot::print(String("point: {0}").format(Array::make(point)));
+				nx = position.x + x;
+				ny = position.y + y;
+				nz = position.z + z;
+				nHash = fn::hash(Vector3(nx, ny, nz));
 
 				chunkOffset.x = nx;
 				chunkOffset.y = ny;
@@ -284,13 +340,88 @@ PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 point, int type) {
 				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 				if (offset != chunkOffset) {
+					reachable = lib->getNode(Vector3(nx, ny, nz));
+				}
+				else {
+					reachable = getNode(nHash);
+				}
+
+				if (!reachable) {
 					continue;
 				}
 
-				v = getVoxel(
-					nx % CHUNK_SIZE_X,
-					ny % CHUNK_SIZE_Y,
-					nz % CHUNK_SIZE_Z);
+				nodes.push_back(reachable);
+			}
+	return nodes;
+}
+
+PoolVector3Array Chunk::getReachableVoxels(Vector3 voxelPosition) {
+	auto lib = EcoGame::get();
+
+	PoolVector3Array voxels;
+	Vector3 chunkOffset;
+	int x, y, z, nx, ny, nz, v;
+	
+	for (z = -1; z < 2; z++)
+		for (y = -1; y < 2; y++)
+			for (x = -1; x < 2; x++) {
+				if (!x && !y && !z) continue;
+
+				nx = voxelPosition.x + x;
+				ny = voxelPosition.y + y;
+				nz = voxelPosition.z + z;
+
+				chunkOffset.x = nx;
+				chunkOffset.y = ny;
+				chunkOffset.z = nz;
+				chunkOffset = fn::toChunkCoords(chunkOffset);
+				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+				if (offset != chunkOffset) {
+					v = lib->getVoxel(Vector3(nx, ny, nz));
+				}
+				else {
+					v = getVoxel(
+						nx % CHUNK_SIZE_X,
+						ny % CHUNK_SIZE_Y,
+						nz % CHUNK_SIZE_Z);
+				}
+
+				if (!v) continue;
+				voxels.push_back(Vector3(nx, ny, nz));
+			}
+	return voxels;
+}
+
+PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 voxelPosition, int type) {
+	auto lib = EcoGame::get();
+
+	PoolVector3Array voxels;
+	Vector3 chunkOffset;
+	int x, y, z, nx, ny, nz, v;
+
+	for (y = 2; y > -3; y--)
+		for (z = -2; z < 3; z++)
+			for (x = -2; x < 3; x++) {
+				nx = voxelPosition.x + x;
+				ny = voxelPosition.y + y;
+				nz = voxelPosition.z + z;
+
+				chunkOffset.x = nx;
+				chunkOffset.y = ny;
+				chunkOffset.z = nz;
+				chunkOffset = fn::toChunkCoords(chunkOffset);
+				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+				if (offset != chunkOffset) {
+					v = lib->getVoxel(Vector3(nx, ny, nz));
+				}
+				else {
+					v = getVoxel(
+						nx % CHUNK_SIZE_X,
+						ny % CHUNK_SIZE_Y,
+						nz % CHUNK_SIZE_Z);
+				}
 
 				if (v != type) continue;
 
@@ -367,12 +498,89 @@ int Chunk::buildVolume2() {
 	return amountVoxel;
 }
 
+void Chunk::updateNodesAt(Vector3 position) {
+	auto lib = EcoGame::get();
+
+	int vx, vy, vz, x, y, z, i;
+	size_t nHash;
+	Vector3 chunkOffset, nodePosition, voxelPosition;
+	std::shared_ptr<GraphNavNode> node;
+	Chunk* context;
+
+	vx = (int)position.x;
+	vy = (int)position.y;
+	vz = (int)position.z;
+	char nv, v = getVoxel(
+		vx % CHUNK_SIZE_X,
+		vy % CHUNK_SIZE_Y,
+		vz % CHUNK_SIZE_Z);
+
+	// von Neumann neighbourhood (3D)
+	int neighbours[6][3] = {
+		{ 1,  0,  0 },
+		{ 0,  0,  1 },
+		{-1,  0,  0 },
+		{ 0,  0, -1 },
+		{ 0,  1,  0 },
+		{ 0, -1,  0 }
+	};
+
+	for (i = 0; i < 6; i++) {
+		x = neighbours[i][0];
+		y = neighbours[i][1];
+		z = neighbours[i][2];
+
+		vx = position.x + x;
+		vy = position.y + y;
+		vz = position.z + z;
+
+		voxelPosition = Vector3(vx, vy, vz);
+		nodePosition = voxelPosition + Vector3(0.5, 0.5, 0.5);
+		nHash = fn::hash(nodePosition);
+
+		chunkOffset = nodePosition;
+		chunkOffset = fn::toChunkCoords(chunkOffset);
+		chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+		if (offset != chunkOffset) {
+			auto neighbour = lib->getChunk(nodePosition);
+			if (neighbour == NULL) continue;
+			context = neighbour.get();
+		}
+		else {
+			context = this;
+		}
+
+		node = context->getNode(nHash);
+		nv = context->getVoxel(
+			vx % CHUNK_SIZE_X,
+			vy % CHUNK_SIZE_Y,
+			vz % CHUNK_SIZE_Z);
+
+		if (v && nv && node) {
+			// FIXME: remove neighbour node only if not reachable
+			Navigator::get()->removeNode(node);
+			context->removeNode(node);
+			Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
+		}
+		else if (!v && nv && !node) {
+			auto gn = GraphNavNode::_new();
+			gn->setPoint(nodePosition);
+			gn->setVoxel(nv);
+			node = std::shared_ptr<GraphNavNode>(gn);
+			Navigator::get()->addNode(node, context);
+			context->addNode(node);
+			Godot::print(String("add neighbour node at: {0}").format(Array::make(node->getPointU())));
+		}
+	}
+}
+
 void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 	boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	try {
 		size_t hash = node->getHash();
 		node->determineGravity(cog);
-		Chunk::nodes->insert(pair<size_t, std::shared_ptr<GraphNavNode>>(hash, node));
+		Chunk::nodes->emplace(hash, node);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

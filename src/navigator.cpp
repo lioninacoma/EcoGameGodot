@@ -60,12 +60,15 @@ std::shared_ptr<GraphNavNode> Navigator::getNode(size_t h) {
 
 void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 	try {
+		auto lib = EcoGame::get();
+
 		int x, y, z;
 		float nx, ny, nz;
-		Vector3 chunkOffset;
+		Vector3 chunkOffset, nodePosition;
 		std::shared_ptr<Vector3> point;
 		std::shared_ptr<GraphNavNode> neighbour;
 		size_t nHash;
+		Chunk* context;
 
 		addNode(node);
 
@@ -79,26 +82,24 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 					ny = point->y + y;
 					nz = point->z + z;
 
-					nHash = fn::hash(Vector3(nx, ny, nz));
-					neighbour = chunk->getNode(nHash);
+					nodePosition = Vector3(nx, ny, nz);
+					nHash = fn::hash(nodePosition);
+					
+					chunkOffset = nodePosition;
+					chunkOffset = fn::toChunkCoords(chunkOffset);
+					chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
-					if (!neighbour) {
-						chunkOffset.x = nx;
-						chunkOffset.y = ny;
-						chunkOffset.z = nz;
-						chunkOffset = fn::toChunkCoords(chunkOffset);
-						chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
-
-						if (chunk->getOffset() == chunkOffset) {
-							continue;
-						}
-
-						neighbour = getNode(nHash);
-
-						if (!neighbour) {
-							continue;
-						}
+					if (chunk->getOffset() != chunkOffset) {
+						auto neighbourChunk = lib->getChunk(nodePosition);
+						if (neighbourChunk == NULL) continue;
+						context = neighbourChunk.get();
 					}
+					else {
+						context = chunk;
+					}
+					
+					neighbour = context->getNode(nHash);
+					if (!neighbour) continue;
 
 					addEdge(node, neighbour, euclidean(fn::unreference(node->getPoint()), fn::unreference(neighbour->getPoint())));
 				}
@@ -108,17 +109,21 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 	}
 }
 
-void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
+const bool SHOW_NODES_DEBUG = false;
+void Navigator::updateGraph(std::shared_ptr<Chunk> chunk) {
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
 	long ms = 0;
 
 	start = bpt::microsec_clock::local_time();
 
+	auto lib = EcoGame::get();
+	Node* game = lib->getNode();
+
 	//Godot::print(String("updating graph at {0} ...").format(Array::make(chunk->getOffset())));
 	int x, y, z, drawOffsetY = 1;
 	float nx, ny, nz;
-	Vector3 chunkOffset;
+	Vector3 chunkOffset, nodePosition;
 	std::shared_ptr<Vector3> point;
 	std::shared_ptr<GraphNavNode> current, neighbour;
 
@@ -127,22 +132,32 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 	unordered_set<size_t> inque, ready;
 	size_t cHash, nHash;
 
-
 	auto geo = ImmediateGeometry::_new();
-	geo->begin(Mesh::PRIMITIVE_POINTS);
-	geo->set_color(Color(1, 0, 0, 1));
+
+	if (SHOW_NODES_DEBUG) {
+		geo->begin(Mesh::PRIMITIVE_POINTS);
+		geo->set_color(Color(1, 0, 0, 1));
+	}
 
 	std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> nodeFn = [&](auto next) {
 		addNode(next.second);
 		nodeCache.insert(next);
 		volume.push_back(next.first);
-		Vector3 point = *next.second->getPoint();
-		geo->add_vertex(point);
+		
+		if (SHOW_NODES_DEBUG) {
+			Vector3 point = fn::unreference(next.second->getPoint());
+			geo->add_vertex(point);
+		}
 	};
 	chunk->forEachNode(nodeFn);
 
-	geo->end();
-	game->call_deferred("draw_debug_dots", geo);
+	if (SHOW_NODES_DEBUG) {
+		geo->end();
+		game->call_deferred("draw_debug_dots", geo);
+		geo = ImmediateGeometry::_new();
+		geo->begin(Mesh::PRIMITIVE_LINES);
+		geo->set_color(Color(0, 1, 0, 1));
+	}
 
 	while (true) {
 		while (!volume.empty()) {
@@ -176,28 +191,25 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 						ny = point->y + y;
 						nz = point->z + z;
 
-						nHash = fn::hash(Vector3(nx, ny, nz));
-						auto it = nodeCache.find(nHash);
+						nodePosition = Vector3(nx, ny, nz);
+						nHash = fn::hash(nodePosition);
 
-						if (it == nodeCache.end()) {
-							chunkOffset.x = nx;
-							chunkOffset.y = ny;
-							chunkOffset.z = nz;
-							chunkOffset = fn::toChunkCoords(chunkOffset);
-							chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+						chunkOffset = nodePosition;
+						chunkOffset = fn::toChunkCoords(chunkOffset);
+						chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
-							if (chunk->getOffset() == chunkOffset) {
-								continue;
-							}
+						if (chunk->getOffset() != chunkOffset) {
+							auto neighbourChunk = lib->getChunk(nodePosition);
+							if (neighbourChunk == NULL) continue;
 
-							neighbour = getNode(nHash);
+							neighbour = neighbourChunk->getNode(nHash);
 
-							if (!neighbour) {
-								continue;
-							}
+							if (!neighbour) continue;
 						}
 						else {
-							neighbour = it->second;
+							neighbour = nodeCache[nHash];
+
+							if (!neighbour) continue;
 
 							if (inque.find(nHash) == inque.end() && ready.find(nHash) == ready.end()) {
 								queue.push_back(nHash);
@@ -206,8 +218,18 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 						}
 
 						addEdge(current, neighbour, euclidean(fn::unreference(current->getPoint()), fn::unreference(neighbour->getPoint())));
+
+						if (SHOW_NODES_DEBUG) {
+							geo->add_vertex(fn::unreference(current->getPoint()));
+							geo->add_vertex(fn::unreference(neighbour->getPoint()));
+						}
 					}
 		}
+	}
+
+	if (SHOW_NODES_DEBUG) {
+		geo->end();
+		game->call_deferred("draw_debug", geo);
 	}
 
 	chunk->setNavigatable();
@@ -216,7 +238,7 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk, Node* game) {
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	Godot::print(String("graph at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
+	Godot::print(String("graph at {0} updated in {1} ms").format(Array::make(chunk->getOffset(), ms)));
 }
 
 float Navigator::manhattan(Vector3 a, Vector3 b) {
@@ -239,17 +261,20 @@ float Navigator::h(std::shared_ptr<GraphNavNode> node, std::shared_ptr<GraphNavN
 	return w(distanceToGoal, maxDistance) * distanceToGoal;
 }
 
-void Navigator::setPathActor(Array path, int actorInstanceId, Node* game) {
+void Navigator::setPathActor(Array path, int actorInstanceId) {
+	Node* game = EcoGame::get()->getNode();
 	game->call_deferred("set_path_actor", path, actorInstanceId);
 }
 
-void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib) {
+void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId) {
+	auto lib = EcoGame::get();
+
 	//Godot::print(String("find path from {0} to closest voxel of type {1}").format(Array::make(startV, voxel)));
 	Array path;
 	std::shared_ptr<GraphNavNode> startNode = lib->getNode(startV);
 
 	if (!startNode) {
-		setPathActor(path, actorInstanceId, game);
+		setPathActor(path, actorInstanceId);
 		return;
 	}
 
@@ -295,7 +320,7 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 		currentPoint = currentNode->getPoint();
 
 		if (manhattan(fn::unreference(currentPoint), fn::unreference(currentPoint)) > maxDist) {
-			setPathActor(path, actorInstanceId, game);
+			setPathActor(path, actorInstanceId);
 			return;
 		}
 
@@ -335,7 +360,7 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 			/*geo->end();
 			game->call_deferred("draw_debug", geo);*/
 
-			setPathActor(path, actorInstanceId, game);
+			setPathActor(path, actorInstanceId);
 			return;
 		}
 
@@ -354,10 +379,12 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 		currentNode->forEachEdge(fn);
 	}
 
-	setPathActor(path, actorInstanceId, game);
+	setPathActor(path, actorInstanceId);
 }
 
-void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game, EcoGame* lib) {
+void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
+	auto lib = EcoGame::get();
+
 	//Godot::print(String("find path from {0} to {1}").format(Array::make(startV, goalV)));
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
@@ -370,7 +397,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 	std::shared_ptr<GraphNavNode> goalNode = lib->getNode(goalV);
 
 	if (!startNode || !goalNode) {
-		setPathActor(path, actorInstanceId, game);
+		setPathActor(path, actorInstanceId);
 		return;
 	}
 
@@ -429,7 +456,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 			/*geo->end();
 			game->call_deferred("draw_debug", geo);*/
 
-			setPathActor(path, actorInstanceId, game);
+			setPathActor(path, actorInstanceId);
 
 			stop = bpt::microsec_clock::local_time();
 			dur = stop - start;
@@ -454,5 +481,5 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Nod
 		currentNode->forEachEdge(fn);
 	}
 
-	setPathActor(path, actorInstanceId, game);
+	setPathActor(path, actorInstanceId);
 }

@@ -49,7 +49,7 @@ float Section::getVoxelAssetChance(int x, int y, float scale) {
 		(y + offset.y * CHUNK_SIZE_Z) * scale) / 2.0 + 0.5;
 }
 
-void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder> builder, Node* game) {
+void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder> builder) {
 	VoxelAsset* voxelAsset = VoxelAssetManager::get()->getVoxelAsset(type);
 	int i, areaSize = max(voxelAsset->getWidth(), voxelAsset->getHeight());
 	std::shared_ptr<Chunk> chunk;
@@ -62,7 +62,7 @@ void Section::addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr
 	for (i = 0; i < sectionChunksLen; i++) {
 		chunk = getChunk(i);
 		if (!chunk) continue;
-		builder->build(chunk, game);
+		builder->build(chunk);
 	}
 }
 
@@ -271,7 +271,7 @@ bool Section::voxelAssetFits(Vector3 start, VoxelAssetType type) {
 	return true;
 }
 
-void Section::setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder, Node* game) {
+void Section::setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder) {
 	int x, y, z, cx, cz, ci;
 	Vector2 chunkOffset;
 	std::shared_ptr<Chunk> chunk;
@@ -293,7 +293,7 @@ void Section::setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder
 		x % CHUNK_SIZE_X,
 		y % CHUNK_SIZE_Y,
 		z % CHUNK_SIZE_Z, voxel);
-	builder->build(chunk, game);
+	builder->build(chunk);
 }
 
 int Section::getVoxel(Vector3 position) {
@@ -411,7 +411,7 @@ void Section::fill(EcoGame* lib, int sectionSize) {
 	}
 }
 
-void Section::build(std::shared_ptr<ChunkBuilder> builder, Node* game) {
+void Section::build(std::shared_ptr<ChunkBuilder> builder) {
 	int x, y, i;
 	std::shared_ptr<Chunk> chunk;
 
@@ -439,7 +439,7 @@ void Section::build(std::shared_ptr<ChunkBuilder> builder, Node* game) {
 	for (i = 0; i < sectionChunksLen; i++) {
 		chunk = getChunk(i);
 		if (!chunk) continue;
-		builder->build(chunk, game);
+		builder->build(chunk);
 	}
 }
 

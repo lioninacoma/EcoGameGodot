@@ -66,11 +66,11 @@ namespace godot {
 
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		float getVoxelAssetChance(int x, int y, float scale);
-		void addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder> builder, Node* game);
+		void addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder> builder);
 		Array getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end);
 		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		bool voxelAssetFits(Vector3 start, VoxelAssetType type);
-		void setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder, Node* game);
+		void setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder);
 		int getVoxel(Vector3 position);
 		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
 		std::shared_ptr<Chunk> getChunk(int x, int z);
@@ -78,7 +78,7 @@ namespace godot {
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void fill(EcoGame* lib, int sectionSize);
-		void build(std::shared_ptr<ChunkBuilder> builder, Node* game);
+		void build(std::shared_ptr<ChunkBuilder> builder);
 		Vector2 getOffset();
 		void buildAreasByType(VoxelAssetType type);
 		void buildArea(Area area, VoxelAssetType type);

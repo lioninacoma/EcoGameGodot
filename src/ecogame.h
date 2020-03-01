@@ -41,11 +41,17 @@ namespace godot {
 
 		boost::mutex SECTIONS_MUTEX;
 
-		void buildSection(std::shared_ptr<Section> section, Node* game);
-		void updateGraphTask(std::shared_ptr<Chunk> chunk, Node* game);
-		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game);
-		void navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib);
+		void buildSection(std::shared_ptr<Section> section);
+		void updateGraphTask(std::shared_ptr<Chunk> chunk);
+		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId);
+		void navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorInstanceId);
 	public:
+		static std::shared_ptr<EcoGame> get();;
+
+		Node* getNode() {
+			return get_tree()->get_root()->get_node("EcoGame");
+		}
+
 		static void _register_methods();
 
 		EcoGame();
@@ -57,6 +63,7 @@ namespace godot {
 		vector<std::shared_ptr<Section>> getSectionsRay(Vector3 from, Vector3 to);
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		vector<std::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
+		std::shared_ptr<Chunk> getChunk(Vector3 position);
 		Array getDisconnectedVoxels(Vector3 position, float radius);
 		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
 		void setSection(int x, int z, std::shared_ptr<Section> section);

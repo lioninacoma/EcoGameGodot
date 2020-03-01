@@ -59,7 +59,7 @@ namespace godot {
 		float w(float distanceToGoal, float maxDistance);
 		float h(std::shared_ptr<GraphNavNode> node, std::shared_ptr<GraphNavNode> goal, float maxDistance);
 		std::shared_ptr<GraphNavNode> getNode(size_t h);
-		void setPathActor(Array path, int actorInstanceId, Node* game);
+		void setPathActor(Array path, int actorInstanceId);
 
 		unordered_map<size_t, std::shared_ptr<GraphNavNode>>* nodes;
 		boost::shared_mutex NAV_NODES_MUTEX;
@@ -76,9 +76,9 @@ namespace godot {
 		void addNode(std::shared_ptr<GraphNavNode> node);
 		void removeNode(std::shared_ptr<GraphNavNode> node);
 		void addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk);
-		void updateGraph(std::shared_ptr<Chunk> chunk, Node* game);
-		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId, Node* game, EcoGame* lib);
-		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId, Node* game, EcoGame* lib);
+		void updateGraph(std::shared_ptr<Chunk> chunk);
+		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId);
+		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 	};
 
 }

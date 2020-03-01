@@ -5,7 +5,7 @@ onready var controls = $"../"
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseButton:
-		if event.button_index == BUTTON_LEFT and event.pressed:
+		if event.button_index == BUTTON_LEFT and event.pressed and !controls.control_active:
 			var from = controls.camera.project_ray_origin(event.position)
 			var to = from + controls.camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
 			var space_state = eco_game.get_world().direct_space_state

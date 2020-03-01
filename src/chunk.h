@@ -101,7 +101,10 @@ namespace godot {
 		};
 		std::shared_ptr<GraphNavNode> getNode(size_t hash);
 		std::shared_ptr<GraphNavNode> findNode(Vector3 position);
-		PoolVector3Array getReachableVoxelsOfType(Vector3 point, int type);
+		vector<std::shared_ptr<GraphNavNode>> getVoxelNodes(Vector3 voxelPosition);
+		vector<std::shared_ptr<GraphNavNode>> getReachableNodes(std::shared_ptr<GraphNavNode> node);
+		PoolVector3Array getReachableVoxels(Vector3 voxelPosition);
+		PoolVector3Array getReachableVoxelsOfType(Vector3 voxelPosition, int type);
 		// setter
 		void setOffset(Vector3 offset) {
 			Chunk::offset = offset;
@@ -124,6 +127,7 @@ namespace godot {
 		int buildVolume2();
 		void addNode(std::shared_ptr<GraphNavNode> node);
 		void removeNode(std::shared_ptr<GraphNavNode> node);
+		void updateNodesAt(Vector3 voxelPosition);
 	};
 
 }

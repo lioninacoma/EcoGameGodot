@@ -13,23 +13,23 @@ MeshBuilder::~MeshBuilder() {
 	// add your cleanup here
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen, Node* game) {
+vector<int> MeshBuilder::buildVertices(VoxelAsset* asset, Vector3 offset, float** buffers, int buffersLen) {
 	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
-	return MeshBuilder::buildVertices(asset->getVolume(), NULL, offset, DIMS, buffers, buffersLen, game);
+	return MeshBuilder::buildVertices(asset->getVolume(), NULL, offset, DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen, Node* game) {
+vector<int> MeshBuilder::buildVertices(VoxelAssetType type, Vector3 offset, float** buffers, int buffersLen) {
 	VoxelAsset* asset = VoxelAssetManager::get()->getVoxelAsset(type);
 	const int DIMS[3] = { asset->getWidth(), asset->getHeight(), asset->getDepth() };
-	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, offset, DIMS, buffers, buffersLen, game);
+	return MeshBuilder::buildVertices(VoxelAssetManager::get()->getVolume(type), NULL, offset, DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen, Node* game) {
+vector<int> MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** buffers, int buffersLen) {
 	const int DIMS[3] = { CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z };
-	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, chunk->getOffset(), DIMS, buffers, buffersLen, game);
+	return MeshBuilder::buildVertices(chunk->getVolume(), chunk, chunk->getOffset(), DIMS, buffers, buffersLen);
 }
 
-vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen, Node* game) {
+vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen) {
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
 	long ms = 0;
@@ -44,7 +44,7 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 	if (chunk) doInitializeNodes = !chunk->isNavigatable();
 
 	vector<int> vertexOffsets;
-	vector<NodeUpdateData> updateData;
+	vector<std::shared_ptr<NodeUpdateData>> updateData;
 	vertexOffsets.resize(buffersLen);
 
 	for (i = 0; i < vertexOffsets.size(); i++) {
@@ -166,13 +166,13 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 								vertexOffsets[idx] = quad(offset, bl, tl, tr, br, buffers[idx], side, mask[n], vertexOffsets[idx]);
 
 								if (chunk && doInitializeNodes) {
-									NodeUpdateData data;
-									data.bl[0] = bl[0]; data.bl[1] = bl[1]; data.bl[2] = bl[2];
-									data.tl[0] = tl[0]; data.tl[1] = tl[1]; data.tl[2] = tl[2];
-									data.tr[0] = tr[0]; data.tr[1] = tr[1]; data.tr[2] = tr[2];
-									data.br[0] = br[0]; data.br[1] = br[1]; data.br[2] = br[2];
-									data.side = side;
-									data.type = mask[n];
+									auto data = std::make_shared<NodeUpdateData>();
+									data->bl[0] = bl[0]; data->bl[1] = bl[1]; data->bl[2] = bl[2];
+									data->tl[0] = tl[0]; data->tl[1] = tl[1]; data->tl[2] = tl[2];
+									data->tr[0] = tr[0]; data->tr[1] = tr[1]; data->tr[2] = tr[2];
+									data->br[0] = br[0]; data->br[1] = br[1]; data->br[2] = br[2];
+									data->side = side;
+									data->type = mask[n];
 									updateData.push_back(data);
 								}
 							}
@@ -199,7 +199,7 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 	}
 
 	if (!updateData.empty())
-		ThreadPool::getNav()->submitTask(boost::bind(&MeshBuilder::updateGraph, this, chunk, updateData, game));
+		ThreadPool::getNav()->submitTask(boost::bind(&MeshBuilder::updateGraph, this, chunk, updateData));
 
 	stop = bpt::microsec_clock::local_time();
 	dur = stop - start;
@@ -212,34 +212,42 @@ vector<int> MeshBuilder::buildVertices(std::shared_ptr<VoxelData> volume, std::s
 	return vertexOffsets;
 }
 
-void MeshBuilder::updateGraph(std::shared_ptr<Chunk> chunk, vector<NodeUpdateData> updateData, Node* game) {
+void MeshBuilder::updateGraph(std::shared_ptr<Chunk> chunk, vector<std::shared_ptr<NodeUpdateData>> updateData) {
 	while (!updateData.empty()) {
-		updateGraphNode(chunk, updateData.back());
+		auto data = updateData.back();
+		updateGraphNode(chunk, data);
 		updateData.pop_back();
+		data.reset();
 	}
 
-	Navigator::get()->updateGraph(chunk, game);
+	Navigator::get()->updateGraph(chunk);
 }
 
-void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData data) {
+void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<NodeUpdateData> data) {
 	int nxi, nyi, nzi;
 	float nx, ny, nz;
 	Vector3 offset = chunk->getOffset();
+	Vector3 otherOffset;
 
-	switch (data.side) {
+	switch (data->side) {
 	case TOP:
 		//float w = TEXTURE_SCALE * abs(bl[2] - tl[2]);
 		//float h = TEXTURE_SCALE * abs(bl[0] - br[0]);
-		nyi = data.bl[1];
+		nyi = data->bl[1] - 1;
 		ny = nyi + 0.5;
-		for (nzi = data.bl[2]; nzi < data.tl[2]; nzi++) {
-			for (nxi = data.bl[0]; nxi < data.br[0]; nxi++) {
-				if (!chunk->isVoxel(nxi, nyi, nzi)) {
-					nx = nxi + 0.5;
-					nz = nzi + 0.5;
+		for (nzi = data->bl[2]; nzi < data->tl[2]; nzi++) {
+			for (nxi = data->bl[0]; nxi < data->br[0]; nxi++) {
+				nx = nxi + 0.5;
+				nz = nzi + 0.5;
+				otherOffset.x = nx;
+				otherOffset.y = ny;
+				otherOffset.z = nz;
+				otherOffset = fn::toChunkCoords(offset + otherOffset);
+				otherOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+				if (offset == otherOffset && !chunk->isVoxel(nxi, nyi + 1, nzi)) {
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
-					node->setVoxel(data.type);
+					node->setVoxel(data->type);
 					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 				}
 			}
@@ -248,16 +256,21 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData d
 	case BOTTOM:
 		//float w = TEXTURE_SCALE * abs(bl[0] - br[0]);
 		//float h = TEXTURE_SCALE * abs(bl[2] - tl[2]);
-		nyi = data.bl[1];
+		nyi = data->bl[1] + 1;
 		ny = nyi - 0.5;
-		for (nzi = data.bl[2]; nzi < data.tl[2]; nzi++) {
-			for (nxi = data.bl[0]; nxi < data.br[0]; nxi++) {
-				if (!chunk->isVoxel(nxi, nyi - 1, nzi)) {
-					nx = nxi + 0.5;
-					nz = nzi + 0.5;
+		for (nzi = data->bl[2]; nzi < data->tl[2]; nzi++) {
+			for (nxi = data->bl[0]; nxi < data->br[0]; nxi++) {
+				nx = nxi + 0.5;
+				nz = nzi + 0.5;
+				otherOffset.x = nx;
+				otherOffset.y = ny;
+				otherOffset.z = nz;
+				otherOffset = fn::toChunkCoords(offset + otherOffset);
+				otherOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+				if (offset == otherOffset && !chunk->isVoxel(nxi, nyi - 2, nzi)) {
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
-					node->setVoxel(data.type);
+					node->setVoxel(data->type);
 					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 				}
 			}
@@ -266,16 +279,21 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData d
 	case WEST:
 		//float w = TEXTURE_SCALE * abs(bl[2] - br[2]);
 		//float h = TEXTURE_SCALE * abs(bl[1] - tl[1]);
-		nxi = data.bl[0];
+		nxi = data->bl[0] + 1;
 		nx = nxi - 0.5;
-		for (nzi = data.bl[2]; nzi < data.br[2]; nzi++) {
-			for (nyi = data.bl[1]; nyi < data.tl[1]; nyi++) {
-				if (!chunk->isVoxel(nxi - 1, nyi, nzi)) {
-					ny = nyi + 0.5;
-					nz = nzi + 0.5;
+		for (nzi = data->bl[2]; nzi < data->br[2]; nzi++) {
+			for (nyi = data->bl[1]; nyi < data->tl[1]; nyi++) {
+				ny = nyi + 0.5;
+				nz = nzi + 0.5;
+				otherOffset.x = nx;
+				otherOffset.y = ny;
+				otherOffset.z = nz;
+				otherOffset = fn::toChunkCoords(offset + otherOffset);
+				otherOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+				if (offset == otherOffset && !chunk->isVoxel(nxi - 2, nyi, nzi)) {
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
-					node->setVoxel(data.type);
+					node->setVoxel(data->type);
 					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 				}
 			}
@@ -284,16 +302,21 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData d
 	case EAST:
 		//float w = TEXTURE_SCALE * abs(bl[1] - tl[1]);
 		//float h = TEXTURE_SCALE * abs(bl[2] - br[2]);
-		nxi = data.bl[0];
+		nxi = data->bl[0] - 1;
 		nx = nxi + 0.5;
-		for (nzi = data.bl[2]; nzi < data.br[2]; nzi++) {
-			for (nyi = data.bl[1]; nyi < data.tl[1]; nyi++) {
-				if (!chunk->isVoxel(nxi + 1, nyi, nzi)) {
-					ny = nyi + 0.5;
-					nz = nzi + 0.5;
+		for (nzi = data->bl[2]; nzi < data->br[2]; nzi++) {
+			for (nyi = data->bl[1]; nyi < data->tl[1]; nyi++) {
+				ny = nyi + 0.5;
+				nz = nzi + 0.5;
+				otherOffset.x = nx;
+				otherOffset.y = ny;
+				otherOffset.z = nz;
+				otherOffset = fn::toChunkCoords(offset + otherOffset);
+				otherOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+				if (offset == otherOffset && !chunk->isVoxel(nxi + 1, nyi, nzi)) {
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
-					node->setVoxel(data.type);
+					node->setVoxel(data->type);
 					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 				}
 			}
@@ -302,16 +325,21 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData d
 	case NORTH:
 		//float w = TEXTURE_SCALE * abs(bl[0] - tl[0]);
 		//float h = TEXTURE_SCALE * abs(bl[1] - br[1]);
-		nzi = data.bl[2];
+		nzi = data->bl[2] - 1;
 		nz = nzi + 0.5;
-		for (nyi = data.bl[1]; nyi < data.br[1]; nyi++) {
-			for (nxi = data.bl[0]; nxi < data.tl[0]; nxi++) {
-				if (!chunk->isVoxel(nxi, nyi, nzi + 1)) {
-					nx = nxi + 0.5;
-					ny = nyi + 0.5;
+		for (nyi = data->bl[1]; nyi < data->br[1]; nyi++) {
+			for (nxi = data->bl[0]; nxi < data->tl[0]; nxi++) {
+				nx = nxi + 0.5;
+				ny = nyi + 0.5;
+				otherOffset.x = nx;
+				otherOffset.y = ny;
+				otherOffset.z = nz;
+				otherOffset = fn::toChunkCoords(offset + otherOffset);
+				otherOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+				if (offset == otherOffset && !chunk->isVoxel(nxi, nyi, nzi + 1)) {
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
-					node->setVoxel(data.type);
+					node->setVoxel(data->type);
 					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 				}
 			}
@@ -320,16 +348,21 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, NodeUpdateData d
 	case SOUTH:
 		//float w = TEXTURE_SCALE * abs(bl[1] - br[1]);
 		//float h = TEXTURE_SCALE * abs(bl[0] - tl[0]);
-		nzi = data.bl[2];
+		nzi = data->bl[2] + 1;
 		nz = nzi - 0.5;
-		for (nyi = data.bl[1]; nyi < data.br[1]; nyi++) {
-			for (nxi = data.bl[0]; nxi < data.tl[0]; nxi++) {
-				if (!chunk->isVoxel(nxi, nyi, nzi - 1)) {
-					nx = nxi + 0.5;
-					ny = nyi + 0.5;
+		for (nyi = data->bl[1]; nyi < data->br[1]; nyi++) {
+			for (nxi = data->bl[0]; nxi < data->tl[0]; nxi++) {
+				nx = nxi + 0.5;
+				ny = nyi + 0.5;
+				otherOffset.x = nx;
+				otherOffset.y = ny;
+				otherOffset.z = nz;
+				otherOffset = fn::toChunkCoords(offset + otherOffset);
+				otherOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+				if (offset == otherOffset && !chunk->isVoxel(nxi, nyi, nzi - 2)) {
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
-					node->setVoxel(data.type);
+					node->setVoxel(data->type);
 					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
 				}
 			}
