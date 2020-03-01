@@ -58,9 +58,12 @@ std::shared_ptr<GraphNavNode> Navigator::getNode(size_t h) {
 	return it->second;
 }
 
+const bool SHOW_NODES_DEBUG = false;
+
 void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 	try {
 		auto lib = EcoGame::get();
+		Node* game = lib->getNode();
 
 		int x, y, z;
 		float nx, ny, nz;
@@ -71,6 +74,22 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 		Chunk* context;
 
 		addNode(node);
+
+		auto geo = ImmediateGeometry::_new();
+
+		if (SHOW_NODES_DEBUG) {
+			geo->begin(Mesh::PRIMITIVE_POINTS);
+			geo->set_color(Color(1, 0, 0, 1));
+
+			Vector3 point = fn::unreference(node->getPoint());
+			geo->add_vertex(point);
+
+			geo->end();
+			game->call_deferred("draw_debug_dots", geo);
+			geo = ImmediateGeometry::_new();
+			geo->begin(Mesh::PRIMITIVE_LINES);
+			geo->set_color(Color(0, 1, 0, 1));
+		}
 
 		for (z = -1; z < 2; z++)
 			for (x = -1; x < 2; x++)
@@ -102,14 +121,23 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 					if (!neighbour) continue;
 
 					addEdge(node, neighbour, euclidean(fn::unreference(node->getPoint()), fn::unreference(neighbour->getPoint())));
+
+					if (SHOW_NODES_DEBUG) {
+						geo->add_vertex(fn::unreference(node->getPoint()));
+						geo->add_vertex(fn::unreference(neighbour->getPoint()));
+					}
 				}
+
+		if (SHOW_NODES_DEBUG) {
+			geo->end();
+			game->call_deferred("draw_debug", geo);
+		}
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
 	}
 }
 
-const bool SHOW_NODES_DEBUG = false;
 void Navigator::updateGraph(std::shared_ptr<Chunk> chunk) {
 	bpt::ptime start, stop;
 	bpt::time_duration dur;

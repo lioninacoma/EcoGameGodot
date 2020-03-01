@@ -557,11 +557,11 @@ void Chunk::updateNodesAt(Vector3 position) {
 			vy % CHUNK_SIZE_Y,
 			vz % CHUNK_SIZE_Z);
 
-		if (v && nv && node) {
+		if (!v && !nv && node) {
 			// FIXME: remove neighbour node only if not reachable
-			Navigator::get()->removeNode(node);
-			context->removeNode(node);
-			Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
+			//Navigator::get()->removeNode(node);
+			//context->removeNode(node);
+			//Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
 		}
 		else if (!v && nv && !node) {
 			auto gn = GraphNavNode::_new();

@@ -187,7 +187,7 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 		if (b) continue;
 		for (auto v : *areas[areaIndex]) {
 			auto voxel = Voxel::_new();
-			voxel->setPosition(*v->getPoint());
+			voxel->setPosition(v->getPointU());
 			voxel->setType(v->getVoxel());
 			voxels.push_back(voxel);
 		}
