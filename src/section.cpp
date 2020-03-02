@@ -84,12 +84,12 @@ Array Section::getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 en
 
 	// von Neumann neighbourhood (3D)
 	int neighbours[6][3] = {
-		{ 1,  0,  0 }, 
-		{ 0,  0,  1 }, 
-		{-1,  0,  0 }, 
-		{ 0,  0, -1 }, 
-		{ 0,  1,  0 }, 
-		{ 0, -1,  0 }
+		{ 0,  1,  0 },
+		{ 0, -1,  0 },
+		{-1,  0,  0 },
+		{ 1,  0,  0 },
+		{ 0,  0,  1 },
+		{ 0,  0, -1 }
 	};
 
 	for (z = start.z; z <= end.z; z++) {

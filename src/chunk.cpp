@@ -1,7 +1,6 @@
 #include "chunk.h"
 #include "navigator.h"
 #include "section.h"
-#include "graphnode.h"
 #include "ecogame.h"
 
 using namespace godot;
@@ -171,7 +170,6 @@ void Chunk::setVoxel(int x, int y, int z, int v) {
 	volume->set(x, y, z, v);
 	int dy = surfaceY[fn::fi2(x, z)];
 
-	int i;
 	std::shared_ptr<GraphNavNode> currentNode;
 	Vector3 position;
 	Vector3 nodePosition;
@@ -270,12 +268,12 @@ vector<std::shared_ptr<GraphNavNode>> Chunk::getVoxelNodes(Vector3 voxelPosition
 	// von Neumann neighbourhood (3D)
 	int neighbours[7][3] = {
 		{ 0,  0,  0 },
+		{ 0,  1,  0 },
+		{ 0, -1,  0 },
+		{-1,  0,  0 },
 		{ 1,  0,  0 },
 		{ 0,  0,  1 },
-		{-1,  0,  0 },
-		{ 0,  0, -1 },
-		{ 0,  1,  0 },
-		{ 0, -1,  0 }
+		{ 0,  0, -1 }
 	};
 
 	// center voxel position
@@ -516,13 +514,13 @@ void Chunk::updateNodesAt(Vector3 position) {
 		vz % CHUNK_SIZE_Z);
 
 	// von Neumann neighbourhood (3D)
-	int neighbours[6][3] = {
-		{ 1,  0,  0 },
-		{ 0,  0,  1 },
-		{-1,  0,  0 },
-		{ 0,  0, -1 },
-		{ 0,  1,  0 },
-		{ 0, -1,  0 }
+	int neighbours[6][4] = {
+		{  0,  1,  0,  0 },
+		{ -1,  0,  0,  2 },
+		{  0,  0,  1,  4 },
+		{  0, -1,  0,  1 },
+		{  1,  0,  0,  3 },
+		{  0,  0, -1,  5 }
 	};
 
 	for (i = 0; i < 6; i++) {
@@ -557,11 +555,13 @@ void Chunk::updateNodesAt(Vector3 position) {
 			vy % CHUNK_SIZE_Y,
 			vz % CHUNK_SIZE_Z);
 
-		if (!v && !nv && node) {
-			// FIXME: remove neighbour node only if not reachable
-			//Navigator::get()->removeNode(node);
-			//context->removeNode(node);
-			//Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
+		if (v && nv && node) {
+			node->setDirection(static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]), false);
+			if (!node->getAmountDirections()) {
+				Navigator::get()->removeNode(node);
+				context->removeNode(node);
+				Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
+			}
 		}
 		else if (!v && nv && !node) {
 			auto gn = GraphNavNode::_new();
@@ -569,9 +569,23 @@ void Chunk::updateNodesAt(Vector3 position) {
 			gn->setVoxel(nv);
 			node = std::shared_ptr<GraphNavNode>(gn);
 			Navigator::get()->addNode(node, context);
-			context->addNode(node);
+			context->addNode(node, static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]));
 			Godot::print(String("add neighbour node at: {0}").format(Array::make(node->getPointU())));
 		}
+	}
+}
+
+void Chunk::addNode(std::shared_ptr<GraphNavNode> node, GraphNavNode::DIRECTION direction) {
+	boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
+	try {
+		size_t hash = node->getHash();
+		node->determineGravity(cog);
+		Chunk::nodes->emplace(hash, node);
+
+		node->setDirection(direction, true);
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
 	}
 }
 
@@ -581,6 +595,48 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 		size_t hash = node->getHash();
 		node->determineGravity(cog);
 		Chunk::nodes->emplace(hash, node);
+
+		auto lib = EcoGame::get();
+		Vector3 directionVector, voxelPosition, chunkOffset;
+		unsigned char directionMask = 63; // 63 -> all 6 directions (2^6-1)
+		unsigned char mask = directionMask;
+		int d = -1, vx, vy, vz;
+		char v;
+		Chunk* context;
+
+		while (mask && ++d < 6) {
+			if (mask & 1) {
+				directionVector = GraphNavNode::getDirectionVector(static_cast<GraphNavNode::DIRECTION>(d));
+				voxelPosition = (node->getPointU() - Vector3(0.5, 0.5, 0.5)) + directionVector;
+				vx = (int)voxelPosition.x;
+				vy = (int)voxelPosition.y;
+				vz = (int)voxelPosition.z;
+
+				chunkOffset = voxelPosition;
+				chunkOffset = fn::toChunkCoords(chunkOffset);
+				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+				if (offset != chunkOffset) {
+					auto neighbour = lib->getChunk(voxelPosition);
+					if (neighbour == NULL) continue;
+					context = neighbour.get();
+				}
+				else {
+					context = this;
+				}
+
+				v = context->getVoxel(
+					vx % CHUNK_SIZE_X,
+					vy % CHUNK_SIZE_Y,
+					vz % CHUNK_SIZE_Z);
+
+				if (v) directionMask &= ~(1UL << d);
+			}
+
+			mask >>= 1;
+		}
+
+		node->setDirections(directionMask);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

@@ -23,6 +23,7 @@
 #include "intersection.h"
 #include "voxel.h"
 #include "voxeldata.h"
+#include "graphnode.h"
 
 using namespace std;
 
@@ -126,6 +127,7 @@ namespace godot {
 		int buildVolume();
 		int buildVolume2();
 		void addNode(std::shared_ptr<GraphNavNode> node);
+		void addNode(std::shared_ptr<GraphNavNode> node, GraphNavNode::DIRECTION direction);
 		void removeNode(std::shared_ptr<GraphNavNode> node);
 		void updateNodesAt(Vector3 voxelPosition);
 	};

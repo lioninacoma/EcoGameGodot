@@ -14,6 +14,7 @@ GraphNavNode::GraphNavNode(Vector3 point, char voxel) {
 	GraphNavNode::gravity = std::shared_ptr<Vector3>(new Vector3(0, -9.8, 0));
 	GraphNavNode::hash = fn::hash(point);
 	GraphNavNode::voxel = voxel;
+	GraphNavNode::directionMask = 0;
 }
 
 GraphNavNode::~GraphNavNode() {
