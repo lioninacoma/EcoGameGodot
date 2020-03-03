@@ -41,22 +41,7 @@ namespace godot {
 		static enum DIRECTION {
 			TOP, BOTTOM, WEST, EAST, NORTH, SOUTH
 		};
-		static Vector3 getDirectionVector(GraphNavNode::DIRECTION d) {
-			switch (d) {
-			case TOP:
-				return Vector3(0, 1, 0);
-			case BOTTOM:
-				return Vector3(0, -1, 0);
-			case WEST:
-				return Vector3(-1, 0, 0);
-			case EAST:
-				return Vector3(1, 0, 0);
-			case NORTH:
-				return Vector3(0, 0, 1);
-			case SOUTH:
-				return Vector3(0, 0, -1);
-			}
-		}
+		static Vector3 getDirectionVector(DIRECTION d);
 
 		GraphNavNode() : GraphNavNode(Vector3(), 0) {};
 		GraphNavNode(Vector3 point, char voxel);
@@ -69,19 +54,9 @@ namespace godot {
 		void setPoint(Vector3 point);
 		void setVoxel(char voxel);
 		void determineGravity(Vector3 cog);
-		void setDirection(GraphNavNode::DIRECTION d, bool set) {
-			boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-			if (set) directionMask |= 1UL << d;
-			else directionMask &= ~(1UL << d);
-		}
-		void setDirections(unsigned char mask) {
-			boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-			directionMask |= mask;
-		}
-		void clearDirections() {
-			boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-			directionMask &= 0;
-		}
+		void setDirection(DIRECTION d, bool set);
+		void setDirections(unsigned char mask);
+		void clearDirections();
 
 		void forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func);
 		std::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash);
@@ -92,24 +67,11 @@ namespace godot {
 		Vector3 getGravityU();
 		size_t getHash();
 		char getVoxel();
-		int getAmountDirections() {
-			boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-			int count = 0;
-			unsigned char n = directionMask;
-			while (n) {
-				count += n & 1;
-				n >>= 1;
-			}
-			return count;
-		}
-		bool isDirectionSet(GraphNavNode::DIRECTION d) {
-			boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-			return (bool)((directionMask >> d) & 1U);
-		}
-		unsigned char getDirectionMask() {
-			boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-			return directionMask;
-		}
+		int getAmountDirections();
+		vector<int> getDirections();
+		PoolVector3Array getDirectionVectors();
+		bool isDirectionSet(DIRECTION d);
+		bool isWalkable();
 
 		bool operator == (const GraphNavNode& o) const {
 			return hash == o.hash;

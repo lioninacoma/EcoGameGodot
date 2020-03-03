@@ -248,7 +248,7 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
 					node->setVoxel(data->type);
-					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node), GraphNavNode::DIRECTION::TOP);
 				}
 			}
 		}
@@ -271,7 +271,7 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
 					node->setVoxel(data->type);
-					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node), GraphNavNode::DIRECTION::BOTTOM);
 				}
 			}
 		}
@@ -294,7 +294,7 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
 					node->setVoxel(data->type);
-					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node), GraphNavNode::DIRECTION::WEST);
 				}
 			}
 		}
@@ -317,7 +317,7 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
 					node->setVoxel(data->type);
-					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node), GraphNavNode::DIRECTION::EAST);
 				}
 			}
 		}
@@ -340,7 +340,7 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
 					node->setVoxel(data->type);
-					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node), GraphNavNode::DIRECTION::NORTH);
 				}
 			}
 		}
@@ -363,7 +363,7 @@ void MeshBuilder::updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<
 					auto node = GraphNavNode::_new();
 					node->setPoint(offset + Vector3(nx, ny, nz));
 					node->setVoxel(data->type);
-					chunk->addNode(std::shared_ptr<GraphNavNode>(node));
+					chunk->addNode(std::shared_ptr<GraphNavNode>(node), GraphNavNode::DIRECTION::SOUTH);
 				}
 			}
 		}

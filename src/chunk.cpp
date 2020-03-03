@@ -515,12 +515,12 @@ void Chunk::updateNodesAt(Vector3 position) {
 
 	// von Neumann neighbourhood (3D)
 	int neighbours[6][4] = {
-		{  0,  1,  0,  0 },
-		{ -1,  0,  0,  2 },
-		{  0,  0,  1,  4 },
-		{  0, -1,  0,  1 },
-		{  1,  0,  0,  3 },
-		{  0,  0, -1,  5 }
+		{ 0,  1,  0,  0 },
+		{-1,  0,  0,  2 },
+		{ 0,  0,  1,  4 },
+		{ 0, -1,  0,  1 },
+		{ 1,  0,  0,  3 },
+		{ 0,  0, -1,  5 }
 	};
 
 	for (i = 0; i < 6; i++) {
@@ -578,11 +578,20 @@ void Chunk::updateNodesAt(Vector3 position) {
 void Chunk::addNode(std::shared_ptr<GraphNavNode> node, GraphNavNode::DIRECTION direction) {
 	boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	try {
+		std::shared_ptr<GraphNavNode> current;
 		size_t hash = node->getHash();
 		node->determineGravity(cog);
-		Chunk::nodes->emplace(hash, node);
+		auto it = nodes->find(hash);
 
-		node->setDirection(direction, true);
+		if (it == nodes->end()) {
+			nodes->emplace(hash, node);
+			current = node;
+		}
+		else {
+			current = it->second;
+		}
+
+		current->setDirection(direction, true);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -592,9 +601,18 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node, GraphNavNode::DIRECTION 
 void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 	boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	try {
+		std::shared_ptr<GraphNavNode> current;
 		size_t hash = node->getHash();
 		node->determineGravity(cog);
-		Chunk::nodes->emplace(hash, node);
+		auto it = nodes->find(hash);
+
+		if (it == nodes->end()) {
+			nodes->emplace(hash, node);
+			current = node;
+		}
+		else {
+			current = it->second;
+		}
 
 		auto lib = EcoGame::get();
 		Vector3 directionVector, voxelPosition, chunkOffset;
@@ -607,7 +625,7 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 		while (mask && ++d < 6) {
 			if (mask & 1) {
 				directionVector = GraphNavNode::getDirectionVector(static_cast<GraphNavNode::DIRECTION>(d));
-				voxelPosition = (node->getPointU() - Vector3(0.5, 0.5, 0.5)) + directionVector;
+				voxelPosition = (current->getPointU() - Vector3(0.5, 0.5, 0.5)) + directionVector;
 				vx = (int)voxelPosition.x;
 				vy = (int)voxelPosition.y;
 				vz = (int)voxelPosition.z;
@@ -618,7 +636,10 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 
 				if (offset != chunkOffset) {
 					auto neighbour = lib->getChunk(voxelPosition);
-					if (neighbour == NULL) continue;
+					if (neighbour == NULL) {
+						mask >>= 1;
+						continue;
+					}
 					context = neighbour.get();
 				}
 				else {
@@ -636,7 +657,7 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 			mask >>= 1;
 		}
 
-		node->setDirections(directionMask);
+		current->setDirections(directionMask);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

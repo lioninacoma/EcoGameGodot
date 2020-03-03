@@ -394,14 +394,16 @@ void Navigator::navigateToClosestVoxel(Vector3 startV, int voxel, int actorInsta
 
 		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
 			neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
-			nHash = neighbourNode->getHash();
-			float newCost = costSoFar[cHash] + next.second->getCost();
-			if (costSoFar.find(nHash) == costSoFar.end()
-				|| newCost < costSoFar[nHash]) {
-				costSoFar[nHash] = newCost;
-				float priority = newCost + 1.0;
-				frontier.put(nHash, priority);
-				cameFrom[nHash] = cHash;
+			if (neighbourNode->isWalkable()) {
+				nHash = neighbourNode->getHash();
+				float newCost = costSoFar[cHash] + next.second->getCost();
+				if (costSoFar.find(nHash) == costSoFar.end()
+					|| newCost < costSoFar[nHash]) {
+					costSoFar[nHash] = newCost;
+					float priority = newCost + 1.0;
+					frontier.put(nHash, priority);
+					cameFrom[nHash] = cHash;
+				}
 			}
 		};
 		currentNode->forEachEdge(fn);
@@ -496,14 +498,16 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 
 		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
 			neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
-			nHash = neighbourNode->getHash();
-			float newCost = costSoFar[cHash] + next.second->getCost();
-			if (costSoFar.find(nHash) == costSoFar.end()
-				|| newCost < costSoFar[nHash]) {
-				costSoFar[nHash] = newCost;
-				float priority = newCost + h(neighbourNode, goalNode, maxDistance);
-				frontier.put(nHash, priority);
-				cameFrom[nHash] = cHash;
+			if (neighbourNode->isWalkable()) {
+				nHash = neighbourNode->getHash();
+				float newCost = costSoFar[cHash] + next.second->getCost();
+				if (costSoFar.find(nHash) == costSoFar.end()
+					|| newCost < costSoFar[nHash]) {
+					costSoFar[nHash] = newCost;
+					float priority = newCost + h(neighbourNode, goalNode, maxDistance);
+					frontier.put(nHash, priority);
+					cameFrom[nHash] = cHash;
+				}
 			}
 		};
 		currentNode->forEachEdge(fn);

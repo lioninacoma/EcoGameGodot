@@ -435,7 +435,6 @@ void Section::build(std::shared_ptr<ChunkBuilder> builder) {
 	//buildAreasByType(VoxelAssetType::HOUSE_6X6);
 	//buildAreasByType(VoxelAssetType::HOUSE_4X4);
 
-
 	for (i = 0; i < sectionChunksLen; i++) {
 		chunk = getChunk(i);
 		if (!chunk) continue;
