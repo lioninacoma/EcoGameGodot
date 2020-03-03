@@ -2,7 +2,7 @@ extends Spatial
 class_name EcoGame
 
 # build thread variables
-const TIME_PERIOD = 0.2 # 200ms
+const TIME_PERIOD = 0.1 # 100ms
 const MAX_BUILD_CHUNKS = 24
 const MAX_BUILD_SECTIONS = 1
 

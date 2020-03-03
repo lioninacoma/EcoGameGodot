@@ -11,8 +11,8 @@ var direction = Vector3()
 var zoom_pos = Vector2()
 
 # fly variables
-const FLY_SPEED = 60
-const FLY_ACCEL = 4
+const FLY_SPEED = 20
+const FLY_ACCEL = 2
 
 # walk variables
 var gravity = -9.8 * 3
@@ -24,11 +24,11 @@ const DEACCEL = 6
 
 #rts variables
 const MOVE_MARGIN = 20
-const MOVE_SPEED = 30
-const ZOOM_SPEED = 120
+const MOVE_SPEED = 10
+const ZOOM_SPEED = 40
 
 # jumping
-var jump_height = 30
+var jump_height = FLY_SPEED / 2
 var is_fly = true
 var is_rts = false
 
@@ -42,7 +42,7 @@ func _physics_process(delta):
 		is_fly = !is_fly
 		$Capsule.disabled = is_fly
 		if (is_fly):
-			jump_height = 30
+			jump_height = FLY_SPEED / 2
 		else:
 			jump_height = 10
 	

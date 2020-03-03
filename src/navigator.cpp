@@ -59,7 +59,6 @@ std::shared_ptr<GraphNavNode> Navigator::getNode(size_t h) {
 }
 
 const bool SHOW_NODES_DEBUG = false;
-
 void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 	try {
 		auto lib = EcoGame::get();
@@ -75,17 +74,22 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 
 		addNode(node);
 
-		auto geo = ImmediateGeometry::_new();
+		ImmediateGeometry* geo;
 
 		if (SHOW_NODES_DEBUG) {
+			geo = ImmediateGeometry::_new();
 			geo->begin(Mesh::PRIMITIVE_POINTS);
 			geo->set_color(Color(1, 0, 0, 1));
-
-			Vector3 point = fn::unreference(node->getPoint());
-			geo->add_vertex(point);
-
+			std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> nodeFn = [&](auto next) {
+				Vector3 point = next.second->getPointU();
+				geo->add_vertex(point);
+			};
+			chunk->forEachNode(nodeFn);
 			geo->end();
 			game->call_deferred("draw_debug_dots", geo);
+		}
+
+		if (SHOW_NODES_DEBUG) {
 			geo = ImmediateGeometry::_new();
 			geo->begin(Mesh::PRIMITIVE_LINES);
 			geo->set_color(Color(0, 1, 0, 1));
@@ -120,11 +124,11 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 					neighbour = context->getNode(nHash);
 					if (!neighbour) continue;
 
-					addEdge(node, neighbour, euclidean(fn::unreference(node->getPoint()), fn::unreference(neighbour->getPoint())));
+					addEdge(node, neighbour, euclidean(node->getPointU(), neighbour->getPointU()));
 
 					if (SHOW_NODES_DEBUG) {
-						geo->add_vertex(fn::unreference(node->getPoint()));
-						geo->add_vertex(fn::unreference(neighbour->getPoint()));
+						geo->add_vertex(node->getPointU());
+						geo->add_vertex(neighbour->getPointU());
 					}
 				}
 
@@ -160,9 +164,10 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk) {
 	unordered_set<size_t> inque, ready;
 	size_t cHash, nHash;
 
-	auto geo = ImmediateGeometry::_new();
+	ImmediateGeometry* geo;
 
 	if (SHOW_NODES_DEBUG) {
+		geo = ImmediateGeometry::_new();
 		geo->begin(Mesh::PRIMITIVE_POINTS);
 		geo->set_color(Color(1, 0, 0, 1));
 	}

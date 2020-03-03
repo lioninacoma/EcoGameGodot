@@ -176,11 +176,12 @@ bool GraphNavNode::isWalkable() {
 	int i;
 	bool walkable = false;
 	float deltaRad;
-	for (i = 0; i < directions.size() && !walkable; i++) {
+	for (i = 0; i < directions.size(); i++) {
 		direction = directions[i].normalized();
 		direction *= -1;
 		deltaRad = abs(1.0 - direction.dot(gravity));
-		walkable = deltaRad < .33;
+		walkable = deltaRad < .5;
+		if (walkable) break;
 	}
 	return walkable;
 }

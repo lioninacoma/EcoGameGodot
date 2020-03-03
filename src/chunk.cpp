@@ -570,7 +570,9 @@ void Chunk::updateNodesAt(Vector3 position) {
 			node = std::shared_ptr<GraphNavNode>(gn);
 			Navigator::get()->addNode(node, context);
 			context->addNode(node, static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]));
-			Godot::print(String("add neighbour node at: {0}").format(Array::make(node->getPointU())));
+			int dir = neighbours[i][3];
+			int ndir = neighbours[(i + 3) % 6][3];
+			Godot::print(String("add neighbour node at: {0}, dir: {1}, neighbour dir: {2}").format(Array::make(node->getPointU(), dir, ndir)));
 		}
 	}
 }
@@ -657,6 +659,7 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 			mask >>= 1;
 		}
 
+		current->clearDirections();
 		current->setDirections(directionMask);
 	}
 	catch (const std::exception & e) {
