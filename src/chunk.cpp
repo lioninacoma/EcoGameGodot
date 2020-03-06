@@ -557,17 +557,21 @@ void Chunk::updateNodesAt(Vector3 position) {
 
 		if (v && nv && node) {
 			node->setDirection(static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]), false);
+			
 			if (!node->getAmountDirections()) {
 				Navigator::get()->removeNode(node);
 				context->removeNode(node);
 				Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
 			}
 		}
-		else if (!v && nv && !node) {
-			auto gn = GraphNavNode::_new();
-			gn->setPoint(nodePosition);
-			gn->setVoxel(nv);
-			node = std::shared_ptr<GraphNavNode>(gn);
+		else if (!v && nv) {
+			if (!node) {
+				auto gn = GraphNavNode::_new();
+				gn->setPoint(nodePosition);
+				gn->setVoxel(nv);
+				node = std::shared_ptr<GraphNavNode>(gn);
+			}
+
 			Navigator::get()->addNode(node, context);
 			context->addNode(node, static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]));
 			int dir = neighbours[i][3];
