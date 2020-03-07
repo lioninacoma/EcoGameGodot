@@ -430,15 +430,29 @@ PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 voxelPosition, int type
 
 int Chunk::buildVolume() {
 	int x, y, z, i, diff;
-
+	float d, rd;
+	float max_d = cog.length();
 	if (volumeBuilt) return amountVoxel;
 	amountVoxel = 0;
 
 	for (z = 0; z < CHUNK_SIZE_Z; z++) {
 		for (x = 0; x < CHUNK_SIZE_X; x++) {
 			for (y = 0; y < CHUNK_SIZE_Y; y++) {
-				if (isVoxel(x, y, z)) {
-					setVoxel(x, y, z, 2);
+				d = cog.distance_to(offset + Vector3(x, y, z));
+				rd = d / max_d;
+
+				if (rd <= .5) {
+					setVoxel(x, y, z, 6);
+				} else if (isVoxel(x, y, z)) {
+					if (rd > .55) {
+						setVoxel(x, y, z, 2);
+					}
+					else if (rd > .54) {
+						setVoxel(x, y, z, 3);
+					}
+					else {
+						setVoxel(x, y, z, 1);
+					}
 				}
 			}
 		}
@@ -570,13 +584,15 @@ void Chunk::updateNodesAt(Vector3 position) {
 				gn->setPoint(nodePosition);
 				gn->setVoxel(nv);
 				node = std::shared_ptr<GraphNavNode>(gn);
+				Navigator::get()->addNode(node, context);
+				context->addNode(node);
+			}
+			else {
+				Navigator::get()->addNode(node, context);
+				context->addNode(node, static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]));
 			}
 
-			Navigator::get()->addNode(node, context);
-			context->addNode(node, static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]));
-			int dir = neighbours[i][3];
-			int ndir = neighbours[(i + 3) % 6][3];
-			Godot::print(String("add neighbour node at: {0}, dir: {1}, neighbour dir: {2}").format(Array::make(node->getPointU(), dir, ndir)));
+			Godot::print(String("add neighbour node at: {0}").format(Array::make(node->getPointU())));
 		}
 	}
 }

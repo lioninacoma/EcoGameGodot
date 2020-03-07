@@ -1,7 +1,7 @@
 extends Node
 
 onready var eco_game = get_tree().get_root().get_node("EcoGame")
-onready var camera = $"../Head/Camera"
+onready var camera = $"../Camera"
 
 var mouse_mode_captured : bool = false
 var control_active : bool
@@ -12,6 +12,11 @@ var building_location : Vector3 = Vector3()
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func get_camera():
+	if not camera:
+		camera = $"../Camera"
+	return camera
 
 func _process(delta : float) -> void:
 	if Input.is_action_just_pressed("ui_cancel"):
