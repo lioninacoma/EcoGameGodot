@@ -5,6 +5,8 @@
 
 using namespace godot;
 
+#define CHUNK_PADDING 0
+
 void Chunk::_register_methods() {
 	register_method("getOffset", &Chunk::getOffset);
 	register_method("getVoxel", &Chunk::getVoxel);
@@ -16,11 +18,11 @@ void Chunk::_register_methods() {
 
 Chunk::Chunk(Vector3 offset) {
 	Chunk::offset = offset;
-	Chunk::volume = std::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-	Chunk::surfaceY = new int[CHUNK_SIZE_X * CHUNK_SIZE_Z];
+	Chunk::volume = std::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X + CHUNK_PADDING, CHUNK_SIZE_Y + CHUNK_PADDING, CHUNK_SIZE_Z + CHUNK_PADDING));
+	Chunk::surfaceY = new int[(CHUNK_SIZE_X + CHUNK_PADDING) * (CHUNK_SIZE_Z + CHUNK_PADDING)];
 	Chunk::nodes = new unordered_map<size_t, std::shared_ptr<GraphNavNode>>();
 
-	memset(surfaceY, 0, CHUNK_SIZE_X * CHUNK_SIZE_Z * sizeof(*surfaceY));
+	memset(surfaceY, 0, (CHUNK_SIZE_X + CHUNK_PADDING) * (CHUNK_SIZE_Z + CHUNK_PADDING) * sizeof(*surfaceY));
 }
 
 Chunk::~Chunk() {
@@ -65,6 +67,13 @@ bool Chunk::isVoxel(int x, int y, int z) {
 	return c > 0.3;
 }
 
+float Chunk::isVoxelF(int x, int y, int z) {
+	float max_dist = sqrt(cog.x * cog.x + cog.y * cog.y);
+	float c = 1.0 - (Vector3(offset.x + x, y, offset.z + z).distance_to(cog) / max_dist);
+	c *= max(min(getVoxelChance(x, y, z) + 0.4f, 1.0f), 0.0f);
+	return c;
+}
+
 //bool Chunk::isVoxel(int x, int y, int z) {
 //	float section_width = CHUNK_SIZE_X * SECTION_SIZE;
 //	float section_height = CHUNK_SIZE_Y;
@@ -88,9 +97,6 @@ bool Chunk::isVoxel(int x, int y, int z) {
 //}
 
 int Chunk::getVoxel(int x, int y, int z) {
-	if (x < 0 || x >= CHUNK_SIZE_X) return 0;
-	if (y < 0 || y >= CHUNK_SIZE_Y) return 0;
-	if (z < 0 || z >= CHUNK_SIZE_Z) return 0;
 	return (int) volume->get(x, y, z);
 }
 
@@ -163,10 +169,6 @@ Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 }
 
 void Chunk::setVoxel(int x, int y, int z, int v) {
-	if (x < 0 || x >= CHUNK_SIZE_X) return;
-	if (y < 0 || y >= CHUNK_SIZE_Y) return;
-	if (z < 0 || z >= CHUNK_SIZE_Z) return;
-	
 	volume->set(x, y, z, v);
 	int dy = surfaceY[fn::fi2(x, z)];
 
@@ -435,9 +437,9 @@ int Chunk::buildVolume() {
 	if (volumeBuilt) return amountVoxel;
 	amountVoxel = 0;
 
-	for (z = 0; z < CHUNK_SIZE_Z; z++) {
-		for (x = 0; x < CHUNK_SIZE_X; x++) {
-			for (y = 0; y < CHUNK_SIZE_Y; y++) {
+	for (z = 0; z < CHUNK_SIZE_Z + CHUNK_PADDING; z++) {
+		for (x = 0; x < CHUNK_SIZE_X + CHUNK_PADDING; x++) {
+			for (y = 0; y < CHUNK_SIZE_Y + CHUNK_PADDING; y++) {
 				d = cog.distance_to(offset + Vector3(x, y, z));
 				rd = d / max_d;
 

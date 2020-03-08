@@ -15,27 +15,43 @@ using namespace std;
 namespace godot {
 	class VoxelData {
 	private:
-		char* volume;
-		std::atomic<int> width, height, depth;
+		float* volume;
+		std::atomic<int> width, height, depth, amountVoxel;
 		boost::mutex VOLUME_MUTEX;
 	public:
 		VoxelData(int width, int height, int depth) {
 			VoxelData::width = width;
 			VoxelData::height = height;
 			VoxelData::depth = depth;
-			VoxelData::volume = new char[width * height * depth];
+			VoxelData::amountVoxel = 0;
+			VoxelData::volume = new float[width * height * depth];
 			memset(volume, 0, width * height * depth * sizeof(*volume));
 		};
 		~VoxelData() {
 			delete[] volume;
 		};
 		int get(int x, int y, int z) {
+			if (x < 0 || x >= width) return 0;
+			if (y < 0 || y >= height) return 0;
+			if (z < 0 || z >= depth) return 0;
+
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
 			return volume[fn::fi3(x, y, z, width, height)];
 		};
-		void set(int x, int y, int z, int v) {
+		int get(int i) {
+			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
+			int len = width * height * depth;
+			if (i < 0 || i >= len) return 0;
+			return volume[i];
+		};
+		void set(int x, int y, int z, float v) {
+			if (x < 0 || x >= width) return;
+			if (y < 0 || y >= height) return;
+			if (z < 0 || z >= depth) return;
+
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
 			volume[fn::fi3(x, y, z, width, height)] = v;
+			amountVoxel += (v > 0) ? 1 : 0;
 		};
 		int getWidth() {
 			return width;
@@ -45,6 +61,9 @@ namespace godot {
 		};
 		int getDepth() {
 			return depth;
+		};
+		int getAmountVoxel() {
+			return amountVoxel;
 		};
 	};
 }

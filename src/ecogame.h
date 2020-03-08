@@ -20,6 +20,13 @@
 #include "constants.h"
 #include "fn.h"
 #include "area.h"
+
+#ifdef SMOOTH
+#include "chunkbuilder_smooth.h"
+#else
+#include "chunkbuilder.h"
+#endif
+
 #include "chunkbuilder.h"
 #include "voxelassetmanager.h"
 #include "section.h"
@@ -37,7 +44,12 @@ namespace godot {
 
 	private:
 		std::shared_ptr<Section>* sections;
+
+#ifdef SMOOTH
+		std::shared_ptr<ChunkBuilder_Smooth> chunkBuilder;
+#else
 		std::shared_ptr<ChunkBuilder> chunkBuilder;
+#endif
 
 		boost::mutex SECTIONS_MUTEX;
 

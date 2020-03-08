@@ -91,7 +91,11 @@ namespace godot {
 		bool isBuilding() {
 			return building;
 		};
+		int getAmountVoxel() {
+			return amountVoxel;
+		};
 		bool isVoxel(int x, int y, int z);
+		float isVoxelF(int x, int y, int z);
 		int getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);

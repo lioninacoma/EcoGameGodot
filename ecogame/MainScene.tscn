@@ -2,7 +2,7 @@
 
 [ext_resource path="res://Scripts/EcoGame.gd" type="Script" id=1]
 [ext_resource path="res://Ball.tscn" type="PackedScene" id=2]
-[ext_resource path="res://Scripts/RotateCamera.gd" type="Script" id=3]
+[ext_resource path="res://Scripts/Controls/RotateCamera.gd" type="Script" id=3]
 [ext_resource path="res://Images/crosshair.png" type="Texture" id=4]
 [ext_resource path="res://Scripts/ActorManager.gd" type="Script" id=5]
 [ext_resource path="res://Scripts/Controls/PlaceWorker.gd" type="Script" id=6]
@@ -17,7 +17,6 @@
 background_mode = 1
 background_sky = SubResource( 1 )
 ambient_light_color = Color( 0.376471, 0.376471, 0.376471, 1 )
-fog_enabled = true
 fog_color = Color( 0, 0, 0, 1 )
 fog_sun_color = Color( 1, 1, 1, 1 )
 fog_depth_end = 128.0
@@ -48,7 +47,7 @@ directional_shadow_depth_range = 1
 directional_shadow_max_distance = 150.0
 
 [node name="Ball" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 128 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 )
 mode = 1
 
 [node name="FPSLabel" type="Label" parent="."]
@@ -79,7 +78,7 @@ texture = ExtResource( 4 )
 stretch_mode = 1
 
 [node name="Player" type="Spatial" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 64, 0 )
+transform = Transform( 1, 0, 0, 0, 0.999999, 0, 0, 0, 1, 0, 64, 0 )
 
 [node name="Controls" type="Node" parent="Player"]
 script = ExtResource( 8 )
@@ -98,7 +97,7 @@ script = ExtResource( 9 )
 
 [node name="Camera" type="Camera" parent="Player"]
 fov = 60.0
-far = 128.0
+far = 1024.0
 
 [node name="Camera_U" type="Camera" parent="Player"]
 fov = 60.0

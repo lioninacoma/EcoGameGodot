@@ -29,7 +29,12 @@ void EcoGame::_register_methods() {
 }
 
 EcoGame::EcoGame() {
+#ifdef SMOOTH
+	chunkBuilder = std::shared_ptr<ChunkBuilder_Smooth>(new ChunkBuilder_Smooth());
+#else
 	chunkBuilder = std::shared_ptr<ChunkBuilder>(new ChunkBuilder());
+#endif
+	
 	sections = new std::shared_ptr<Section>[SECTIONS_LEN * sizeof(*sections)];
 
 	memset(sections, 0, SECTIONS_LEN * sizeof(*sections));

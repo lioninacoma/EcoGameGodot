@@ -38,7 +38,7 @@ func get_voxel_position(result):
 	
 	var voxel_position = result.position
 	var normal = result.normal
-	var b = 0.5
+	var b = 0.01
 	var vx = int(voxel_position.x - (b if normal.x > 0 else 0))
 	var vy = int(voxel_position.y - (b if normal.y > 0 else 0))
 	var vz = int(voxel_position.z - (b if normal.z > 0 else 0))

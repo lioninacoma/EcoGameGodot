@@ -168,18 +168,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\chunkbuilder_smooth.cpp" />
     <ClCompile Include="src\chunk.cpp" />
     <ClCompile Include="src\chunkbuilder.cpp" />
     <ClCompile Include="src\graphnode.cpp" />
     <ClCompile Include="src\meshbuilder.cpp" />
     <ClCompile Include="src\ecogame.cpp" />
     <ClCompile Include="src\gdlibrary.cpp" />
+    <ClCompile Include="src\meshbuilder_smooth.cpp" />
     <ClCompile Include="src\navigator.cpp" />
     <ClCompile Include="src\section.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\chunkbuilder_smooth.h" />
     <ClInclude Include="src\graphedge.h" />
     <ClInclude Include="src\graphnode.h" />
+    <ClInclude Include="src\meshbuilder_smooth.h" />
     <ClInclude Include="src\navigator.h" />
     <ClInclude Include="src\area.h" />
     <ClInclude Include="src\fn.h" />

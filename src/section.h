@@ -19,7 +19,13 @@
 
 #include "voxelassetmanager.h"
 #include "constants.h"
+
+#ifdef SMOOTH
+#include "chunkbuilder_smooth.h"
+#else
 #include "chunkbuilder.h"
+#endif
+
 #include "fn.h"
 #include "chunk.h"
 #include "area.h"
@@ -66,11 +72,23 @@ namespace godot {
 
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		float getVoxelAssetChance(int x, int y, float scale);
+
+#ifdef SMOOTH
+		void addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder_Smooth> builder);
+#else
 		void addVoxelAsset(Vector3 startV, VoxelAssetType type, std::shared_ptr<ChunkBuilder> builder);
+#endif
+
 		Array getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end);
 		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		bool voxelAssetFits(Vector3 start, VoxelAssetType type);
+
+#ifdef SMOOTH
+		void setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder_Smooth> builder);
+#else
 		void setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder);
+#endif
+
 		int getVoxel(Vector3 position);
 		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
 		std::shared_ptr<Chunk> getChunk(int x, int z);
@@ -78,7 +96,13 @@ namespace godot {
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void fill(EcoGame* lib, int sectionSize);
+
+#ifdef SMOOTH
+		void build(std::shared_ptr<ChunkBuilder_Smooth> builder);
+#else
 		void build(std::shared_ptr<ChunkBuilder> builder);
+#endif
+
 		Vector2 getOffset();
 		void buildAreasByType(VoxelAssetType type);
 		void buildArea(Area area, VoxelAssetType type);

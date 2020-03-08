@@ -31,6 +31,21 @@ func process_build_stack() -> void:
 		if chunk == null: continue
 		Lib.instance.buildChunk(chunk, self)
 
+func build_chunk_smooth(mesh_data : Array, chunk) -> void:
+	if (!mesh_data || !chunk): return
+	var old_mesh_instance_id = chunk.getMeshInstanceId()
+	
+	if old_mesh_instance_id != 0:
+		var old_mesh_instance = instance_from_id(old_mesh_instance_id)
+		if old_mesh_instance:
+			remove_child(old_mesh_instance)
+			old_mesh_instance.free()
+	
+	var mesh_instance = build_mesh_instance_smooth(mesh_data, chunk)
+	add_child(mesh_instance)
+	
+	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
+
 func build_chunk(meshes : Array, chunk) -> void:
 	if (!meshes || !chunk): return
 	var old_mesh_instance_id = chunk.getMeshInstanceId()
@@ -85,6 +100,28 @@ func build_asset(meshes : Array, owner) -> Spatial:
 	rigid_body.set_can_sleep(true)
 	
 	return new_asset
+
+func build_mesh_instance_smooth(mesh_data : Array, owner) -> MeshInstance:
+	if (!mesh_data): return null
+	
+	var mesh_instance = MeshInstance.new()
+	var mesh : ArrayMesh = ArrayMesh.new()
+	var static_body : StaticBody = StaticBody.new()
+	var material = SpatialMaterial.new()
+	material.albedo_color = Color.red
+	
+	mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
+	mesh.surface_set_material(0, material)
+	
+	var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
+	polygon_shape.set_faces(mesh_data[1])
+	var owner_id = static_body.create_shape_owner(owner)
+	static_body.shape_owner_add_shape(owner_id, polygon_shape)
+	
+	mesh_instance.add_child(static_body)
+	mesh_instance.mesh = mesh
+		
+	return mesh_instance
 
 func build_mesh_instance(meshes : Array, owner) -> MeshInstance:
 	if (!meshes): return null
