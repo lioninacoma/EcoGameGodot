@@ -58,6 +58,7 @@ namespace godot {
 		void updateGraph(std::shared_ptr<Chunk> chunk, vector<std::shared_ptr<NodeUpdateData>> updateData);
 
 		vector<int> buildVertices(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen);
+		vector<int> buildVerticesSmooth(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen);
 	public:
 		MeshBuilder();
 		~MeshBuilder();

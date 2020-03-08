@@ -16,18 +16,17 @@
 [sub_resource type="Environment" id=2]
 background_mode = 1
 background_sky = SubResource( 1 )
+ambient_light_color = Color( 0.376471, 0.376471, 0.376471, 1 )
 fog_enabled = true
 fog_color = Color( 0, 0, 0, 1 )
 fog_sun_color = Color( 1, 1, 1, 1 )
-fog_depth_end = 200.0
+fog_depth_end = 128.0
 ssao_enabled = true
-ssao_radius = 2.0
-ssao_intensity = 10.0
-ssao_light_affect = 0.2
-ssao_quality = 2
+ssao_blur = 2
+ssao_edge_sharpness = 2.5
 dof_blur_far_distance = 50.0
-glow_bloom = 0.06
-glow_blend_mode = 0
+glow_enabled = true
+glow_bloom = 0.02
 adjustment_enabled = true
 adjustment_brightness = 1.1
 adjustment_contrast = 1.1
@@ -43,11 +42,10 @@ environment = SubResource( 2 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="."]
 transform = Transform( 0.818783, 0.277111, 0.502796, 0, -0.875794, 0.482685, 0.574103, -0.395214, -0.717085, 0, 0, 0 )
-light_color = Color( 0.960784, 0.960784, 1, 1 )
 shadow_enabled = true
-directional_shadow_normal_bias = 0.4
+directional_shadow_mode = 0
 directional_shadow_depth_range = 1
-directional_shadow_max_distance = 200.0
+directional_shadow_max_distance = 150.0
 
 [node name="Ball" parent="." instance=ExtResource( 2 )]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 128, 0, 128 )
@@ -81,7 +79,7 @@ texture = ExtResource( 4 )
 stretch_mode = 1
 
 [node name="Player" type="Spatial" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 128, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 64, 0 )
 
 [node name="Controls" type="Node" parent="Player"]
 script = ExtResource( 8 )
@@ -100,4 +98,8 @@ script = ExtResource( 9 )
 
 [node name="Camera" type="Camera" parent="Player"]
 fov = 60.0
-far = 250.0
+far = 128.0
+
+[node name="Camera_U" type="Camera" parent="Player"]
+fov = 60.0
+far = 80.0

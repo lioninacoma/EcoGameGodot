@@ -2,6 +2,7 @@ extends Node
 
 onready var eco_game = get_tree().get_root().get_node("EcoGame")
 onready var camera = $"../Camera"
+onready var camera_u = $"../Camera_U"
 
 var mouse_mode_captured : bool = false
 var control_active : bool
@@ -17,6 +18,11 @@ func get_camera():
 	if not camera:
 		camera = $"../Camera"
 	return camera
+
+func get_camera_u():
+	if not camera_u:
+		camera_u = $"../Camera_U"
+	return camera_u
 
 func _process(delta : float) -> void:
 	if Input.is_action_just_pressed("ui_cancel"):

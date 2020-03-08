@@ -690,3 +690,177 @@ int MeshBuilder::createBack(Vector3 offset, int bl[], int tl[], int tr[], int br
 
 	return vertexOffset;
 }
+
+vector<int> MeshBuilder::buildVerticesSmooth(std::shared_ptr<VoxelData> volume, std::shared_ptr<Chunk> chunk, Vector3 offset, const int DIMS[3], float** buffers, int buffersLen) {
+	//int location[3] = { 0, 0, 0 };
+
+	//int R[] = {
+	//	// x
+	//	1,
+	//	// y * width
+	//	DIMS[0] + 1,
+	//	// z * width * height
+	//	(DIMS[0] + 1) * (DIMS[1] + 1)
+	//};
+	//// grid cell
+	//double grid[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	//// TODO: is is the only mystery that is left
+	//int buf_no = 1;
+
+	//int n = 0;
+
+	//// March over the voxel grid
+	//for (location[2] = 0; location[2] < DIMS[2] - 1; ++location[2], n += DIMS[0], buf_no ^= 1 /*even or odd*/, R[2] = -R[2]) {
+
+	//	// m is the pointer into the buffer we are going to use.  
+	//	// This is slightly obtuse because javascript does not
+	//	// have good support for packed data structures, so we must
+	//	// use typed arrays :(
+	//	// The contents of the buffer will be the indices of the
+	//	// vertices on the previous x/y slice of the volume
+	//	int m = 1 + (DIMS[0] + 1) * (1 + buf_no * (DIMS[1] + 1));
+
+	//	for (location[1] = 0; location[1] < DIMS[1] - 1; ++location[1], ++n, m += 2) {
+	//		for (location[0] = 0; location[0] < DIMS[0] - 1; ++location[0], ++n, ++m) {
+
+	//			// Read in 8 field values around this vertex
+	//			// and store them in an array
+	//			// Also calculate 8-bit mask, like in marching cubes,
+	//			// so we can speed up sign checks later
+	//			int mask = 0, g = 0, idx = n;
+	//			for (int k = 0; k < 2; ++k, idx += DIMS[0] * (DIMS[1] - 2)) {
+	//				for (int j = 0; j < 2; ++j, idx += DIMS[0] - 2) {
+	//					for (int i = 0; i < 2; ++i, ++g, ++idx) {
+	//						double p = volume->get(i, j, k);
+	//						grid[g] = p;
+	//						mask |= (p < 0) ? (1 << g) : 0;
+	//					}
+	//				}
+	//			}
+
+	//			// Check for early termination
+	//			// if cell does not intersect boundary
+	//			if (mask == 0 || mask == 0xff) {
+	//				continue;
+	//			}
+
+	//			// Sum up edge intersections
+	//			int edge_mask = edge_table[mask];
+	//			double[] v = { 0.0, 0.0, 0.0 };
+	//			int e_count = 0;
+
+	//			// For every edge of the cube...
+	//			for (int i = 0; i < 12; ++i) {
+
+	//				// Use edge mask to check if it is crossed
+	//				if (!bool((edge_mask & (1 << i)))) {
+	//					continue;
+	//				}
+
+	//				// If it did, increment number of edge crossings
+	//				++e_count;
+
+	//				// Now find the point of intersection
+	//				int firstEdgeIndex = i << 1;
+	//				int secondEdgeIndex = firstEdgeIndex + 1;
+	//				// Unpack vertices
+	//				int e0 = cube_edges[firstEdgeIndex];
+	//				int e1 = cube_edges[secondEdgeIndex];
+	//				// Unpack grid values
+	//				double g0 = grid[e0];
+	//				double g1 = grid[e1];
+
+	//				// Compute point of intersection (linear interpolation)
+	//				double t = g0 - g1;
+	//				if (Math.abs(t) > 1e-6) {
+	//					t = g0 / t;
+	//				}
+	//				else {
+	//					continue;
+	//				}
+
+	//				// Interpolate vertices and add up intersections
+	//				// (this can be done without multiplying)
+	//				for (int j = 0; j < 3; j++) {
+	//					int k = 1 << j; // (1,2,4)
+	//					int a = e0 & k;
+	//					int b = e1 & k;
+	//					if (a != b) {
+	//						v[j] += bool(a) ? 1.0 - t : t;
+	//					}
+	//					else {
+	//						v[j] += bool(a) ? 1.0 : 0;
+	//					}
+	//				}
+	//			}
+
+	//			// Now we just average the edge intersections
+	//			// and add them to coordinate
+	//			double s = 1.0 / e_count;
+	//			for (int i = 0; i < 3; ++i) {
+	//				v[i] = location[i] + s * v[i];
+	//			}
+
+	//			// Add vertex to buffer, store pointer to
+	//			// vertex index in buffer
+	//			vertexBuffer[m] = vertices.size();
+	//			vertices.add(v);
+
+	//			// Now we need to add faces together, to do this we just
+	//			// loop over 3 basis components
+	//			for (int i = 0; i < 3; ++i) {
+
+	//				// The first three entries of the edge_mask
+	//				// count the crossings along the edge
+	//				if (!bool(edge_mask & (1 << i))) {
+	//					continue;
+	//				}
+
+	//				// i = axes we are point along.
+	//				// iu, iv = orthogonal axes
+	//				int iu = (i + 1) % 3;
+	//				int iv = (i + 2) % 3;
+
+	//				// If we are on a boundary, skip it
+	//				if (location[iu] == 0 || location[iv] == 0) {
+	//					continue;
+	//				}
+
+	//				// Otherwise, look up adjacent edges in buffer
+	//				int du = R[iu];
+	//				int dv = R[iv];
+
+	//				// finally, the indices for the 4 vertices
+	//				// that define the face
+	//				final int indexM = vertexBuffer[m];
+	//				final int indexMMinusDU = vertexBuffer[m - du];
+	//				final int indexMMinusDV = vertexBuffer[m - dv];
+	//				final int indexMMinusDUMinusDV = vertexBuffer[m - du - dv];
+
+	//				// Remember to flip orientation depending on the sign
+	//				// of the corner.
+	//				if (bool(mask & 1)) {
+	//					faces.add(new int[] {
+	//						indexM,
+	//							indexMMinusDU,
+	//							indexMMinusDUMinusDV,
+	//							indexMMinusDV
+	//						});
+	//				}
+	//				else {
+	//					faces.add(new int[] {
+	//						indexM,
+	//							indexMMinusDV,
+	//							indexMMinusDUMinusDV,
+	//							indexMMinusDU
+	//						});
+	//				}
+	//			}
+	//		} // end x
+	//	} // end y
+	//} // end z
+
+	////All done!  Return the result
+	//return new Mesh(vertices, faces);
+}

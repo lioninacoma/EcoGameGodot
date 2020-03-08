@@ -8,9 +8,9 @@
 //#define CHUNK_SIZE_Z 32  // Voxels
 //#define SECTION_SIZE 4   // Chunks
 
-#define WORLD_SIZE 16	  // Chunks
+#define WORLD_SIZE 8	  // Chunks
 #define CHUNK_SIZE_X 16    // Voxels
-#define CHUNK_SIZE_Y 256   // Voxels
+#define CHUNK_SIZE_Y 128   // Voxels
 #define CHUNK_SIZE_Z 16    // Voxels
 #define SECTION_SIZE 1    // Chunks
 
