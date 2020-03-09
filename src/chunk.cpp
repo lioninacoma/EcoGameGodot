@@ -438,14 +438,16 @@ int Chunk::buildVolume() {
 	amountVoxel = 0;
 
 	for (z = 0; z < CHUNK_SIZE_Z + CHUNK_PADDING; z++) {
-		for (x = 0; x < CHUNK_SIZE_X + CHUNK_PADDING; x++) {
-			for (y = 0; y < CHUNK_SIZE_Y + CHUNK_PADDING; y++) {
-				d = cog.distance_to(offset + Vector3(x, y, z));
-				rd = d / max_d;
-
-				if (rd <= .5) {
+		for (y = 0; y < CHUNK_SIZE_Y + CHUNK_PADDING; y++) {
+			for (x = 0; x < CHUNK_SIZE_X + CHUNK_PADDING; x++) {
+				/*if (rd <= .5) {
 					setVoxel(x, y, z, 6);
-				} else if (isVoxel(x, y, z)) {
+				} else */
+				
+				if (isVoxel(x, y, z)) {
+					d = cog.distance_to(offset + Vector3(x, y, z));
+					rd = d / max_d;
+
 					if (rd > .55) {
 						setVoxel(x, y, z, 2);
 					}

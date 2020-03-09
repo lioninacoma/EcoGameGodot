@@ -305,13 +305,6 @@ void Section::setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder
 		z % CHUNK_SIZE_Z, voxel);
 
 	builder->build(chunk);
-
-	for (int i = -cz; i < cz + 2; i++)
-		for (int j = -cx; j < cx + 2; j++) {
-			chunk = getChunk(i, j);
-			if (!chunk) continue;
-			builder->build(chunk);
-		}
 }
 
 int Section::getVoxel(Vector3 position) {

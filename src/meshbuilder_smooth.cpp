@@ -56,17 +56,18 @@ Array MeshBuilder_Smooth::buildVertices(std::shared_ptr<Chunk> chunk) {
 
 	std::shared_ptr<VoxelData> volume = chunk->getVolume();
 	Vector3 offset = chunk->getOffset();
-
-	int DIMS[3] = { 
-		volume->getWidth()  + 2,
-		volume->getHeight() + 2,
-		volume->getDepth()  + 2 
-	};
-
 	int vw = volume->getWidth();
 	int vh = volume->getHeight();
 	int vd = volume->getDepth();
-	int vx, vy, vz, vv, vertsCount = 0, facesCount = 0;
+	int vx, vy, vz, vv, vv1, vertsCount = 0, facesCount = 0;
+
+	int pd = 2;
+	int pd2 = pd / 2;
+	int DIMS[3] = {
+		vw + pd,
+		vh + pd,
+		vd + pd
+	};
 
 	int R[3] = {
 		// x
@@ -111,23 +112,39 @@ Array MeshBuilder_Smooth::buildVertices(std::shared_ptr<Chunk> chunk) {
 				for (int k = 0; k < 2; ++k) {
 					for (int j = 0; j < 2; ++j) {
 						for (int i = 0; i < 2; ++i, ++g) {
-							vx = location[0] + i;
-							vy = location[1] + j;
-							vz = location[2] + k;
+							vx = location[0] + i - pd2;
+							vy = location[1] + j - pd2;
+							vz = location[2] + k - pd2;
 
-							vv = int(chunk->isVoxel(vx, vy, vz));
-							/*if (vx < 0 || vx >= vw || vy < 0 || vy >= vh || vz < 0 || vz >= vd) {
+							/*vv = (int)chunk->isVoxel(vx, vy, vz);
+							vv1 = chunk->getVoxel(
+								vx % CHUNK_SIZE_X,
+								vy % CHUNK_SIZE_Y,
+								vz % CHUNK_SIZE_Z);
+							vv1 = vv1 > 0 ? 1 : 0;
+
+							if (vv != vv1) {
+								cout << "(" << vx << ", " << vy << ", " << vz << "): " << vv << "/" << vv1 << endl;
+							}*/
+
+							if (vx < 0 || vx >= vw || vy < 0 || vy >= vh || vz < 0 || vz >= vd) {
 								auto neighbour = EcoGame::get()->getChunk(Vector3(vx, vy, vz));
 								if (!neighbour) {
-									vv = neighbour->getVoxel(vx, vy, vz);
+									vv = neighbour->getVoxel(
+										vx % CHUNK_SIZE_X, 
+										vy % CHUNK_SIZE_Y, 
+										vz % CHUNK_SIZE_Z);
 								}
 								else {
-									vv = int(chunk->isVoxel(vx, vy, vz));
+									vv = (int)chunk->isVoxel(vx, vy, vz);
 								}
 							}
 							else {
-								vv = chunk->getVoxel(vx, vy, vz);
-							}*/
+								vv = chunk->getVoxel(
+									vx % CHUNK_SIZE_X,
+									vy % CHUNK_SIZE_Y,
+									vz % CHUNK_SIZE_Z);
+							}
 
 							double p = (vv > 0) ? -1.0 : 0.0;
 							grid[g] = p;
@@ -269,5 +286,115 @@ Array MeshBuilder_Smooth::buildVertices(std::shared_ptr<Chunk> chunk) {
 
 	//All done!  Return the result
 	return Array::make(vertices, faces, vertsCount, facesCount);
+}
 
+Array MeshBuilder_Smooth::buildVertices2(std::shared_ptr<Chunk> chunk) {
+	// location (location[0]=x, location[1]=y, location[2]=z)
+	int x[3];
+	// layout for one-dimensional data array
+	// we use this to reference vertex buffer
+
+	std::shared_ptr<VoxelData> volume = chunk->getVolume();
+	Vector3 offset = chunk->getOffset();
+	int vw = volume->getWidth();
+	int vh = volume->getHeight();
+	int vd = volume->getDepth();
+	int vx, vy, vz, vv, vv1, vertsCount = 0, facesCount = 0;
+	int DIMS[3] = {
+		vw,
+		vh,
+		vd
+	};
+
+	// grid cell
+	double grid[8];
+
+	int n = 0;
+
+	const int VERTEX_BUFFER_SIZE = vw * vh * vd * 6 * 4;
+
+	Array vertices, faces;
+	vertices.resize(VERTEX_BUFFER_SIZE);
+	faces.resize(VERTEX_BUFFER_SIZE);
+
+	int edges[12];
+
+	//March over the volume
+	for (x[2] = 0; x[2] < DIMS[2] - 1; ++x[2], n += DIMS[0])
+		for (x[1] = 0; x[1] < DIMS[1] - 1; ++x[1], ++n)
+			for (x[0] = 0; x[0] < DIMS[0] - 1; ++x[0], ++n) {
+				//For each cell, compute cube mask
+				int cube_index = 0;
+				for (int i = 0; i < 8; ++i) {
+					int v[3];
+					v[0] = cubeVerts[i][0] + x[0];
+					v[1] = cubeVerts[i][1] + x[1];
+					v[2] = cubeVerts[i][2] + x[2];
+
+					double s = volume->get(v[0], v[1], v[2]);
+					grid[i] = s;
+					cube_index |= (s > 0) ? 1 << i : 0;
+				}
+
+				//Compute vertices
+				int edge_mask = edgeTable[cube_index];
+				if (edge_mask == 0) {
+					continue;
+				}
+				
+				for (int i = 0; i < 12; ++i) {
+					if ((edge_mask & (1 << i)) == 0) {
+						continue;
+					}
+					edges[i] = vertsCount;
+
+					PoolRealArray nv;
+					nv.resize(3);
+					PoolRealArray::Write nvWrite = nv.write();
+
+					int e[2];
+					e[0] = edgeIndex[i][0];
+					e[1] = edgeIndex[i][1];
+
+					int p0[3];
+					p0[0] = cubeVerts[e[0]][0];
+					p0[1] = cubeVerts[e[0]][1];
+					p0[2] = cubeVerts[e[0]][2];
+
+					int p1[3];
+					p1[0] = cubeVerts[e[1]][0];
+					p1[1] = cubeVerts[e[1]][1];
+					p1[2] = cubeVerts[e[1]][2];
+
+					int a = grid[e[0]];
+					int b = grid[e[1]];
+					int d = a - b;
+					int t = 0;
+
+					if (abs(d) > 1e-6) {
+						t = a / d;
+					}
+					nvWrite[0] = (x[0] + p0[0]) + t * (p1[0] - p0[0]) + offset.x;
+					nvWrite[1] = (x[1] + p0[1]) + t * (p1[1] - p0[1]) + offset.y;
+					nvWrite[2] = (x[2] + p0[2]) + t * (p1[2] - p0[2]) + offset.z;
+					vertices[vertsCount++] = nv;
+				}
+				//Add faces
+				int f[16];
+				for (int i = 0; i < 16; i++)
+					f[i] = triTable[cube_index][i];
+				
+				PoolIntArray face;
+				face.resize(3);
+				PoolIntArray::Write faceWrite = face.write();
+
+				for (int i = 0; i < 16; i += 3) {
+					if (f[i] == -1) break;
+					faceWrite[0] = edges[f[i]];
+					faceWrite[1] = edges[f[i + 1]];
+					faceWrite[2] = edges[f[i + 2]];
+					faces[facesCount++] = face;
+				}
+			}
+	return Array::make(vertices, faces, vertsCount, facesCount);
 }

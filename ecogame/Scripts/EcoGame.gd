@@ -113,12 +113,12 @@ func build_mesh_instance_smooth(mesh_data : Array, owner) -> MeshInstance:
 	mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
 	mesh.surface_set_material(0, material)
 	
-	var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
-	polygon_shape.set_faces(mesh_data[1])
-	var owner_id = static_body.create_shape_owner(owner)
-	static_body.shape_owner_add_shape(owner_id, polygon_shape)
-	
-	mesh_instance.add_child(static_body)
+#	var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
+#	polygon_shape.set_faces(mesh_data[1])
+#	var owner_id = static_body.create_shape_owner(owner)
+#	static_body.shape_owner_add_shape(owner_id, polygon_shape)
+#
+#	mesh_instance.add_child(static_body)
 	mesh_instance.mesh = mesh
 		
 	return mesh_instance
