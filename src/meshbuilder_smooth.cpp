@@ -343,7 +343,7 @@ Array MeshBuilder_Smooth::buildVertices2(std::shared_ptr<Chunk> chunk) {
 				}
 				
 				for (int i = 0; i < 12; ++i) {
-					if ((edge_mask & (1 << i)) == 0) {
+					if (!(edge_mask & (1 << i))) {
 						continue;
 					}
 					edges[i] = vertsCount;
@@ -366,20 +366,20 @@ Array MeshBuilder_Smooth::buildVertices2(std::shared_ptr<Chunk> chunk) {
 					p1[1] = cubeVerts[e[1]][1];
 					p1[2] = cubeVerts[e[1]][2];
 
-					int a = grid[e[0]];
-					int b = grid[e[1]];
-					int d = a - b;
-					int t = 0;
+					double a = grid[e[0]];
+					double b = grid[e[1]];
+					double d = a - b;
+					double t = 0;
 
 					if (abs(d) > 1e-6) {
 						t = a / d;
 					}
-					nvWrite[0] = (x[0] + p0[0]) + t * (p1[0] - p0[0]) + offset.x;
-					nvWrite[1] = (x[1] + p0[1]) + t * (p1[1] - p0[1]) + offset.y;
-					nvWrite[2] = (x[2] + p0[2]) + t * (p1[2] - p0[2]) + offset.z;
+					nvWrite[0] = ((x[0] + p0[0]) + t * (p1[0] - p0[0])) + offset.x;
+					nvWrite[1] = ((x[1] + p0[1]) + t * (p1[1] - p0[1])) + offset.y;
+					nvWrite[2] = ((x[2] + p0[2]) + t * (p1[2] - p0[2])) + offset.z;
 					vertices[vertsCount++] = nv;
 				}
-				//Add faces
+
 				int f[16];
 				for (int i = 0; i < 16; i++)
 					f[i] = triTable[cube_index][i];
@@ -388,8 +388,10 @@ Array MeshBuilder_Smooth::buildVertices2(std::shared_ptr<Chunk> chunk) {
 				face.resize(3);
 				PoolIntArray::Write faceWrite = face.write();
 
+				//Add faces
 				for (int i = 0; i < 16; i += 3) {
-					if (f[i] == -1) break;
+					if (f[i] < 0) break;
+
 					faceWrite[0] = edges[f[i]];
 					faceWrite[1] = edges[f[i + 1]];
 					faceWrite[2] = edges[f[i + 2]];
