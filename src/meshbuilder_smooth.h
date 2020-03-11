@@ -24,12 +24,6 @@ namespace godot {
 
 	class MeshBuilder_Smooth {
 	private:
-		int* cube_edges = new int[24];
-		int* edge_table = new int[256];
-
-		void initCubeEdges();
-		void initEdgeTable();
-
 		int edgeTable[256] = {
 			0x0, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
 			0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
@@ -341,8 +335,7 @@ namespace godot {
 		MeshBuilder_Smooth();
 		~MeshBuilder_Smooth();
 
-		Array buildVertices(std::shared_ptr<Chunk> chunk);
-		Array buildVertices2(std::shared_ptr<Chunk> chunk);
+		Array buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, int** faces);
 	};
 }
 
