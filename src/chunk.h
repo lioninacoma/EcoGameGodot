@@ -96,7 +96,7 @@ namespace godot {
 		};
 		bool isVoxel(int x, int y, int z);
 		float isVoxelF(int x, int y, int z);
-		int getVoxel(int x, int y, int z);
+		float getVoxel(int x, int y, int z);
 		int getCurrentSurfaceY(int x, int z);
 		int getCurrentSurfaceY(int i);
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
@@ -127,7 +127,7 @@ namespace godot {
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;
 		};
-		void setVoxel(int x, int y, int z, int v);
+		void setVoxel(int x, int y, int z, float v);
 		int buildVolume();
 		int buildVolume2();
 		void addNode(std::shared_ptr<GraphNavNode> node);

@@ -42,19 +42,20 @@ Array MeshBuilder_Smooth::buildVertices(std::shared_ptr<Chunk> chunk, float** ve
 					v[1] = cubeVerts[i][1] + x[1] - 1;
 					v[2] = cubeVerts[i][2] + x[2] - 1;
 
-					double s = 0;
+					double s = 1;
 
 					if (v[0] < 0 || v[0] >= CHUNK_SIZE_X || v[1] < 0 || v[1] >= CHUNK_SIZE_Y || v[2] < 0 || v[2] >= CHUNK_SIZE_Z) {
-						auto neighbour = EcoGame::get()->getChunk(Vector3(v[0], v[1], v[2]));
-						if (!neighbour) {
+						/*auto neighbour = EcoGame::get()->getChunk(Vector3(v[0], v[1], v[2]));
+						if (neighbour) {
 							s = neighbour->getVoxel(
 								v[0] % CHUNK_SIZE_X,
 								v[1] % CHUNK_SIZE_Y,
 								v[2] % CHUNK_SIZE_Z);
 						}
 						else {
-							s = (int)chunk->isVoxel(v[0], v[1], v[2]);
-						}
+							s = chunk->isVoxelF(v[0], v[1], v[2]);
+						}*/
+						s = chunk->isVoxelF(v[0], v[1], v[2]);
 					}
 					else {
 						s = chunk->getVoxel(
@@ -63,8 +64,10 @@ Array MeshBuilder_Smooth::buildVertices(std::shared_ptr<Chunk> chunk, float** ve
 							v[2] % CHUNK_SIZE_Z);
 					}
 
+					//s = chunk->isVoxelF(v[0], v[1], v[2]);
+
 					grid[i] = s;
-					cube_index |= (grid[i] > 0) ? 1 << i : 0;
+					cube_index |= (s > 0) ? 1 << i : 0;
 				}
 
 				//Compute vertices

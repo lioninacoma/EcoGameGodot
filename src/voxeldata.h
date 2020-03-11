@@ -30,7 +30,7 @@ namespace godot {
 		~VoxelData() {
 			delete[] volume;
 		};
-		int get(int x, int y, int z) {
+		float get(int x, int y, int z) {
 			if (x < 0 || x >= width) return 0;
 			if (y < 0 || y >= height) return 0;
 			if (z < 0 || z >= depth) return 0;
@@ -38,7 +38,7 @@ namespace godot {
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
 			return volume[fn::fi3(x, y, z, width, height)];
 		};
-		int get(int i) {
+		float get(int i) {
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
 			int len = width * height * depth;
 			if (i < 0 || i >= len) return 0;

@@ -94,13 +94,13 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 
 		for (int i = 0, n = 0; i < amountFaces; i++, n += 3) {
 			int* f = faces[i];
-			indexArrayWrite[n] = f[0];
+			indexArrayWrite[n] = f[2];
 			indexArrayWrite[n + 1] = f[1];
-			indexArrayWrite[n + 2] = f[2];
+			indexArrayWrite[n + 2] = f[0];
 
-			Vector3 x0 = vertexArray[f[0]];
+			Vector3 x0 = vertexArray[f[2]];
 			Vector3 x1 = vertexArray[f[1]];
-			Vector3 x2 = vertexArray[f[2]];
+			Vector3 x2 = vertexArray[f[0]];
 			Vector3 v0 = x0 - x2;
 			Vector3 v1 = x1 - x2;
 			Vector3 normal = v1.cross(v0).normalized();
@@ -109,9 +109,9 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 			normalArrayWrite[f[1]] = normal;
 			normalArrayWrite[f[2]] = normal;
 
-			collisionArrayWrite[n] = vertexArray[f[0]];
+			collisionArrayWrite[n] = vertexArray[f[2]];
 			collisionArrayWrite[n + 1] = vertexArray[f[1]];
-			collisionArrayWrite[n + 2] = vertexArray[f[2]];
+			collisionArrayWrite[n + 2] = vertexArray[f[0]];
 		}
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;

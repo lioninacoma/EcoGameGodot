@@ -74,17 +74,30 @@ bool Chunk::isVoxel(int x, int y, int z) {
 //	return c;
 //}
 
+//float Chunk::isVoxelF(int ix, int iy, int iz) {
+//	float x = ix + offset.x;
+//	float y = iy + offset.y;
+//	float z = iz + offset.z;
+//	x /= (WORLD_SIZE * CHUNK_SIZE_X * 0.5);
+//	y /= (CHUNK_SIZE_Y * 0.5);
+//	z /= (WORLD_SIZE * CHUNK_SIZE_Z * 0.5);
+//	x -= 4.0;
+//	y -= 4.0;
+//	z -= 4.0;
+//	return float(pow(1.0 - sqrt(x * x + y * y), 2) + z * z - 0.25);
+//}
+
 float Chunk::isVoxelF(int ix, int iy, int iz) {
-	float x = ix + offset.x;
-	float y = iy + offset.y;
-	float z = iz + offset.z;
-	x /= (WORLD_SIZE * CHUNK_SIZE_X * 0.1);
-	y /= (CHUNK_SIZE_Y * 0.1);
-	z /= (WORLD_SIZE * CHUNK_SIZE_Z * 0.1);
-	x -= 4.0;
-	y -= 4.0;
-	z -= 4.0;
-	return float(pow(1.0 - sqrt(x * x + y * y), 2) + z * z - 0.25);
+	float d = 0.5;
+	float cx = ix + offset.x;
+	float cy = iy + offset.y;
+	float cz = iz + offset.z;
+	float x = cx / (WORLD_SIZE * CHUNK_SIZE_X);
+	float y = cy / (CHUNK_SIZE_Y);
+	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
+	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
+	s += noise->get_noise_3d(cx, cy, cz) / 8;
+	return s;
 }
 
 //float Chunk::isVoxelF(int ix, int iy, int iz) {
@@ -118,8 +131,8 @@ float Chunk::isVoxelF(int ix, int iy, int iz) {
 //	return c > 0.4;
 //}
 
-int Chunk::getVoxel(int x, int y, int z) {
-	return (int) volume->get(x, y, z);
+float Chunk::getVoxel(int x, int y, int z) {
+	return volume->get(x, y, z);
 }
 
 int Chunk::getVoxelY(int x, int z) {
@@ -190,7 +203,7 @@ Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 	return voxel;
 }
 
-void Chunk::setVoxel(int x, int y, int z, int v) {
+void Chunk::setVoxel(int x, int y, int z, float v) {
 	volume->set(x, y, z, v);
 	int dy = surfaceY[fn::fi2(x, z)];
 
@@ -466,7 +479,7 @@ int Chunk::buildVolume() {
 					setVoxel(x, y, z, 6);
 				} else */
 				
-				if (isVoxel(x, y, z)) {
+				/*if (isVoxel(x, y, z)) {
 					d = cog.distance_to(offset + Vector3(x, y, z));
 					rd = d / max_d;
 
@@ -479,7 +492,9 @@ int Chunk::buildVolume() {
 					else {
 						setVoxel(x, y, z, 1);
 					}
-				}
+				}*/
+
+				setVoxel(x, y, z, isVoxelF(x, y, z));
 			}
 		}
 	}
