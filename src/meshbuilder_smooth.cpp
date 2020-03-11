@@ -289,112 +289,86 @@ Array MeshBuilder_Smooth::buildVertices(std::shared_ptr<Chunk> chunk) {
 }
 
 Array MeshBuilder_Smooth::buildVertices2(std::shared_ptr<Chunk> chunk) {
-	// location (location[0]=x, location[1]=y, location[2]=z)
-	int x[3];
-	// layout for one-dimensional data array
-	// we use this to reference vertex buffer
-
-	std::shared_ptr<VoxelData> volume = chunk->getVolume();
 	Vector3 offset = chunk->getOffset();
-	int vw = volume->getWidth();
-	int vh = volume->getHeight();
-	int vd = volume->getDepth();
-	int vx, vy, vz, vv, vv1, vertsCount = 0, facesCount = 0;
+
+	int vertsCount = 0, facesCount = 0;
 	int DIMS[3] = {
-		vw,
-		vh,
-		vd
+		CHUNK_SIZE_X,
+		CHUNK_SIZE_Y,
+		CHUNK_SIZE_Z
 	};
 
-	// grid cell
-	double grid[8];
+	int x[3];
+	int e[2];
+	float v[3];
+	float p[3];
+	float grid[8];
+	int edges[12];
 
-	int n = 0;
-
-	const int VERTEX_BUFFER_SIZE = vw * vh * vd * 6 * 4;
+	const int VERTEX_BUFFER_SIZE = DIMS[0] * DIMS[1] * DIMS[2] * 6 * 4;
 
 	Array vertices, faces;
 	vertices.resize(VERTEX_BUFFER_SIZE);
 	faces.resize(VERTEX_BUFFER_SIZE);
 
-	int edges[12];
-
 	//March over the volume
-	for (x[2] = 0; x[2] < DIMS[2] - 1; ++x[2], n += DIMS[0])
-		for (x[1] = 0; x[1] < DIMS[1] - 1; ++x[1], ++n)
-			for (x[0] = 0; x[0] < DIMS[0] - 1; ++x[0], ++n) {
+	for (x[2] = 0; x[2] < DIMS[2] - 1; ++x[2])
+		for (x[1] = 0; x[1] < DIMS[1] - 1; ++x[1])
+			for (x[0] = 0; x[0] < DIMS[0] - 1; ++x[0]) {
 				//For each cell, compute cube mask
 				int cube_index = 0;
 				for (int i = 0; i < 8; ++i) {
-					int v[3];
-					v[0] = cubeVerts[i][0] + x[0];
-					v[1] = cubeVerts[i][1] + x[1];
-					v[2] = cubeVerts[i][2] + x[2];
-
-					double s = volume->get(v[0], v[1], v[2]);
-					grid[i] = s;
-					cube_index |= (s > 0) ? 1 << i : 0;
+					v[0] = cubeVerts[i][0] + (float)x[0];
+					v[1] = cubeVerts[i][1] + (float)x[1];
+					v[2] = cubeVerts[i][2] + (float)x[2];
+					grid[i] = chunk->isVoxelF(v[0], v[1], v[2]);
+					cube_index |= (grid[i] > 0) ? 1<<i : 0;
 				}
 
 				//Compute vertices
 				int edge_mask = edgeTable[cube_index];
-				if (edge_mask == 0) {
+				if (edge_mask == 0 || edge_mask == 0xFF)
 					continue;
-				}
-				
+
 				for (int i = 0; i < 12; ++i) {
-					if (!(edge_mask & (1 << i))) {
+					if ((edge_mask & (1<<i)) == 0)
 						continue;
-					}
+
 					edges[i] = vertsCount;
 
 					PoolRealArray nv;
 					nv.resize(3);
 					PoolRealArray::Write nvWrite = nv.write();
 
-					int e[2];
 					e[0] = edgeIndex[i][0];
 					e[1] = edgeIndex[i][1];
 
-					int p0[3];
-					p0[0] = cubeVerts[e[0]][0];
-					p0[1] = cubeVerts[e[0]][1];
-					p0[2] = cubeVerts[e[0]][2];
+					p[0] = cubeVerts[e[0]][0];
+					p[1] = cubeVerts[e[0]][1];
+					p[2] = cubeVerts[e[0]][2];
 
-					int p1[3];
-					p1[0] = cubeVerts[e[1]][0];
-					p1[1] = cubeVerts[e[1]][1];
-					p1[2] = cubeVerts[e[1]][2];
+					float a = grid[e[0]];
+					float b = grid[e[1]];
+					float d = a - b;
+					float t = 0;
 
-					double a = grid[e[0]];
-					double b = grid[e[1]];
-					double d = a - b;
-					double t = 0;
-
-					if (abs(d) > 1e-6) {
+					if (abs(d) > 1e-6)
 						t = a / d;
-					}
-					nvWrite[0] = ((x[0] + p0[0]) + t * (p1[0] - p0[0])) + offset.x;
-					nvWrite[1] = ((x[1] + p0[1]) + t * (p1[1] - p0[1])) + offset.y;
-					nvWrite[2] = ((x[2] + p0[2]) + t * (p1[2] - p0[2])) + offset.z;
+					
+					nvWrite[0] = offset.x + x[0] + p[0] + t * edgeDirection[i][0];
+					nvWrite[1] = offset.y + x[1] + p[1] + t * edgeDirection[i][1];
+					nvWrite[2] = offset.z + x[2] + p[2] + t * edgeDirection[i][2];
 					vertices[vertsCount++] = nv;
 				}
-
-				int f[16];
-				for (int i = 0; i < 16; i++)
-					f[i] = triTable[cube_index][i];
 				
 				PoolIntArray face;
 				face.resize(3);
 				PoolIntArray::Write faceWrite = face.write();
 
-				//Add faces
-				for (int i = 0; i < 16; i += 3) {
-					if (f[i] < 0) break;
-
-					faceWrite[0] = edges[f[i]];
-					faceWrite[1] = edges[f[i + 1]];
-					faceWrite[2] = edges[f[i + 2]];
+				for (int i = 0; triTable[cube_index][i] != -1; i += 3) {
+					faceWrite[0] = edges[triTable[cube_index][i]];
+					faceWrite[1] = edges[triTable[cube_index][i + 1]];
+					faceWrite[2] = edges[triTable[cube_index][i + 2]];
 					faces[facesCount++] = face;
 				}
 			}

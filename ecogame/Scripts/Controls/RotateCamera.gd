@@ -60,11 +60,11 @@ func _input(event : InputEvent) -> void:
 			drag_enabled = event.pressed
 		elif event.button_index == BUTTON_WHEEL_UP && event.pressed:
 			radius -= 1.0
-			if radius <= radius_initial:
-				camera_offset_y += 3.0
+#			if radius <= radius_initial:
+#				camera_offset_y += 3.0
 			self.update_camera()
 		elif event.button_index == BUTTON_WHEEL_DOWN && event.pressed:
 			radius += 1.0
-			camera_offset_y -= 3.0
-			camera_offset_y = max(camera_offset_y, 0)
+#			camera_offset_y -= 3.0
+#			camera_offset_y = max(camera_offset_y, 0)
 			self.update_camera()

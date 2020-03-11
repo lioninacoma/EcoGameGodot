@@ -11,6 +11,7 @@ ChunkBuilder_Smooth::ChunkBuilder_Smooth() {
 	ChunkBuilder_Smooth::threadStarted = false;
 }
 
+int faces_count = 0;
 void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 	if (!chunk) return;
 	Node* game = EcoGame::get()->getNode();
@@ -32,6 +33,17 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 		Array data = meshBuilder.buildVertices2(chunk);
 		BUILD_MESH_MUTEX.unlock();
 
+		if (data.empty() || !bool(data[2])) {
+			stop = bpt::microsec_clock::local_time();
+			dur = stop - start;
+			ms = dur.total_milliseconds();
+
+			Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
+			chunk->setBuilding(false);
+			BUILD_QUEUE_CV.notify_one();
+			return;
+		}
+
 		Array meshData;
 		Array meshArrays;
 		Array vertices = data[0];
@@ -42,7 +54,8 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 		amountIndices = amountFaces * 3;
 		//amountIndices = amountFaces * 6;
 
-		cout << amountVertices << " " << amountFaces << endl;
+		faces_count += amountFaces;
+		cout << "faces_count: " << faces_count << endl;
 		
 		PoolVector3Array vertexArray;
 		PoolVector3Array normalArray;
@@ -73,23 +86,23 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 		for (int i = 0, n = 0; i < amountFaces; i++, n += 3) {
 		//for (int i = 0, n = 0; i < amountFaces; i++, n += 6) {
 			PoolIntArray f = faces[i];
-			indexArrayWrite[n + 0] = f[0];
+			indexArrayWrite[n] = f[2];
 			indexArrayWrite[n + 1] = f[1];
-			indexArrayWrite[n + 2] = f[2];
+			indexArrayWrite[n + 2] = f[0];
 
 			Vector3 x0 = vertexArray[f[2]];
 			Vector3 x1 = vertexArray[f[1]];
 			Vector3 x2 = vertexArray[f[0]];
 			Vector3 v0 = x0 - x2;
 			Vector3 v1 = x1 - x2;
-			Vector3 normal = v1.cross(v0).normalized() * -1;
+			Vector3 normal = v1.cross(v0).normalized();
 
 			normalArrayWrite[f[0]] = normal;
 			normalArrayWrite[f[1]] = normal;
 			normalArrayWrite[f[2]] = normal;
 
 			/*PoolIntArray f = faces[i];
-			indexArrayWrite[n + 0] = f[2];
+			indexArrayWrite[n] = f[2];
 			indexArrayWrite[n + 1] = f[1];
 			indexArrayWrite[n + 2] = f[0];
 			indexArrayWrite[n + 3] = f[0];

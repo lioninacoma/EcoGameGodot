@@ -67,12 +67,34 @@ bool Chunk::isVoxel(int x, int y, int z) {
 	return c > 0.3;
 }
 
-float Chunk::isVoxelF(int x, int y, int z) {
-	float max_dist = sqrt(cog.x * cog.x + cog.y * cog.y);
-	float c = 1.0 - (Vector3(offset.x + x, y, offset.z + z).distance_to(cog) / max_dist);
-	c *= max(min(getVoxelChance(x, y, z) + 0.4f, 1.0f), 0.0f);
-	return c;
+//float Chunk::isVoxelF(int x, int y, int z) {
+//	float max_dist = sqrt(cog.x * cog.x + cog.y * cog.y);
+//	float c = 1.0 - (Vector3(offset.x + x, y, offset.z + z).distance_to(cog) / max_dist);
+//	c *= max(min(getVoxelChance(x, y, z) + 0.4f, 1.0f), 0.0f);
+//	return c;
+//}
+
+float Chunk::isVoxelF(int ix, int iy, int iz) {
+	float x = ix + offset.x;
+	float y = iy + offset.y;
+	float z = iz + offset.z;
+	x /= (WORLD_SIZE * CHUNK_SIZE_X * 0.1);
+	y /= (CHUNK_SIZE_Y * 0.1);
+	z /= (WORLD_SIZE * CHUNK_SIZE_Z * 0.1);
+	x -= 4.0;
+	y -= 4.0;
+	z -= 4.0;
+	return float(pow(1.0 - sqrt(x * x + y * y), 2) + z * z - 0.25);
 }
+
+//float Chunk::isVoxelF(int ix, int iy, int iz) {
+//	float x = ix + offset.x;
+//	float y = iy + offset.y;
+//	float z = iz + offset.z;
+//	float p = CHUNK_SIZE_Y / 2;
+//	float d = 15;
+//	return abs(x - p) < d && abs(y - p) < d && abs(z - p) < d;
+//}
 
 //bool Chunk::isVoxel(int x, int y, int z) {
 //	float section_width = CHUNK_SIZE_X * SECTION_SIZE;

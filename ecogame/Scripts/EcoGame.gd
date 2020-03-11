@@ -109,6 +109,7 @@ func build_mesh_instance_smooth(mesh_data : Array, owner) -> MeshInstance:
 	var static_body : StaticBody = StaticBody.new()
 	var material = SpatialMaterial.new()
 	material.albedo_color = Color.red
+#	material.params_cull_mode = SpatialMaterial.CULL_DISABLED
 	
 	mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
 	mesh.surface_set_material(0, material)
