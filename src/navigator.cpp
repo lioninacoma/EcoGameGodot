@@ -58,7 +58,7 @@ std::shared_ptr<GraphNavNode> Navigator::getNode(size_t h) {
 	return it->second;
 }
 
-const bool SHOW_NODES_DEBUG = false;
+const bool SHOW_NODES_DEBUG = true;
 void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 	try {
 		auto lib = EcoGame::get();
