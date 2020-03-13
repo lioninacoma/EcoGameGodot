@@ -97,6 +97,7 @@ float Chunk::isVoxelF(int ix, int iy, int iz) {
 	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
 	s += noise->get_noise_3d(cx, cy, cz) / 8;
+	//return floorf(s * 300.0) / 300.0;
 	return s;
 }
 

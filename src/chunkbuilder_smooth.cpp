@@ -11,6 +11,10 @@ ChunkBuilder_Smooth::ChunkBuilder_Smooth() {
 	ChunkBuilder_Smooth::threadStarted = false;
 }
 
+Vector3 addNormal(Vector3 src, Vector3 normal) {
+	return (src + normal).normalized();
+}
+
 void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 	if (!chunk) return;
 	Node* game = EcoGame::get()->getNode();
@@ -90,6 +94,7 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 			float* v = vertices[i];
 			//Godot::print(String("v {0}").format(Array::make(Vector3(v[0], v[1], v[2]))));
 			vertexArrayWrite[i] = Vector3(v[0], v[1], v[2]);
+			normalArrayWrite[i] = Vector3(0, 0, 0);
 		}
 
 		for (int i = 0, n = 0; i < amountFaces; i++, n += 3) {
@@ -105,9 +110,9 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 			Vector3 v1 = x1 - x2;
 			Vector3 normal = v1.cross(v0).normalized();
 
-			normalArrayWrite[f[0]] = normal;
-			normalArrayWrite[f[1]] = normal;
-			normalArrayWrite[f[2]] = normal;
+			normalArrayWrite[f[0]] = addNormal(normalArrayWrite[f[0]], normal);
+			normalArrayWrite[f[1]] = addNormal(normalArrayWrite[f[1]], normal);
+			normalArrayWrite[f[2]] = addNormal(normalArrayWrite[f[2]], normal);
 
 			collisionArrayWrite[n] = vertexArray[f[2]];
 			collisionArrayWrite[n + 1] = vertexArray[f[1]];
