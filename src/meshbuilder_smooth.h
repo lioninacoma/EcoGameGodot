@@ -331,11 +331,36 @@ namespace godot {
 			{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
 			{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, { 0.0, 0.0, 1.0}, {0.0,  0.0, 1.0}
 		};
+
+		static const int SOUTH = 0;
+		static const int NORTH = 1;
+		static const int EAST = 2;
+		static const int WEST = 3;
+		static const int TOP = 4;
+		static const int BOTTOM = 5;
+
+		static ObjectPool<int, BUFFER_SIZE, MAX_CHUNKS_BUILT_ASYNCH>& getMaskPool() {
+			static ObjectPool<int, BUFFER_SIZE, MAX_CHUNKS_BUILT_ASYNCH> pool;
+			return pool;
+		};
+
+		struct NodeUpdateData {
+			int bl[3];
+			int tl[3];
+			int tr[3];
+			int br[3];
+			int side;
+			int type;
+		};
+
+		void updateGraphNode(std::shared_ptr<Chunk> chunk, std::shared_ptr<NodeUpdateData> data);
+		void updateGraph(std::shared_ptr<Chunk> chunk, vector<std::shared_ptr<NodeUpdateData>> updateData);
 	public:
 		MeshBuilder_Smooth();
 		~MeshBuilder_Smooth();
 
 		Array buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, int** faces);
+		void createNodes(std::shared_ptr<Chunk> chunk);
 	};
 }
 

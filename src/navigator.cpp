@@ -169,7 +169,7 @@ void Navigator::updateGraph(std::shared_ptr<Chunk> chunk) {
 	if (SHOW_NODES_DEBUG) {
 		geo = ImmediateGeometry::_new();
 		geo->begin(Mesh::PRIMITIVE_POINTS);
-		geo->set_color(Color(1, 0, 0, 1));
+		geo->set_color(Color(0, 1, 1, 1));
 	}
 
 	std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> nodeFn = [&](auto next) {

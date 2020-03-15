@@ -67,26 +67,6 @@ bool Chunk::isVoxel(int x, int y, int z) {
 	return c > 0.3;
 }
 
-//float Chunk::isVoxelF(int x, int y, int z) {
-//	float max_dist = sqrt(cog.x * cog.x + cog.y * cog.y);
-//	float c = 1.0 - (Vector3(offset.x + x, y, offset.z + z).distance_to(cog) / max_dist);
-//	c *= max(min(getVoxelChance(x, y, z) + 0.4f, 1.0f), 0.0f);
-//	return c;
-//}
-
-//float Chunk::isVoxelF(int ix, int iy, int iz) {
-//	float x = ix + offset.x;
-//	float y = iy + offset.y;
-//	float z = iz + offset.z;
-//	x /= (WORLD_SIZE * CHUNK_SIZE_X * 0.5);
-//	y /= (CHUNK_SIZE_Y * 0.5);
-//	z /= (WORLD_SIZE * CHUNK_SIZE_Z * 0.5);
-//	x -= 4.0;
-//	y -= 4.0;
-//	z -= 4.0;
-//	return float(pow(1.0 - sqrt(x * x + y * y), 2) + z * z - 0.25);
-//}
-
 float Chunk::isVoxelF(int ix, int iy, int iz) {
 	float d = 0.5;
 	float cx = ix + offset.x;
@@ -97,40 +77,8 @@ float Chunk::isVoxelF(int ix, int iy, int iz) {
 	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
 	s += noise->get_noise_3d(cx, cy, cz) / 8;
-	//return floorf(s * 300.0) / 300.0;
-	return s;
+	return floorf(s * 600.0) / 600.0;
 }
-
-//float Chunk::isVoxelF(int ix, int iy, int iz) {
-//	float x = ix + offset.x;
-//	float y = iy + offset.y;
-//	float z = iz + offset.z;
-//	float p = CHUNK_SIZE_Y / 2;
-//	float d = 15;
-//	return abs(x - p) < d && abs(y - p) < d && abs(z - p) < d;
-//}
-
-//bool Chunk::isVoxel(int x, int y, int z) {
-//	float section_width = CHUNK_SIZE_X * SECTION_SIZE;
-//	float section_height = CHUNK_SIZE_Y;
-//	float section_depth = CHUNK_SIZE_Z * SECTION_SIZE;
-//
-//	float section_x = sectionOffset.x * CHUNK_SIZE_X;
-//	float section_z = sectionOffset.y * CHUNK_SIZE_Z;
-//
-//	float ix = ((offset.x - section_x) + x) / section_width;
-//	float iy = y / section_height;
-//	float iz = ((offset.z - section_z) + z) / section_depth;
-//
-//	float cx = chance(ix, padding);
-//	float cy = chance(iy, padding);
-//	float cz = chance(iz, padding);
-//
-//	float c = cx * cy * cz;
-//
-//	c *= getVoxelChance(x, y, z);
-//	return c > 0.4;
-//}
 
 float Chunk::getVoxel(int x, int y, int z) {
 	return volume->get(x, y, z);
@@ -611,7 +559,7 @@ void Chunk::updateNodesAt(Vector3 position) {
 			vy % CHUNK_SIZE_Y,
 			vz % CHUNK_SIZE_Z);
 
-		if (v && nv && node) {
+		if (v && nv <= 0 && node) {
 			node->setDirection(static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]), false);
 			
 			if (!node->getAmountDirections()) {
@@ -620,7 +568,7 @@ void Chunk::updateNodesAt(Vector3 position) {
 				Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
 			}
 		}
-		else if (!v && nv) {
+		else if (!v && nv <= 0) {
 			if (!node) {
 				auto gn = GraphNavNode::_new();
 				gn->setPoint(nodePosition);
@@ -636,6 +584,30 @@ void Chunk::updateNodesAt(Vector3 position) {
 
 			Godot::print(String("add neighbour node at: {0}").format(Array::make(node->getPointU())));
 		}
+	}
+}
+
+void Chunk::addNode(std::shared_ptr<GraphNavNode> node, Vector3 normal) {
+	boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
+	try {
+		std::shared_ptr<GraphNavNode> current;
+		size_t hash = node->getHash();
+		node->determineGravity(cog);
+		auto it = nodes->find(hash);
+
+		if (it == nodes->end()) {
+			nodes->emplace(hash, node);
+			current = node;
+		}
+		else {
+			current = it->second;
+		}
+
+		unsigned char mask = GraphNavNode::getDirectionMask(normal);
+		current->setDirections(mask);
+	}
+	catch (const std::exception & e) {
+		std::cerr << boost::diagnostic_information(e);
 	}
 }
 

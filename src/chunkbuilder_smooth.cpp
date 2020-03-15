@@ -48,6 +48,7 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 	try {
 		BUILD_MESH_MUTEX.lock();
 		Array data = meshBuilder.buildVertices(chunk, vertices, faces);
+		meshBuilder.createNodes(chunk);
 		BUILD_MESH_MUTEX.unlock();
 
 		if (data.empty() || !bool(data[0])) {
@@ -118,14 +119,7 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 			collisionArrayWrite[n] = vertexArray[f[2]];
 			collisionArrayWrite[n + 1] = vertexArray[f[1]];
 			collisionArrayWrite[n + 2] = vertexArray[f[0]];
-
-			auto node = GraphNavNode::_new();
-			node->setPoint(Vector3(floor(x0.x) + 0.5, floor(x0.y) + 0.5, floor(x0.z) + 0.5));
-			node->setVoxel(1);
-			chunk->addNode(std::shared_ptr<GraphNavNode>(node), GraphNavNode::getDirectionFromVector(normalArrayWrite[f[0]]));
 		}
-
-		Navigator::get()->updateGraph(chunk);
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
 		meshArrays[Mesh::ARRAY_NORMAL] = normalArray;

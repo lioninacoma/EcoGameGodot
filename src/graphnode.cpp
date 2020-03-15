@@ -26,6 +26,62 @@ Vector3 GraphNavNode::getDirectionVector(DIRECTION d) {
 	}
 }
 
+unsigned char GraphNavNode::getDirectionMask(Vector3 v) {
+	Vector3 cardinal;
+	DIRECTION dir;
+	unsigned char mask = 0;
+	float x[3] = { v.x, v.y, v.z }, y[3];
+	int sgn = 1;
+	float n;
+
+	for (int i = 0; i < 3; i++) {
+		n = abs(x[i]);
+		if (n > 0) {
+			y[0] = 0.0; y[1] = 0.0; y[2] = 0.0;
+			sgn = x[i] >= 0 ? 1 : -1;
+			y[i] = 1.0 * sgn;
+			cardinal = Vector3(y[0], y[1], y[2]);
+			dir = static_cast<DIRECTION>(0);
+
+			for (int i = 1; i < 6 && cardinal != getDirectionVector(dir); i++) {
+				dir = static_cast<DIRECTION>(i);
+			}
+
+			mask |= 1UL << dir;
+		}
+	}
+
+	return mask;
+}
+
+GraphNavNode::DIRECTION GraphNavNode::getDirectionFromVector(Vector3 v) {
+	float x[3] = { v.x, v.y, v.z };
+	float y[3] = { 0.0, 0.0, 0.0 };
+	float m = 0.0, n;
+	int d = 0;
+	int sgn = 1;
+
+	for (int i = 0; i < 3; i++) {
+		n = abs(x[i]);
+		if (n > m) {
+			m = n;
+			d = i;
+			sgn = x[i] >= 0 ? 1 : -1;
+		}
+	}
+
+	y[d] = 1.0 * sgn;
+
+	Vector3 cardinal = Vector3(y[0], y[1], y[2]);
+	DIRECTION dir = static_cast<DIRECTION>(0);
+
+	for (int i = 1; i < 6 && cardinal != getDirectionVector(dir); i++) {
+		dir = static_cast<DIRECTION>(i);
+	}
+
+	return dir;
+}
+
 GraphNavNode::GraphNavNode(Vector3 point, char voxel) {
 	GraphNavNode::point = std::shared_ptr<Vector3>(new Vector3(point));
 	GraphNavNode::gravity = std::shared_ptr<Vector3>(new Vector3(0, -9.8, 0));
@@ -171,6 +227,7 @@ bool GraphNavNode::isDirectionSet(DIRECTION d) {
 }
 
 bool GraphNavNode::isWalkable() {
+	//return true;
 	PoolVector3Array directions = getDirectionVectors();
 	Vector3 direction, gravity = getGravityU().normalized();
 	int i;

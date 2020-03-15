@@ -42,34 +42,8 @@ namespace godot {
 			TOP, BOTTOM, WEST, EAST, NORTH, SOUTH
 		};
 		static Vector3 getDirectionVector(DIRECTION d);
-
-		static DIRECTION getDirectionFromVector(Vector3 v) {
-			float x[3] = { v.x, v.y, v.z };
-			float y[3] = { 0.0, 0.0, 0.0 };
-			float m = 0.0, n;
-			int d = 0;
-			int sgn = 1;
-
-			for (int i = 0; i < 3; i++) {
-				n = abs(x[i]);
-				if (n > m) {
-					m = n;
-					d = i;
-					sgn = x[i] >= 0 ? 1 : -1;
-				}
-			}
-
-			y[d] = 1.0 * sgn;
-
-			Vector3 cardinal = Vector3(y[0], y[1], y[2]);
-			DIRECTION dir = static_cast<DIRECTION>(0);
-
-			for (int i = 1; i < 6 && cardinal != getDirectionVector(dir); i++) {
-				dir = static_cast<DIRECTION>(i);
-			}
-
-			return dir;
-		};
+		static unsigned char getDirectionMask(Vector3 v);
+		static DIRECTION getDirectionFromVector(Vector3 v);
 
 		GraphNavNode() : GraphNavNode(Vector3(), 0) {};
 		GraphNavNode(Vector3 point, char voxel);

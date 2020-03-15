@@ -131,6 +131,7 @@ namespace godot {
 		int buildVolume();
 		int buildVolume2();
 		void addNode(std::shared_ptr<GraphNavNode> node);
+		void addNode(std::shared_ptr<GraphNavNode> node, Vector3 normal);
 		void addNode(std::shared_ptr<GraphNavNode> node, GraphNavNode::DIRECTION direction);
 		void removeNode(std::shared_ptr<GraphNavNode> node);
 		void updateNodesAt(Vector3 voxelPosition);
