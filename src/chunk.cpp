@@ -160,7 +160,7 @@ void Chunk::setVoxel(int x, int y, int z, float v) {
 	Vector3 position;
 	Vector3 nodePosition;
 	
-	if (v == 0) {
+	if (v > 0) {
 		if (navigatable) {
 			try {
 				position = offset + Vector3(x, y, z);
@@ -559,7 +559,7 @@ void Chunk::updateNodesAt(Vector3 position) {
 			vy % CHUNK_SIZE_Y,
 			vz % CHUNK_SIZE_Z);
 
-		if (v && nv <= 0 && node) {
+		if (v <= 0 && nv <= 0 && node) {
 			node->setDirection(static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]), false);
 			
 			if (!node->getAmountDirections()) {
@@ -568,7 +568,7 @@ void Chunk::updateNodesAt(Vector3 position) {
 				Godot::print(String("remove neighbour node at: {0}").format(Array::make(node->getPointU())));
 			}
 		}
-		else if (!v && nv <= 0) {
+		else if (v > 0 && nv <= 0) {
 			if (!node) {
 				auto gn = GraphNavNode::_new();
 				gn->setPoint(nodePosition);

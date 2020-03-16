@@ -95,7 +95,7 @@ void ChunkBuilder_Smooth::buildChunk(std::shared_ptr<Chunk> chunk) {
 		for (int i = 0; i < amountVertices; i++) {
 			float* v = vertices[i];
 			//Godot::print(String("v {0}").format(Array::make(Vector3(v[0], v[1], v[2]))));
-			vertexArrayWrite[i] = Vector3(v[0], v[1], v[2]);
+			vertexArrayWrite[i] = Vector3(v[0] - 0.5, v[1] - 0.5, v[2] - 0.5);
 			normalArrayWrite[i] = Vector3(0, 0, 0);
 		}
 
