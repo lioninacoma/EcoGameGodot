@@ -10,7 +10,7 @@ var voxel = 0
 func _input(event : InputEvent) -> void:
 	if event is InputEventKey:
 		if event.scancode == KEY_KP_0:
-			voxel = 0
+			voxel = -1
 		elif event.scancode == KEY_KP_1:
 			voxel = 1
 		elif event.scancode == KEY_KP_2:
@@ -29,10 +29,18 @@ func _input(event : InputEvent) -> void:
 			var result = space_state.intersect_ray(from, to)
 		
 			if result:
-				var voxel_position = controls.get_voxel_position(result)
-				if voxel > 0:
-					voxel_position += result.normal
-				Lib.instance.setVoxel(voxel_position, voxel)
+				var voxel_position : Vector3 = controls.get_voxel_position(result)
+#				if voxel > 0:
+#					voxel_position += result.normal
+				var s = 2
+				
+				for z in range (-s, s + 1):
+					for y in range (-s, s + 1):
+						for x in range (-s, s + 1):
+							print (Vector3(x, y, z))
+							var p = Vector3(x, y, z) + voxel_position
+							if voxel_position.distance_to(p) < s:
+								Lib.instance.setVoxel(p, voxel)
 				
 #				var volume = Lib.instance.getDisconnectedVoxels(voxel_position, 8)
 #				if volume.size() <= 0: return

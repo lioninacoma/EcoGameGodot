@@ -74,11 +74,13 @@ namespace godot {
 
 		void addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost);
 		void addNode(std::shared_ptr<GraphNavNode> node);
+		void addFaceNodes(Vector3 a, Vector3 b, Vector3 c, Chunk* chunk);
 		void removeNode(std::shared_ptr<GraphNavNode> node);
 		void addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk);
 		void updateGraph(std::shared_ptr<Chunk> chunk);
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
+		std::shared_ptr<GraphNavNode> fetchOrCreateNode(Vector3 position, Chunk* chunk);
 	};
 
 }

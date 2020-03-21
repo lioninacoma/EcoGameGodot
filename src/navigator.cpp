@@ -58,7 +58,76 @@ std::shared_ptr<GraphNavNode> Navigator::getNode(size_t h) {
 	return it->second;
 }
 
-const bool SHOW_NODES_DEBUG = true;
+std::shared_ptr<GraphNavNode> Navigator::fetchOrCreateNode(Vector3 position, Chunk* chunk) {
+	auto lib = EcoGame::get();
+
+	std::shared_ptr<GraphNavNode> node;
+	size_t hash = fn::hash(position);
+	Vector3 chunkOffset = position;
+	chunkOffset = fn::toChunkCoords(chunkOffset);
+	chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+	if (chunk->getOffset() != chunkOffset) {
+		auto neighbourChunk = lib->getChunk(position);
+		if (neighbourChunk != NULL) {
+			node = neighbourChunk->getNode(hash);
+		}
+	}
+	else {
+		node = chunk->getNode(hash);
+	}
+
+	if (!node) {
+		node = std::shared_ptr<GraphNavNode>(GraphNavNode::_new());
+		node->setPoint(position);
+		node->setVoxel(1);
+		chunk->addNode(node);
+		addNode(node);
+	}
+
+	return node;
+}
+
+const bool SHOW_NODES_DEBUG = false;
+void Navigator::addFaceNodes(Vector3 a, Vector3 b, Vector3 c, Chunk* chunk) {
+	auto lib = EcoGame::get();
+	Node* game = lib->getNode();
+
+	std::shared_ptr<GraphNavNode> aNode, bNode, cNode;
+	aNode = fetchOrCreateNode(a, chunk);
+	bNode = fetchOrCreateNode(b, chunk);
+	cNode = fetchOrCreateNode(c, chunk);
+	
+	addEdge(aNode, bNode, euclidean(aNode->getPointU(), bNode->getPointU()));
+	addEdge(aNode, cNode, euclidean(aNode->getPointU(), cNode->getPointU()));
+	addEdge(bNode, cNode, euclidean(bNode->getPointU(), cNode->getPointU()));
+
+	if (SHOW_NODES_DEBUG) {
+		ImmediateGeometry* geo;
+
+		geo = ImmediateGeometry::_new();
+		geo->begin(Mesh::PRIMITIVE_POINTS);
+		geo->set_color(Color(1, 0, 0, 1));
+		geo->add_vertex(aNode->getPointU());
+		geo->add_vertex(bNode->getPointU());
+		geo->add_vertex(cNode->getPointU());
+		geo->end();
+		game->call_deferred("draw_debug_dots", geo);
+
+		geo = ImmediateGeometry::_new();
+		geo->begin(Mesh::PRIMITIVE_LINES);
+		geo->set_color(Color(0, 1, 0, 1));
+		geo->add_vertex(aNode->getPointU());
+		geo->add_vertex(bNode->getPointU());
+		geo->add_vertex(bNode->getPointU());
+		geo->add_vertex(cNode->getPointU());
+		geo->add_vertex(cNode->getPointU());
+		geo->add_vertex(aNode->getPointU());
+		geo->end();
+		game->call_deferred("draw_debug", geo);
+	}
+}
+
 void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 	try {
 		auto lib = EcoGame::get();
@@ -88,6 +157,8 @@ void Navigator::addNode(std::shared_ptr<GraphNavNode> node, Chunk* chunk) {
 			geo->end();
 			game->call_deferred("draw_debug_dots", geo);
 		}
+
+		return;
 
 		if (SHOW_NODES_DEBUG) {
 			geo = ImmediateGeometry::_new();

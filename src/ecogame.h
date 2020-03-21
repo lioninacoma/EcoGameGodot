@@ -20,13 +20,6 @@
 #include "constants.h"
 #include "fn.h"
 #include "area.h"
-
-#ifdef SMOOTH
-#include "chunkbuilder_smooth.h"
-#else
-#include "chunkbuilder.h"
-#endif
-
 #include "chunkbuilder.h"
 #include "voxelassetmanager.h"
 #include "section.h"
@@ -44,12 +37,7 @@ namespace godot {
 
 	private:
 		std::shared_ptr<Section>* sections;
-
-#ifdef SMOOTH
-		std::shared_ptr<ChunkBuilder_Smooth> chunkBuilder;
-#else
 		std::shared_ptr<ChunkBuilder> chunkBuilder;
-#endif
 
 		boost::mutex SECTIONS_MUTEX;
 
@@ -76,27 +64,23 @@ namespace godot {
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		vector<std::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
 		std::shared_ptr<Chunk> getChunk(Vector3 position);
-		Array getDisconnectedVoxels(Vector3 position, float radius);
-		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
-		void setSection(int x, int z, std::shared_ptr<Section> section);
-		void setSection(int i, std::shared_ptr<Section> section);
 		std::shared_ptr<Section> getSection(int x, int z);
 		std::shared_ptr<Section> getSection(int i);
+		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
+		Array getDisconnectedVoxels(Vector3 position, float radius);
+		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
+		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
+		int getVoxel(Vector3 position);
+		
+		void setSection(int x, int z, std::shared_ptr<Section> section);
+		void setSection(int i, std::shared_ptr<Section> section);
 		void buildSections(Vector3 center, float radius, int maxSectionsBuilt);
 		void buildChunk(Variant vChunk);
 		void setVoxel(Vector3 position, int voxel);
-		void addVoxelAsset(Vector3 start, int type);
-		Array buildVoxelAssetByType(int type);
-		Array buildVoxelAssetByVolume(Array volume);
-		Array buildVoxelAsset(VoxelAsset* voxelAsset);
-		bool voxelAssetFits(Vector3 start, int type);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId);
-		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		void updateGraph(Variant vChunk);
 		void updateGraphs(Vector3 center, float radius);
-		int getVoxel(Vector3 position);
-		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
 	};
 
 }

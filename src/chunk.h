@@ -36,29 +36,21 @@ namespace godot {
 		GODOT_CLASS(Chunk, Node)
 	private:
 		std::atomic<int> amountNodes = 0;
-		std::atomic<int> amountVoxel = 0;
 		std::atomic<int> meshInstanceId = 0;
 		std::atomic<bool> navigatable = false;
 		std::atomic<bool> building = false;
 		std::atomic<bool> volumeBuilt = false;
-		std::atomic<float> padding = 1.0;
-
-		Vector2 sectionOffset;
+		
 		Vector3 offset, cog;
 
 		std::shared_ptr<Section> section;
 		std::shared_ptr<VoxelData> volume;
 		unordered_map<size_t, std::shared_ptr<GraphNavNode>>* nodes;
-
-		int* surfaceY; // TODO: provide thread safety?
 		
 		OpenSimplexNoise* noise;
-		OpenSimplexNoise* paddingNoise;
 
 		std::shared_mutex CHUNK_NODES_MUTEX;
 
-		int getVoxelY(int x, int z);
-		float getVoxelChance(int x, int y, int z);
 		Voxel* intersection(int x, int y, int z);
 	public:
 		static void _register_methods();
@@ -91,14 +83,8 @@ namespace godot {
 		bool isBuilding() {
 			return building;
 		};
-		int getAmountVoxel() {
-			return amountVoxel;
-		};
-		bool isVoxel(int x, int y, int z);
-		float isVoxelF(int x, int y, int z);
+		float isVoxel(int x, int y, int z);
 		float getVoxel(int x, int y, int z);
-		int getCurrentSurfaceY(int x, int z);
-		int getCurrentSurfaceY(int i);
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
 		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> func) {
 			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
@@ -128,8 +114,7 @@ namespace godot {
 			Chunk::meshInstanceId = meshInstanceId;
 		};
 		void setVoxel(int x, int y, int z, float v);
-		int buildVolume();
-		int buildVolume2();
+		void buildVolume();
 		void addNode(std::shared_ptr<GraphNavNode> node);
 		void addNode(std::shared_ptr<GraphNavNode> node, Vector3 normal);
 		void addNode(std::shared_ptr<GraphNavNode> node, GraphNavNode::DIRECTION direction);

@@ -24,12 +24,6 @@
     <ClCompile Include="src\chunk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\chunkbuilder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\meshbuilder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\section.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,10 +33,10 @@
     <ClCompile Include="src\graphnode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\chunkbuilder_smooth.cpp">
+    <ClCompile Include="src\meshbuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\meshbuilder_smooth.cpp">
+    <ClCompile Include="src\chunkbuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,13 +47,7 @@
     <ClInclude Include="src\chunk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\chunkbuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\constants.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\meshbuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\objectpool.h">
@@ -113,10 +101,10 @@
     <ClInclude Include="src\graphedge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\chunkbuilder_smooth.h">
+    <ClInclude Include="src\meshbuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\meshbuilder_smooth.h">
+    <ClInclude Include="src\chunkbuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

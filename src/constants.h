@@ -1,8 +1,6 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define SMOOTH
-
 // ~5 GB
 //#define WORLD_SIZE 40	   // Chunks
 //#define CHUNK_SIZE_X 32  // Voxels

@@ -19,15 +19,11 @@ void Chunk::_register_methods() {
 Chunk::Chunk(Vector3 offset) {
 	Chunk::offset = offset;
 	Chunk::volume = std::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X + CHUNK_PADDING, CHUNK_SIZE_Y + CHUNK_PADDING, CHUNK_SIZE_Z + CHUNK_PADDING));
-	Chunk::surfaceY = new int[(CHUNK_SIZE_X + CHUNK_PADDING) * (CHUNK_SIZE_Z + CHUNK_PADDING)];
 	Chunk::nodes = new unordered_map<size_t, std::shared_ptr<GraphNavNode>>();
-
-	memset(surfaceY, 0, (CHUNK_SIZE_X + CHUNK_PADDING) * (CHUNK_SIZE_Z + CHUNK_PADDING) * sizeof(*surfaceY));
 }
 
 Chunk::~Chunk() {
 	volume.reset();
-	delete surfaceY;
 	delete nodes;
 }
 
@@ -37,37 +33,9 @@ void Chunk::_init() {
 	Chunk::noise->set_octaves(4);
 	Chunk::noise->set_period(128.0);
 	Chunk::noise->set_persistence(0.5);
-
-	Chunk::paddingNoise = OpenSimplexNoise::_new();
-	Chunk::paddingNoise->set_seed(NOISE_SEED);
-	Chunk::paddingNoise->set_octaves(1);
-	Chunk::paddingNoise->set_period(4.0);
 }
 
-const float NOISE_CHANCE = 1.0;
-float Chunk::getVoxelChance(int x, int y, int z) {
-	return noise->get_noise_3d(
-		(x + offset.x) * NOISE_CHANCE,
-		(y + offset.y) * NOISE_CHANCE,
-		(z + offset.z) * NOISE_CHANCE) / 2.0 + 0.5;
-}
-
-float chance(double x, double p) {
-	return sqrt(((1.0 / p) - (2.0 * x - 1.0) * (2.0 * x - 1.0)) * p);
-}
-
-float redistribute(double x) {
-	return pow(2, x) / 16.0;
-}
-
-bool Chunk::isVoxel(int x, int y, int z) {
-	float max_dist = sqrt(cog.x * cog.x + cog.y * cog.y);
-	float c = 1.0 - (Vector3(offset.x + x, y, offset.z + z).distance_to(cog) / max_dist);
-	c *= max(min(getVoxelChance(x, y, z) + 0.4f, 1.0f), 0.0f);
-	return c > 0.3;
-}
-
-float Chunk::isVoxelF(int ix, int iy, int iz) {
+float Chunk::isVoxel(int ix, int iy, int iz) {
 	float d = 0.5;
 	float cx = ix + offset.x;
 	float cy = iy + offset.y;
@@ -77,33 +45,16 @@ float Chunk::isVoxelF(int ix, int iy, int iz) {
 	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
 	s += noise->get_noise_3d(cx, cy, cz) / 8;
-	return floorf(s * 600.0) / 600.0;
+	//return floorf(s * 600.0) / 600.0;
+	return s;
 }
 
 float Chunk::getVoxel(int x, int y, int z) {
 	return volume->get(x, y, z);
 }
 
-int Chunk::getVoxelY(int x, int z) {
-	float y = noise->get_noise_2d(
-		(x + offset.x) * VOXEL_Y_NOISE_SCALE,
-		(z + offset.z) * VOXEL_Y_NOISE_SCALE) / 2.0 + 0.5;
-	y *= CHUNK_SIZE_Y;
-	int yi = (int) y;
-
-	for (int i = yi; i >= 0; i--) {
-		float c = getVoxelChance(x, i, z);
-		if (c < VOXEL_CHANCE_T) {
-			return i;
-		}
-	}
-
-	return 0;
-}
-
 void Chunk::setSection(std::shared_ptr<Section> section) {
 	Chunk::section = section;
-	sectionOffset = section->getOffset();
 };
 
 Voxel* Chunk::intersection(int x, int y, int z) {
@@ -130,14 +81,6 @@ Voxel* Chunk::intersection(int x, int y, int z) {
 	return NULL;
 }
 
-int Chunk::getCurrentSurfaceY(int x, int z) {
-	return getCurrentSurfaceY(fn::fi2(x, z));
-}
-
-int Chunk::getCurrentSurfaceY(int i) {
-	return surfaceY[i];
-}
-
 Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 	vector<Voxel*> list;
 	Voxel* voxel = NULL;
@@ -154,7 +97,6 @@ Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 
 void Chunk::setVoxel(int x, int y, int z, float v) {
 	volume->set(x, y, z, v);
-	int dy = surfaceY[fn::fi2(x, z)];
 
 	std::shared_ptr<GraphNavNode> currentNode;
 	Vector3 position;
@@ -178,18 +120,6 @@ void Chunk::setVoxel(int x, int y, int z, float v) {
 				std::cerr << boost::diagnostic_information(e);
 			}
 		}
-
-		if (dy == y) {
-			for (int i = y - 1; i >= 0; i--) {
-				surfaceY[fn::fi2(x, z)]--;
-				if (volume->get(x, i, z)) {
-					break;
-				}
-			}
-		}
-
-		amountVoxel--;
-		if (amountVoxel < 0) amountVoxel = 0;
 	}
 	else {
 		if (navigatable) {
@@ -213,9 +143,6 @@ void Chunk::setVoxel(int x, int y, int z, float v) {
 				std::cerr << boost::diagnostic_information(e);
 			}
 		}
-
-		surfaceY[fn::fi2(x, z)] = max(dy, y);
-		amountVoxel++;
 	}
 }
 
@@ -414,90 +341,20 @@ PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 voxelPosition, int type
 	return voxels;
 }
 
-int Chunk::buildVolume() {
+void Chunk::buildVolume() {
 	int x, y, z, i, diff;
 	float d, rd;
 	float max_d = cog.length();
-	if (volumeBuilt) return amountVoxel;
-	amountVoxel = 0;
 
 	for (z = 0; z < CHUNK_SIZE_Z + CHUNK_PADDING; z++) {
 		for (y = 0; y < CHUNK_SIZE_Y + CHUNK_PADDING; y++) {
 			for (x = 0; x < CHUNK_SIZE_X + CHUNK_PADDING; x++) {
-				/*if (rd <= .5) {
-					setVoxel(x, y, z, 6);
-				} else */
-				
-				/*if (isVoxel(x, y, z)) {
-					d = cog.distance_to(offset + Vector3(x, y, z));
-					rd = d / max_d;
-
-					if (rd > .55) {
-						setVoxel(x, y, z, 2);
-					}
-					else if (rd > .54) {
-						setVoxel(x, y, z, 3);
-					}
-					else {
-						setVoxel(x, y, z, 1);
-					}
-				}*/
-
-				setVoxel(x, y, z, isVoxelF(x, y, z));
+				setVoxel(x, y, z, isVoxel(x, y, z));
 			}
 		}
 	}
 
 	volumeBuilt = true;
-	return amountVoxel;
-}
-
-int Chunk::buildVolume2() {
-	int x, y, z, i, diff;
-	float c;
-
-	if (volumeBuilt) return amountVoxel;
-	amountVoxel = 0;
-
-	for (z = 0; z < CHUNK_SIZE_Z; z++) {
-		for (x = 0; x < CHUNK_SIZE_X; x++) {
-			y = getVoxelY(x, z);
-			
-			// WATER LAYER
-			if (y <= WATER_LEVEL) {
-				for (i = y; i <= WATER_LEVEL; i++) {
-					setVoxel(x, i, z, 6);
-				}
-			}
-
-			for (i = 0; i < y; i++) {
-				c = getVoxelChance(x, i, z);
-				if (c < VOXEL_CHANCE_T) {
-					diff = abs(y - i);
-
-					// GRASS LAYER
-					if (diff < 3) {
-						setVoxel(x, i, z, 1);
-					}
-					// DIRT LAYER
-					else if (diff < 12) {
-						setVoxel(x, i, z, 3);
-					}
-					// STONE LAYER
-					else {
-						setVoxel(x, i, z, 2);
-					}
-				}
-				// WATER LAYER
-				else if (i <= WATER_LEVEL) {
-					setVoxel(x, i, z, 6);
-				}
-			}
-		}
-	}
-
-	volumeBuilt = true;
-	return amountVoxel;
 }
 
 void Chunk::updateNodesAt(Vector3 position) {
@@ -582,7 +439,7 @@ void Chunk::updateNodesAt(Vector3 position) {
 				context->addNode(node, static_cast<GraphNavNode::DIRECTION>(neighbours[(i + 3) % 6][3]));
 			}
 
-			Godot::print(String("add neighbour node at: {0}").format(Array::make(node->getPointU())));
+			Godot::print(String("add neighbour node at: {0}, nv: {1}").format(Array::make(node->getPointU(), (int)nv)));
 		}
 	}
 }
@@ -649,6 +506,8 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 		else {
 			current = it->second;
 		}
+
+		return;
 
 		auto lib = EcoGame::get();
 		Vector3 directionVector, voxelPosition, chunkOffset;

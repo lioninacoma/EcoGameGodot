@@ -29,11 +29,6 @@ namespace godot {
 	class ChunkBuilder {
 
 	private:
-		static ObjectPool<float, MAX_VERTICES_SIZE, TYPES * MAX_CHUNKS_BUILT_ASYNCH>& getVerticesPool() {
-			static ObjectPool<float, MAX_VERTICES_SIZE, TYPES * MAX_CHUNKS_BUILT_ASYNCH> pool;
-			return pool;
-		};
-
 		std::shared_ptr<boost::thread> queueThread;
 		deque<std::shared_ptr<Chunk>> buildQueue;
 		unordered_set<size_t> inque;

@@ -227,7 +227,7 @@ bool GraphNavNode::isDirectionSet(DIRECTION d) {
 }
 
 bool GraphNavNode::isWalkable() {
-	//return true;
+	return true;
 	PoolVector3Array directions = getDirectionVectors();
 	Vector3 direction, gravity = getGravityU().normalized();
 	int i;
