@@ -26,6 +26,8 @@ void Navigator::addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNa
 
 void Navigator::addNode(std::shared_ptr<GraphNavNode> node) {
 	boost::unique_lock<boost::shared_mutex> lock(NAV_NODES_MUTEX);
+	auto it = nodes->find(node->getHash());
+	if (it != nodes->end()) return;
 	nodes->emplace(node->getHash(), node);
 }
 

@@ -9,85 +9,11 @@ void GraphNavNode::_register_methods() {
 	register_method("getGravity", &GraphNavNode::getGravityU);
 }
 
-Vector3 GraphNavNode::getDirectionVector(DIRECTION d) {
-	switch (d) {
-	case TOP:
-		return Vector3(0, 1, 0);
-	case BOTTOM:
-		return Vector3(0, -1, 0);
-	case WEST:
-		return Vector3(-1, 0, 0);
-	case EAST:
-		return Vector3(1, 0, 0);
-	case NORTH:
-		return Vector3(0, 0, 1);
-	case SOUTH:
-		return Vector3(0, 0, -1);
-	}
-}
-
-unsigned char GraphNavNode::getDirectionMask(Vector3 v) {
-	Vector3 cardinal;
-	DIRECTION dir;
-	unsigned char mask = 0;
-	float x[3] = { v.x, v.y, v.z }, y[3];
-	int sgn = 1;
-	float n;
-
-	for (int i = 0; i < 3; i++) {
-		n = abs(x[i]);
-		if (n > 0) {
-			y[0] = 0.0; y[1] = 0.0; y[2] = 0.0;
-			sgn = x[i] >= 0 ? 1 : -1;
-			y[i] = 1.0 * sgn;
-			cardinal = Vector3(y[0], y[1], y[2]);
-			dir = static_cast<DIRECTION>(0);
-
-			for (int i = 1; i < 6 && cardinal != getDirectionVector(dir); i++) {
-				dir = static_cast<DIRECTION>(i);
-			}
-
-			mask |= 1UL << dir;
-		}
-	}
-
-	return mask;
-}
-
-GraphNavNode::DIRECTION GraphNavNode::getDirectionFromVector(Vector3 v) {
-	float x[3] = { v.x, v.y, v.z };
-	float y[3] = { 0.0, 0.0, 0.0 };
-	float m = 0.0, n;
-	int d = 0;
-	int sgn = 1;
-
-	for (int i = 0; i < 3; i++) {
-		n = abs(x[i]);
-		if (n > m) {
-			m = n;
-			d = i;
-			sgn = x[i] >= 0 ? 1 : -1;
-		}
-	}
-
-	y[d] = 1.0 * sgn;
-
-	Vector3 cardinal = Vector3(y[0], y[1], y[2]);
-	DIRECTION dir = static_cast<DIRECTION>(0);
-
-	for (int i = 1; i < 6 && cardinal != getDirectionVector(dir); i++) {
-		dir = static_cast<DIRECTION>(i);
-	}
-
-	return dir;
-}
-
 GraphNavNode::GraphNavNode(Vector3 point, char voxel) {
 	GraphNavNode::point = std::shared_ptr<Vector3>(new Vector3(point));
 	GraphNavNode::gravity = std::shared_ptr<Vector3>(new Vector3(0, -9.8, 0));
 	GraphNavNode::hash = fn::hash(point);
 	GraphNavNode::voxel = voxel;
-	GraphNavNode::directionMask = 0;
 }
 
 GraphNavNode::~GraphNavNode() {
@@ -104,6 +30,8 @@ void GraphNavNode::_init() {
 void GraphNavNode::addEdge(std::shared_ptr<GraphEdge> edge) {
 	boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
 	size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
+	auto it = edges.find(nHash);
+	if (it != edges.end()) return;
 	edges[nHash] = edge;
 }
 
@@ -128,22 +56,6 @@ void GraphNavNode::determineGravity(Vector3 cog) {
 	g.normalize();
 	g *= 9.8;
 	gravity = std::shared_ptr<Vector3>(new Vector3(g));
-}
-
-void GraphNavNode::setDirection(DIRECTION d, bool set) {
-	boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-	if (set) directionMask |= 1UL << d;
-	else directionMask &= ~(1UL << d);
-}
-
-void GraphNavNode::setDirections(unsigned char mask) {
-	boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-	directionMask |= mask;
-}
-
-void GraphNavNode::clearDirections() {
-	boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-	directionMask &= 0;
 }
 
 void GraphNavNode::forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func) {
@@ -188,57 +100,6 @@ char GraphNavNode::getVoxel() {
 	return voxel;
 }
 
-int GraphNavNode::getAmountDirections() {
-	boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-	int count = 0;
-	unsigned char n = directionMask;
-	while (n) {
-		count += n & 1;
-		n >>= 1;
-	}
-	return count;
-}
-
-vector<int> GraphNavNode::getDirections() {
-	boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-	vector<int> directions;
-	unsigned char mask = directionMask;
-	int d = -1;
-	while (mask && ++d < 6) {
-		if (mask & 1) {
-			directions.push_back(d);
-		}
-		mask >>= 1;
-	}
-	return directions;
-}
-
-PoolVector3Array GraphNavNode::getDirectionVectors() {
-	PoolVector3Array directions;
-	for (int d : getDirections()) {
-		directions.push_back(getDirectionVector(static_cast<DIRECTION>(d)));
-	}
-	return directions;
-}
-
-bool GraphNavNode::isDirectionSet(DIRECTION d) {
-	boost::unique_lock<boost::mutex> lock(DIRECTION_MASK_MUTEX);
-	return (bool)((directionMask >> d) & 1U);
-}
-
 bool GraphNavNode::isWalkable() {
 	return true;
-	PoolVector3Array directions = getDirectionVectors();
-	Vector3 direction, gravity = getGravityU().normalized();
-	int i;
-	bool walkable = false;
-	float deltaRad;
-	for (i = 0; i < directions.size(); i++) {
-		direction = directions[i].normalized();
-		direction *= -1;
-		deltaRad = abs(1.0 - direction.dot(gravity));
-		walkable = deltaRad < .5;
-		if (walkable) break;
-	}
-	return walkable;
 }

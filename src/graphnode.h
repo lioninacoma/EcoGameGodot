@@ -32,18 +32,10 @@ namespace godot {
 
 		std::atomic<size_t> hash;
 		std::atomic<char> voxel;
-		std::atomic<unsigned char> directionMask;
 
 		boost::shared_mutex EDGES_MUTEX;
-		boost::mutex DIRECTION_MASK_MUTEX;
 	public:
 		static void _register_methods();
-		static enum DIRECTION {
-			TOP, BOTTOM, WEST, EAST, NORTH, SOUTH
-		};
-		static Vector3 getDirectionVector(DIRECTION d);
-		static unsigned char getDirectionMask(Vector3 v);
-		static DIRECTION getDirectionFromVector(Vector3 v);
 
 		GraphNavNode() : GraphNavNode(Vector3(), 0) {};
 		GraphNavNode(Vector3 point, char voxel);
@@ -56,9 +48,6 @@ namespace godot {
 		void setPoint(Vector3 point);
 		void setVoxel(char voxel);
 		void determineGravity(Vector3 cog);
-		void setDirection(DIRECTION d, bool set);
-		void setDirections(unsigned char mask);
-		void clearDirections();
 
 		void forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func);
 		std::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash);
@@ -69,10 +58,6 @@ namespace godot {
 		Vector3 getGravityU();
 		size_t getHash();
 		char getVoxel();
-		int getAmountDirections();
-		vector<int> getDirections();
-		PoolVector3Array getDirectionVectors();
-		bool isDirectionSet(DIRECTION d);
 		bool isWalkable();
 
 		bool operator == (const GraphNavNode& o) const {

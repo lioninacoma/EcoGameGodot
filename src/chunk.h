@@ -35,7 +35,7 @@ namespace godot {
 	class Chunk : public Node {
 		GODOT_CLASS(Chunk, Node)
 	private:
-		std::atomic<int> amountNodes = 0;
+		std::atomic<int> amountNodes = 0, amountVertices = 0, amountFaces = 0;
 		std::atomic<int> meshInstanceId = 0;
 		std::atomic<bool> navigatable = false;
 		std::atomic<bool> building = false;
@@ -45,6 +45,8 @@ namespace godot {
 
 		std::shared_ptr<Section> section;
 		std::shared_ptr<VoxelData> volume;
+		float** vertices;
+		int** faces;
 		unordered_map<size_t, std::shared_ptr<GraphNavNode>>* nodes;
 		
 		OpenSimplexNoise* noise;
@@ -61,7 +63,6 @@ namespace godot {
 
 		void _init(); // our initializer called by Godot
 		
-		// getter
 		Vector3 getOffset() {
 			return offset;
 		};
@@ -83,20 +84,32 @@ namespace godot {
 		bool isBuilding() {
 			return building;
 		};
+		float** getVertices() {
+			return vertices;
+		};
+		int** getFaces() {
+			return faces;
+		};
+		int getAmountVertices() {
+			return amountVertices;
+		};
+		int getAmountFaces() {
+			return amountFaces;
+		};
 		float isVoxel(int x, int y, int z);
 		float getVoxel(int x, int y, int z);
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
-		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> func) {
-			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
-			std::for_each(nodes->begin(), nodes->end(), func);
-		};
 		std::shared_ptr<GraphNavNode> getNode(size_t hash);
 		std::shared_ptr<GraphNavNode> findNode(Vector3 position);
 		vector<std::shared_ptr<GraphNavNode>> getVoxelNodes(Vector3 voxelPosition);
 		vector<std::shared_ptr<GraphNavNode>> getReachableNodes(std::shared_ptr<GraphNavNode> node);
 		PoolVector3Array getReachableVoxels(Vector3 voxelPosition);
 		PoolVector3Array getReachableVoxelsOfType(Vector3 voxelPosition, int type);
-		// setter
+		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> func) {
+			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
+			std::for_each(nodes->begin(), nodes->end(), func);
+		};
+
 		void setOffset(Vector3 offset) {
 			Chunk::offset = offset;
 		};
@@ -113,13 +126,32 @@ namespace godot {
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;
 		};
+		void setVertices(float** vertices, int amountVertices) {
+			if (Chunk::amountVertices > 0) {
+				int i;
+				for (i = 0; i < Chunk::amountVertices; i++)
+					delete[] Chunk::vertices[i];
+				delete[] Chunk::vertices;
+			}
+
+			Chunk::vertices = vertices;
+			Chunk::amountVertices = amountVertices;
+		};
+		void setFaces(int** faces, int amountFaces) {
+			if (Chunk::amountFaces > 0) {
+				int i;
+				for (i = 0; i < Chunk::amountFaces; i++)
+					delete[] Chunk::faces[i];
+				delete[] Chunk::faces;
+			}
+
+			Chunk::faces = faces;
+			Chunk::amountFaces = amountFaces;
+		};
 		void setVoxel(int x, int y, int z, float v);
 		void buildVolume();
 		void addNode(std::shared_ptr<GraphNavNode> node);
-		void addNode(std::shared_ptr<GraphNavNode> node, Vector3 normal);
-		void addNode(std::shared_ptr<GraphNavNode> node, GraphNavNode::DIRECTION direction);
 		void removeNode(std::shared_ptr<GraphNavNode> node);
-		void updateNodesAt(Vector3 voxelPosition);
 	};
 
 }

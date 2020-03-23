@@ -2,17 +2,19 @@ extends Spatial
 class_name EcoGame
 
 # build thread variables
-const TIME_PERIOD = 0.1 # 100ms
+const TIME_PERIOD = 0.05 # 50ms
 const MAX_BUILD_CHUNKS = 24
 const MAX_BUILD_SECTIONS = 1
 
 # config
 var time = 0
 var build_stack : Array = []
+var smooth_mat = SpatialMaterial.new()
 
 func _ready() -> void:
 	add_child(Lib.instance)
 	Lib.game = self
+	smooth_mat.albedo_color = Color.red
 
 func _process(delta : float) -> void:
 	time += delta
@@ -107,12 +109,9 @@ func build_mesh_instance_smooth(mesh_data : Array, owner) -> MeshInstance:
 	var mesh_instance = MeshInstance.new()
 	var mesh : ArrayMesh = ArrayMesh.new()
 	var static_body : StaticBody = StaticBody.new()
-	var material = SpatialMaterial.new()
-	material.albedo_color = Color.red
-#	material.params_cull_mode = SpatialMaterial.CULL_DISABLED
 	
 	mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
-	mesh.surface_set_material(0, material)
+	mesh.surface_set_material(0, smooth_mat)
 	
 	var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
 	polygon_shape.set_faces(mesh_data[1])

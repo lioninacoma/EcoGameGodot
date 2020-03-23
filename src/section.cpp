@@ -239,7 +239,13 @@ void Section::setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder
 		y % CHUNK_SIZE_Y,
 		z % CHUNK_SIZE_Z, voxel);
 
-	builder->build(chunk);
+	int i, j;
+	auto lib = EcoGame::get();
+	for (j = -1; j < 2; j++)
+		for (i = -1; i < 2; i++) {
+			chunk = lib->getChunk(Vector3(chunkOffset.x * CHUNK_SIZE_X + i * CHUNK_SIZE_X, 0, chunkOffset.y * CHUNK_SIZE_Z + j * CHUNK_SIZE_Z));
+			if (chunk) builder->build(chunk);
+		}
 }
 
 int Section::getVoxel(Vector3 position) {
@@ -285,8 +291,6 @@ std::shared_ptr<GraphNavNode> Section::getNode(Vector3 position) {
 	y = position.y;
 	z = position.z;
 
-	node = chunk->getNode(fn::hash(position));
-	if (node) return node;
 	return chunk->findNode(position);
 }
 

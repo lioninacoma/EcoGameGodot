@@ -25,20 +25,18 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	long ms = 0;
 
 	start = bpt::microsec_clock::local_time();
+	int i, j, n, amountVertices, amountIndices, amountFaces;
 
-	int amountVertices, amountIndices, amountFaces;
-	const int VERTEX_BUFFER_SIZE = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * 6 * 4;
-
-	float** vertices = new float*[VERTEX_BUFFER_SIZE];
-	for (int i = 0; i < VERTEX_BUFFER_SIZE; i++) {
-		vertices[i] = new float[3];
-		memset(vertices[i], 0, 3 * sizeof(vertices[i][0]));
+	float** vertices = new float* [CHUNKBUILDER_MAX_VERTICES];
+	for (i = 0; i < CHUNKBUILDER_MAX_VERTICES; i++) {
+		vertices[i] = new float[CHUNKBUILDER_VERTEX_SIZE];
+		memset(vertices[i], 0, CHUNKBUILDER_VERTEX_SIZE * sizeof(float));
 	}
 
-	int** faces = new int* [VERTEX_BUFFER_SIZE / 3];
-	for (int i = 0; i < VERTEX_BUFFER_SIZE / 3; i++) {
-		faces[i] = new int[3];
-		memset(faces[i], 0, 3 * sizeof(faces[i][0]));
+	int** faces = new int* [CHUNKBUILDER_MAX_FACES];
+	for (i = 0; i < CHUNKBUILDER_MAX_FACES; i++) {
+		faces[i] = new int[CHUNKBUILDER_FACE_SIZE];
+		memset(faces[i], 0, CHUNKBUILDER_FACE_SIZE * sizeof(int));
 	}
 
 	if (!chunk->getMeshInstanceId()) {
@@ -47,10 +45,14 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	
 	try {
 		BUILD_MESH_MUTEX.lock();
-		Array data = meshBuilder.buildVertices(chunk, vertices, faces);
+		int* counts = meshBuilder.buildVertices(chunk, vertices, faces);
 		BUILD_MESH_MUTEX.unlock();
 
-		if (data.empty() || !bool(data[0])) {
+		if (counts[0] <= 0) {		
+			for (i = 0; i < CHUNKBUILDER_MAX_VERTICES; i++)
+				delete[] vertices[i];
+			for (i = 0; i < CHUNKBUILDER_MAX_FACES; i++)
+				delete[] faces[i];
 			delete[] vertices;
 			delete[] faces;
 
@@ -67,9 +69,32 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		Array meshData;
 		Array meshArrays;
 
-		amountVertices = data[0];
-		amountFaces = data[1];
+		amountVertices = counts[0];
+		amountFaces = counts[1];
 		amountIndices = amountFaces * 3;
+
+		float** chunkVertices = new float* [amountVertices];
+		int** chunkFaces = new int* [amountFaces];
+
+		for (i = 0; i < amountVertices; i++) {
+			chunkVertices[i] = new float[CHUNKBUILDER_VERTEX_SIZE];
+			memcpy(chunkVertices[i], vertices[i], CHUNKBUILDER_VERTEX_SIZE * sizeof(float));
+		}
+
+		for (i = 0; i < amountFaces; i++) {
+			chunkFaces[i] = new int[CHUNKBUILDER_FACE_SIZE];
+			memcpy(chunkFaces[i], faces[i], CHUNKBUILDER_FACE_SIZE * sizeof(int));
+		}
+
+		chunk->setVertices(chunkVertices, amountVertices);
+		chunk->setFaces(chunkFaces, amountFaces);
+
+		for (i = 0; i < CHUNKBUILDER_MAX_VERTICES; i++)
+			delete[] vertices[i];
+		for (i = 0; i < CHUNKBUILDER_MAX_FACES; i++)
+			delete[] faces[i];
+		delete[] vertices;
+		delete[] faces;
 		
 		PoolVector3Array vertexArray;
 		PoolVector3Array normalArray;
@@ -91,35 +116,33 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		PoolIntArray::Write indexArrayWrite = indexArray.write();
 		PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
 
-		for (int i = 0; i < amountVertices; i++) {
-			float* v = vertices[i];
+		for (i = 0; i < amountVertices; i++) {
 			//Godot::print(String("v {0}").format(Array::make(Vector3(v[0], v[1], v[2]))));
-			vertexArrayWrite[i] = Vector3(v[0] - 0.5, v[1] - 0.5, v[2] - 0.5);
+			vertexArrayWrite[i] = Vector3(chunkVertices[i][0], chunkVertices[i][1], chunkVertices[i][2]);
 			normalArrayWrite[i] = Vector3(0, 0, 0);
 		}
 
-		for (int i = 0, n = 0; i < amountFaces; i++, n += 3) {
-			int* f = faces[i];
-			indexArrayWrite[n] = f[2];
-			indexArrayWrite[n + 1] = f[1];
-			indexArrayWrite[n + 2] = f[0];
+		for (i = 0, n = 0; i < amountFaces; i++, n += 3) {
+			indexArrayWrite[n] = chunkFaces[i][2];
+			indexArrayWrite[n + 1] = chunkFaces[i][1];
+			indexArrayWrite[n + 2] = chunkFaces[i][0];
 
-			Vector3 x0 = vertexArray[f[2]];
-			Vector3 x1 = vertexArray[f[1]];
-			Vector3 x2 = vertexArray[f[0]];
+			Vector3 x0 = vertexArray[chunkFaces[i][2]];
+			Vector3 x1 = vertexArray[chunkFaces[i][1]];
+			Vector3 x2 = vertexArray[chunkFaces[i][0]];
 			Vector3 v0 = x0 - x2;
 			Vector3 v1 = x1 - x2;
 			Vector3 normal = v1.cross(v0).normalized();
 
-			normalArrayWrite[f[0]] = addNormal(normalArrayWrite[f[0]], normal);
-			normalArrayWrite[f[1]] = addNormal(normalArrayWrite[f[1]], normal);
-			normalArrayWrite[f[2]] = addNormal(normalArrayWrite[f[2]], normal);
+			normalArrayWrite[chunkFaces[i][0]] = addNormal(normalArrayWrite[chunkFaces[i][0]], normal);
+			normalArrayWrite[chunkFaces[i][1]] = addNormal(normalArrayWrite[chunkFaces[i][1]], normal);
+			normalArrayWrite[chunkFaces[i][2]] = addNormal(normalArrayWrite[chunkFaces[i][2]], normal);
 
-			collisionArrayWrite[n] = vertexArray[f[2]];
-			collisionArrayWrite[n + 1] = vertexArray[f[1]];
-			collisionArrayWrite[n + 2] = vertexArray[f[0]];
+			collisionArrayWrite[n] = vertexArray[chunkFaces[i][2]];
+			collisionArrayWrite[n + 1] = vertexArray[chunkFaces[i][1]];
+			collisionArrayWrite[n + 2] = vertexArray[chunkFaces[i][0]];
 
-			Navigator::get()->addFaceNodes(x0, x1, x2, chunk.get());
+			//Navigator::get()->addFaceNodes(x0, x1, x2, chunk.get());
 		}
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
@@ -136,14 +159,12 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		std::cerr << boost::diagnostic_information(e);
 	}
 
-	delete[] vertices;
-	delete[] faces;
-
 	stop = bpt::microsec_clock::local_time();
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
 	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunk->getOffset(), ms)));
+	chunk->setNavigatable();
 	chunk->setBuilding(false);
 	BUILD_QUEUE_CV.notify_one();
 }

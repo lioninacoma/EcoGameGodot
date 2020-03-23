@@ -41,7 +41,7 @@
 
 #define POOL_SIZE 4
 #define NAV_POOL_SIZE 16
-#define MAX_CHUNKS_BUILT_ASYNCH 2
+#define MAX_CHUNKS_BUILT_ASYNCH 8
 
 // navigator
 #define MAX_WEIGHT 5.0

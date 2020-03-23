@@ -46,11 +46,6 @@ namespace godot {
 		boost::mutex CHUNKS_MUTEX;
 		std::shared_ptr<Chunk> intersection(int x, int y, int z);
 	public:
-		static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4>& getIntBufferPool() {
-			static ObjectPool<int, INT_POOL_BUFFER_SIZE, 4> pool;
-			return pool;
-		};
-
 		static void _register_methods();
 
 		Section() : Section(Vector2()) {};

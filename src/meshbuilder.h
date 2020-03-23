@@ -331,11 +331,12 @@ namespace godot {
 			{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, -1.0, 0.0},
 			{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, { 0.0, 0.0, 1.0}, {0.0,  0.0, 1.0}
 		};
+		void buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, float** vertices, int** faces, int* counts);
 	public:
 		MeshBuilder();
 		~MeshBuilder();
 
-		Array buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, int** faces);
+		int* buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, int** faces);
 	};
 }
 

@@ -24,6 +24,11 @@
 using namespace std;
 namespace bpt = boost::posix_time;
 
+#define CHUNKBUILDER_VERTEX_SIZE 3
+#define CHUNKBUILDER_FACE_SIZE 4
+#define CHUNKBUILDER_MAX_VERTICES (BUFFER_SIZE * 6 * 4) / 2
+#define CHUNKBUILDER_MAX_FACES CHUNKBUILDER_MAX_VERTICES / 3
+
 namespace godot {
 
 	class ChunkBuilder {
