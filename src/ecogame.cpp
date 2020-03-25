@@ -274,14 +274,67 @@ void EcoGame::navigateToClosestVoxelTask(Vector3 startV, int voxel, int actorIns
 	Navigator::get()->navigateToClosestVoxel(startV, voxel, actorInstanceId);
 }
 
-void EcoGame::setVoxel(Vector3 position, int voxel) {
+
+
+void EcoGame::setVoxel(Vector3 position, float radius, bool set) {
 	try {
-		Vector3 p = position;
-		std::shared_ptr<Section> section;
-		p = fn::toSectionCoords(p);
-		section = getSection(p.x, p.z);
-		if (!section) return;
-		section->setVoxel(position, voxel, chunkBuilder);
+		int x, y, z;
+		float s, m = (set) ? -1 : 1;
+		Vector3 currentPosition, neighbourPosition;
+		std::shared_ptr<Chunk> chunk, neighbour;
+		unordered_map<size_t, std::shared_ptr<Chunk>> updatingChunks;
+		position += Vector3(0.5, 0.5, 0.5);
+
+		for (z = -radius + position.z; z < radius + position.z; z++)
+			for (y = -radius + position.y; y < radius + position.y; y++)
+				for (x = -radius + position.x; x < radius + position.x; x++) {
+					currentPosition = Vector3(x, y, z);
+					if (currentPosition.distance_to(position) > radius) continue;
+
+					chunk = getChunk(currentPosition);
+					if (!chunk) continue;
+
+					updatingChunks.emplace(fn::hash(chunk->getOffset()), chunk);
+
+					if ((x + 1) % CHUNK_SIZE_X == 0) {
+						neighbourPosition = currentPosition;
+						neighbourPosition.x = x + 1;
+						neighbour = getChunk(neighbourPosition);
+						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
+					}
+
+					if (((x - 1) + CHUNK_SIZE_X) % CHUNK_SIZE_X == 0) {
+						neighbourPosition = currentPosition;
+						neighbourPosition.x = x - 1;
+						neighbour = getChunk(neighbourPosition);
+						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
+					}
+
+					if ((z + 1) % CHUNK_SIZE_Z == 0) {
+						neighbourPosition = currentPosition;
+						neighbourPosition.z = z + 1;
+						neighbour = getChunk(neighbourPosition);
+						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
+					}
+
+					if (((z - 1) + CHUNK_SIZE_Z) % CHUNK_SIZE_Z == 0) {
+						neighbourPosition = currentPosition;
+						neighbourPosition.z = z - 1;
+						neighbour = getChunk(neighbourPosition);
+						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
+					}
+
+					s = 1.0 - (currentPosition.distance_to(position) / radius);
+					s /= 40.0;
+					chunk->setVoxel(
+						x % CHUNK_SIZE_X, 
+						y % CHUNK_SIZE_Y,
+						z % CHUNK_SIZE_Z, s * m);
+				}
+
+		for (auto chunk : updatingChunks) {
+			chunkBuilder->build(chunk.second);
+		}
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

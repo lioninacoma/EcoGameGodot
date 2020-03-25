@@ -216,37 +216,37 @@ PoolVector3Array Section::findVoxelsInRange(Vector3 startV, float radius, int vo
 	return voxels;
 }
 
-void Section::setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder) {
-	int x, y, z, cx, cz, ci;
-	Vector2 chunkOffset;
-	std::shared_ptr<Chunk> chunk;
-	chunkOffset.x = position.x;
-	chunkOffset.y = position.z;
-	chunkOffset = fn::toChunkCoords(chunkOffset);
-	cx = (int)(chunkOffset.x - offset.x);
-	cz = (int)(chunkOffset.y - offset.y);
-
-	chunk = getChunk(cx, cz);
-
-	if (!chunk) return;
-
-	x = position.x;
-	y = position.y;
-	z = position.z;
-
-	chunk->setVoxel(
-		x % CHUNK_SIZE_X,
-		y % CHUNK_SIZE_Y,
-		z % CHUNK_SIZE_Z, voxel);
-
-	int i, j;
-	auto lib = EcoGame::get();
-	for (j = -1; j < 2; j++)
-		for (i = -1; i < 2; i++) {
-			chunk = lib->getChunk(Vector3(chunkOffset.x * CHUNK_SIZE_X + i * CHUNK_SIZE_X, 0, chunkOffset.y * CHUNK_SIZE_Z + j * CHUNK_SIZE_Z));
-			if (chunk) builder->build(chunk);
-		}
-}
+//void Section::setVoxel(Vector3 position, float voxel) {
+//	int x, y, z, cx, cz, ci;
+//	Vector2 chunkOffset;
+//	std::shared_ptr<Chunk> chunk;
+//	chunkOffset.x = position.x;
+//	chunkOffset.y = position.z;
+//	chunkOffset = fn::toChunkCoords(chunkOffset);
+//	cx = (int)(chunkOffset.x - offset.x);
+//	cz = (int)(chunkOffset.y - offset.y);
+//
+//	chunk = getChunk(cx, cz);
+//
+//	if (!chunk) return;
+//
+//	x = position.x;
+//	y = position.y;
+//	z = position.z;
+//
+//	chunk->setVoxel(
+//		x % CHUNK_SIZE_X,
+//		y % CHUNK_SIZE_Y,
+//		z % CHUNK_SIZE_Z, voxel);
+//
+//	int i, j;
+//	auto lib = EcoGame::get();
+//	for (j = -1; j < 2; j++)
+//		for (i = -1; i < 2; i++) {
+//			chunk = lib->getChunk(Vector3(chunkOffset.x * CHUNK_SIZE_X + i * CHUNK_SIZE_X, 0, chunkOffset.y * CHUNK_SIZE_Z + j * CHUNK_SIZE_Z));
+//			if (chunk) builder->build(chunk);
+//		}
+//}
 
 int Section::getVoxel(Vector3 position) {
 	int x, y, z, cx, cz, ci;

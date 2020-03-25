@@ -16,14 +16,13 @@ namespace godot {
 	class VoxelData {
 	private:
 		float* volume;
-		std::atomic<int> width, height, depth, amountVoxel;
+		std::atomic<int> width, height, depth;
 		boost::mutex VOLUME_MUTEX;
 	public:
 		VoxelData(int width, int height, int depth) {
 			VoxelData::width = width;
 			VoxelData::height = height;
 			VoxelData::depth = depth;
-			VoxelData::amountVoxel = 0;
 			VoxelData::volume = new float[width * height * depth];
 			memset(volume, 0, width * height * depth * sizeof(*volume));
 		};
@@ -50,8 +49,7 @@ namespace godot {
 			if (z < 0 || z >= depth) return;
 
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
-			volume[fn::fi3(x, y, z, width, height)] = v;
-			amountVoxel += (v > 0) ? 1 : 0;
+			volume[fn::fi3(x, y, z, width, height)] += v;
 		};
 		int getWidth() {
 			return width;
@@ -61,9 +59,6 @@ namespace godot {
 		};
 		int getDepth() {
 			return depth;
-		};
-		int getAmountVoxel() {
-			return amountVoxel;
 		};
 	};
 }

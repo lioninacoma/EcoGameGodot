@@ -44,7 +44,7 @@ float Chunk::isVoxel(int ix, int iy, int iz) {
 	float x = cx / (WORLD_SIZE * CHUNK_SIZE_X);
 	float y = cy / (CHUNK_SIZE_Y);
 	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
-	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
+	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.08;
 	s += noise->get_noise_3d(cx, cy, cz) / 8;
 	//return floorf(s * 400.0) / 400.0;
 	return s;

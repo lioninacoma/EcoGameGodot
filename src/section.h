@@ -68,7 +68,6 @@ namespace godot {
 		std::shared_ptr<Chunk> getChunk(int i);
 
 		void build(std::shared_ptr<ChunkBuilder> builder);
-		void setVoxel(Vector3 position, int voxel, std::shared_ptr<ChunkBuilder> builder);
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void fill(EcoGame* lib, int sectionSize);

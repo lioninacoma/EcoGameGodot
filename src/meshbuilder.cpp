@@ -15,20 +15,18 @@ MeshBuilder::~MeshBuilder() {
 }
 
 float fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z) {
-	double s = 1;
+	double s = 0;
 
-	if (x < 0 || x >= CHUNK_SIZE_X || y < 0 || y >= CHUNK_SIZE_Y || z < 0 || z >= CHUNK_SIZE_Z) {
+	if (x < 0 || x >= CHUNK_SIZE_X || z < 0 || z >= CHUNK_SIZE_Z) {
 		auto neighbour = EcoGame::get()->getChunk(chunk->getOffset() + Vector3(x, y, z));
-		if (neighbour && neighbour->getMeshInstanceId()) {
+		if (neighbour && neighbour->isNavigatable()) {
 			s = neighbour->getVoxel(
 				(x + CHUNK_SIZE_X) % CHUNK_SIZE_X,
 				(y + CHUNK_SIZE_Y) % CHUNK_SIZE_Y,
 				(z + CHUNK_SIZE_Z) % CHUNK_SIZE_Z);
 		}
-		else if (!chunk->isNavigatable()) {
+		else {
 			s = chunk->isVoxel(x, y, z);
-			/*if (chunk->isNavigatable())
-				Godot::print(String("retrieved from random fn: {0}").format(Array::make(Vector3(x, y, z))));*/
 		}
 	}
 	else {
@@ -52,7 +50,7 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 
 	for (int i = 0; i < 8; ++i) {
 		v[0] = (cubeVerts[i][0] + x) - 1;
-		v[1] = (cubeVerts[i][1] + y) - 1;
+		v[1] = (cubeVerts[i][1] + y);
 		v[2] = (cubeVerts[i][2] + z) - 1;
 
 		float s = fSample(chunk, v[0], v[1], v[2]);
@@ -106,15 +104,18 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 int* MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, int** faces) {
 	int DIMS[3] = {
 		CHUNK_SIZE_X + 1,
-		CHUNK_SIZE_Y + 1,
+		CHUNK_SIZE_Y,
 		CHUNK_SIZE_Z + 1
 	};
 	int x[3];
 	int counts[2] = { 0, 0 };
+	Vector3 o = chunk->getOffset();
 
 	for (x[2] = 0; x[2] < DIMS[2] - 1; ++x[2])
 		for (x[1] = 0; x[1] < DIMS[1] - 1; ++x[1])
 			for (x[0] = 0; x[0] < DIMS[0] - 1; ++x[0]) {
+				if (o.x + x[0] >= CHUNK_SIZE_X * WORLD_SIZE) continue;
+				if (o.z + x[2] >= CHUNK_SIZE_Z * WORLD_SIZE) continue;
 				buildCell(x[0], x[1], x[2], chunk, vertices, faces, counts);
 			}
 

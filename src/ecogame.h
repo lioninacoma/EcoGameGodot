@@ -76,7 +76,7 @@ namespace godot {
 		void setSection(int i, std::shared_ptr<Section> section);
 		void buildSections(Vector3 center, float radius, int maxSectionsBuilt);
 		void buildChunk(Variant vChunk);
-		void setVoxel(Vector3 position, int voxel);
+		void setVoxel(Vector3 position, float radius, bool set);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 		void navigateToClosestVoxel(Vector3 startV, int voxel, int actorInstanceId);
 		void updateGraph(Variant vChunk);

@@ -5,22 +5,14 @@ var Tree = load("res://Scripts/Tree.gd")
 onready var eco_game = get_tree().get_root().get_node("EcoGame")
 onready var controls = $"../"
 
-var voxel = -1
+var set = true
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventKey:
 		if event.scancode == KEY_KP_0:
-			voxel = -1
+			set = true
 		elif event.scancode == KEY_KP_1:
-			voxel = 1
-		elif event.scancode == KEY_KP_2:
-			voxel = 2
-		elif event.scancode == KEY_KP_3:
-			voxel = 3
-		elif event.scancode == KEY_KP_4:
-			voxel = 4
-		elif event.scancode == KEY_KP_5:
-			voxel = 5
+			set = false
 	elif event is InputEventMouseButton:
 		if event.button_index == BUTTON_LEFT and event.pressed and controls.control_active:
 			var from = controls.camera.project_ray_origin(event.position)
@@ -30,17 +22,16 @@ func _input(event : InputEvent) -> void:
 		
 			if result:
 				var voxel_position : Vector3 = controls.get_voxel_position(result)
-#				Lib.instance.setVoxel(voxel_position, voxel)
+				Lib.instance.setVoxel(voxel_position, 1.5, set)
 #				if voxel > 0:
 #					voxel_position += result.normal
-				var s = 6
-
-				for z in range (-s, s + 1):
-					for y in range (-s, s + 1):
-						for x in range (-s, s + 1):
-							var p = Vector3(x, y, z) + voxel_position
-							if voxel_position.distance_to(p) < s:
-								Lib.instance.setVoxel(p, voxel)
+#				var s = 6
+#				for z in range (-s, s + 1):
+#					for y in range (-s, s + 1):
+#						for x in range (-s, s + 1):
+#							var p = Vector3(x, y, z) + voxel_position
+#							if voxel_position.distance_to(p) < s:
+#								Lib.instance.setVoxel(p, voxel)
 				
 #				var volume = Lib.instance.getDisconnectedVoxels(voxel_position, 8)
 #				if volume.size() <= 0: return
