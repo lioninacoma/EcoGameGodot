@@ -19,7 +19,7 @@ float fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z) {
 
 	if (x < 0 || x >= CHUNK_SIZE_X || z < 0 || z >= CHUNK_SIZE_Z) {
 		auto neighbour = EcoGame::get()->getChunk(chunk->getOffset() + Vector3(x, y, z));
-		if (neighbour && neighbour->isNavigatable()) {
+		if (neighbour && neighbour->getMeshInstanceId()) {
 			s = neighbour->getVoxel(
 				(x + CHUNK_SIZE_X) % CHUNK_SIZE_X,
 				(y + CHUNK_SIZE_Y) % CHUNK_SIZE_Y,

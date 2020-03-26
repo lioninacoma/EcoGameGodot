@@ -22,7 +22,7 @@ func _input(event : InputEvent) -> void:
 		
 			if result:
 				var voxel_position : Vector3 = controls.get_voxel_position(result)
-				Lib.instance.setVoxel(voxel_position, 1.5, set)
+				Lib.instance.setVoxel(voxel_position, 4.5, set)
 #				if voxel > 0:
 #					voxel_position += result.normal
 #				var s = 6

@@ -44,6 +44,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	}
 	
 	try {
+		//Godot::print(String("vertices at chunk {0} building ...").format(Array::make(chunk->getOffset())));
 		BUILD_MESH_MUTEX.lock();
 		int* counts = meshBuilder.buildVertices(chunk, vertices, faces);
 		BUILD_MESH_MUTEX.unlock();
