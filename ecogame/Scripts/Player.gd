@@ -15,7 +15,7 @@ const FLY_SPEED = 20
 const FLY_ACCEL = 2
 
 # walk variables
-var gravity = -9.8 * 3
+var gravity = -9.8
 #var gravity = 0.0
 const MAX_SPEED = 12
 const MAX_RUNNING_SPEED = 20

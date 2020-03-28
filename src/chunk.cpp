@@ -31,23 +31,9 @@ Chunk::~Chunk() {
 void Chunk::_init() {
 	Chunk::noise = OpenSimplexNoise::_new();
 	Chunk::noise->set_seed(NOISE_SEED);
-	Chunk::noise->set_octaves(4);
-	Chunk::noise->set_period(128.0);
+	Chunk::noise->set_octaves(6);
+	Chunk::noise->set_period(192.0);
 	Chunk::noise->set_persistence(0.5);
-}
-
-float Chunk::isVoxel(int ix, int iy, int iz) {
-	float d = 0.5;
-	float cx = ix + offset.x;
-	float cy = iy + offset.y;
-	float cz = iz + offset.z;
-	float x = cx / (WORLD_SIZE * CHUNK_SIZE_X);
-	float y = cy / (CHUNK_SIZE_Y);
-	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
-	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.08;
-	s += noise->get_noise_3d(cx, cy, cz) / 8;
-	//return floorf(s * 400.0) / 400.0;
-	return s;
 }
 
 float Chunk::getVoxel(int x, int y, int z) {
@@ -98,32 +84,25 @@ Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 
 void Chunk::setVoxel(int x, int y, int z, float v) {
 	volume->set(x, y, z, v);
-	//if (!navigatable) return;
-	//std::shared_ptr<GraphNavNode> node;
-	//Vector3 nodePosition;
-	//int i, j, index, xi, yi, zi, r = 1;
-	//float* vert;
-	//for (zi = max(z - r, 0); zi < min(z + r, CHUNK_SIZE_Z); zi++) {
-	//	for (yi = max(y - r, 0); yi < min(y + r, CHUNK_SIZE_Y); yi++) {
-	//		for (xi = max(x - r, 0); xi < min(x + r, CHUNK_SIZE_X); xi++) {
-	//			index = fn::fi3(xi, yi, zi);
-	//			for (i = 0; i < amountFaces; i++) {
-	//				if (index == faces[i][3]) {
-	//					for (j = 0; j < 3; j++) {
-	//						vert = vertices[faces[i][j]];
-	//						nodePosition = Vector3(vert[0], vert[1], vert[2]);
-	//						node = getNode(fn::hash(nodePosition));
-	//						if (node) {
-	//							//Godot::print(String("remove node at: {0}").format(Array::make(nodePosition)));
-	//							Navigator::get()->removeNode(node);
-	//							removeNode(node);
-	//						}
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
+	if (!navigatable) return;
+
+	std::shared_ptr<GraphNavNode> node;
+	int i, index = fn::fi3(x, y, z);
+	float* vertex;
+
+	std::function<void(int* face)> lambda = [&](auto next) {
+		if (index == next[3]) {
+			for (i = 0; i < 3; i++) {
+				vertex = getVertex(next[i]);
+				node = getNode(fn::hash(Vector3(vertex[0], vertex[1], vertex[2])));
+				if (node) {
+					//Godot::print(String("remove node at: {0}").format(Array::make(nodePosition)));
+					removeNode(node);
+				}
+			}
+		}
+	};
+	forEachFace(lambda);
 }
 
 std::shared_ptr<GraphNavNode> Chunk::getNode(size_t hash) {
@@ -134,12 +113,11 @@ std::shared_ptr<GraphNavNode> Chunk::getNode(size_t hash) {
 }
 
 std::shared_ptr<GraphNavNode> Chunk::findNode(Vector3 position) {
-	boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	std::shared_ptr<GraphNavNode> closest;
-
 	closest = getNode(fn::hash(position));
 	if (closest) return closest;
 
+	boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	float minDist = numeric_limits<float>::max();
 	float dist;
 	for (auto node : *nodes) {
@@ -325,6 +303,29 @@ PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 voxelPosition, int type
 	return voxels;
 }
 
+//float Chunk::isVoxel(int ix, int iy, int iz) {
+//	float d = 0.5;
+//	float cx = ix + offset.x;
+//	float cy = iy + offset.y;
+//	float cz = iz + offset.z;
+//	float x = cx / (WORLD_SIZE * CHUNK_SIZE_X);
+//	float y = cy / CHUNK_SIZE_Y;
+//	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
+//	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.08;
+//	s += noise->get_noise_3d(cx, cy, cz) / 8;
+//	//return floorf(s * 400.0) / 400.0;
+//	return s;
+//}
+
+float Chunk::isVoxel(int ix, int iy, int iz) {
+	float cx = ix + offset.x;
+	float cy = iy + offset.y;
+	float cz = iz + offset.z;
+	float y = cy / CHUNK_SIZE_Y;
+	float s = y + noise->get_noise_3d(cx / 2, cy / 2, cz / 2);
+	return s;
+}
+
 void Chunk::buildVolume() {
 	int x, y, z, i, diff;
 	float d, rd;
@@ -348,8 +349,13 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 		size_t hash = node->getHash();
 		node->determineGravity(cog);
 		auto it = nodes->find(hash);
-		if (it != nodes->end()) return;
-		nodes->emplace(hash, node);
+
+		if (it == nodes->end()) {
+			nodes->emplace(hash, node);
+		}
+
+		// chunk and nav nodes need to be locked
+		Navigator::get()->addNode(node);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -361,8 +367,13 @@ void Chunk::removeNode(std::shared_ptr<GraphNavNode> node) {
 	try {
 		size_t hash = node->getHash();
 		auto it = nodes->find(hash);
-		if (it == nodes->end()) return;
-		nodes->erase(hash);
+
+		if (it != nodes->end()) {
+			nodes->erase(hash);
+		}
+
+		// chunk and nav nodes need to be locked
+		Navigator::get()->removeNode(node);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

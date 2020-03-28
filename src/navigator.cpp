@@ -84,7 +84,7 @@ std::shared_ptr<GraphNavNode> Navigator::fetchOrCreateNode(Vector3 position, Chu
 		node->setPoint(position);
 		node->setVoxel(1);
 		chunk->addNode(node);
-		addNode(node);
+		//addNode(node);
 	}
 
 	return node;

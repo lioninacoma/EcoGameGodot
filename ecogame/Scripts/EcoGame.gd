@@ -14,7 +14,7 @@ var smooth_mat = SpatialMaterial.new()
 func _ready() -> void:
 	add_child(Lib.instance)
 	Lib.game = self
-	smooth_mat.albedo_color = Color.red
+	smooth_mat.albedo_color = Color(0.31, 0.46, 0.21)
 
 func _process(delta : float) -> void:
 	time += delta

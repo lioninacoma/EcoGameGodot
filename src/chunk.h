@@ -52,6 +52,8 @@ namespace godot {
 		OpenSimplexNoise* noise;
 
 		std::shared_mutex CHUNK_NODES_MUTEX;
+		std::shared_mutex VERTICES_MUTEX;
+		std::shared_mutex FACES_MUTEX;
 
 		Voxel* intersection(int x, int y, int z);
 	public:
@@ -109,6 +111,14 @@ namespace godot {
 			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 			std::for_each(nodes->begin(), nodes->end(), func);
 		};
+		void forEachFace(std::function<void(int* face)> func) {
+			boost::shared_lock<std::shared_mutex> lock(FACES_MUTEX);
+			std::for_each(faces, faces + amountFaces, func);
+		};
+		void forEachVertex(std::function<void(float* vertex)> func) {
+			boost::shared_lock<std::shared_mutex> lock(VERTICES_MUTEX);
+			std::for_each(vertices, vertices + amountVertices, func);
+		};
 
 		void setOffset(Vector3 offset) {
 			Chunk::offset = offset;
@@ -126,7 +136,18 @@ namespace godot {
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;
 		};
+		float* getVertex(int i) {
+			if (i < 0 || i >= amountVertices) return NULL;
+			boost::shared_lock<std::shared_mutex> lock(VERTICES_MUTEX);
+			return vertices[i];
+		};
+		int* getFace(int i) {
+			if (i < 0 || i >= amountFaces) return NULL;
+			boost::shared_lock<std::shared_mutex> lock(FACES_MUTEX);
+			return faces[i];
+		};
 		void setVertices(float** vertices, int amountVertices) {
+			boost::unique_lock<std::shared_mutex> lock(VERTICES_MUTEX);
 			if (Chunk::amountVertices > 0) {
 				int i;
 				for (i = 0; i < Chunk::amountVertices; i++)
@@ -138,6 +159,7 @@ namespace godot {
 			Chunk::amountVertices = amountVertices;
 		};
 		void setFaces(int** faces, int amountFaces) {
+			boost::unique_lock<std::shared_mutex> lock(FACES_MUTEX);
 			if (Chunk::amountFaces > 0) {
 				int i;
 				for (i = 0; i < Chunk::amountFaces; i++)

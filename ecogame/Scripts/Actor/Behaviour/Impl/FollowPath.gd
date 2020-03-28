@@ -13,7 +13,7 @@ func move_to_waypoint(actor):
 	if waypoint == null: return
 	var gravity = waypoint.getGravity()
 	gravity = gravity.normalized()
-	actor.balance(gravity)
+#	actor.balance(gravity)
 	var direction = (waypoint.getPoint() - (gravity * 0.25)) - actor.global_transform.origin
 	direction = direction.normalized()
 	actor.velocity = direction * actor.MAX_SPEED

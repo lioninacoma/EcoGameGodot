@@ -38,10 +38,6 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		faces[i] = new int[CHUNKBUILDER_FACE_SIZE];
 		memset(faces[i], 0, CHUNKBUILDER_FACE_SIZE * sizeof(int));
 	}
-
-	if (!chunk->getMeshInstanceId()) {
-		chunk->buildVolume();
-	}
 	
 	try {
 		//Godot::print(String("vertices at chunk {0} building ...").format(Array::make(chunk->getOffset())));
@@ -143,7 +139,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			collisionArrayWrite[n + 1] = vertexArray[chunkFaces[i][1]];
 			collisionArrayWrite[n + 2] = vertexArray[chunkFaces[i][0]];
 
-			//Navigator::get()->addFaceNodes(x0, x1, x2, chunk.get());
+			Navigator::get()->addFaceNodes(x0, x1, x2, chunk.get());
 		}
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
