@@ -20,12 +20,12 @@ func _process(delta : float) -> void:
 	time += delta
 	if time > TIME_PERIOD:
 		var player_pos = $Player.translation
-		Lib.instance.buildSections(player_pos, WorldVariables.BUILD_DISTANCE, MAX_BUILD_SECTIONS)
+#		Lib.instance.buildSections(player_pos, WorldVariables.BUILD_DISTANCE, MAX_BUILD_SECTIONS)
 		# Reset timer
 		time = 0
 	
 	# starts ChunkBuilder jobs
-	process_build_stack()
+#	process_build_stack()
 
 func process_build_stack() -> void:
 	for i in range(min(build_stack.size(), MAX_BUILD_CHUNKS)):
