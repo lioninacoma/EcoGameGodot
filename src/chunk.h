@@ -31,6 +31,7 @@ namespace godot {
 
 	class GraphNavNode;
 	class Section;
+	class VoxelWorld;
 
 	class Chunk : public Node {
 		GODOT_CLASS(Chunk, Node)
@@ -43,6 +44,7 @@ namespace godot {
 		
 		Vector3 offset, cog;
 
+		std::shared_ptr<VoxelWorld> world;
 		std::shared_ptr<Section> section;
 		std::shared_ptr<VoxelData> volume;
 		float** vertices;
@@ -120,6 +122,9 @@ namespace godot {
 			std::for_each(vertices, vertices + amountVertices, func);
 		};
 
+		void setWorld(std::shared_ptr<VoxelWorld> world) {
+			Chunk::world = world;
+		};
 		void setOffset(Vector3 offset) {
 			Chunk::offset = offset;
 		};

@@ -2,7 +2,6 @@
 #define SECTION_H
 
 #include <Godot.hpp>
-#include <Node.hpp>
 #include <Vector3.hpp>
 #include <Texture.hpp>
 #include <OpenSimplexNoise.hpp>
@@ -17,7 +16,6 @@
 #include <boost/exception/diagnostic_information.hpp> 
 #include <boost/exception_ptr.hpp>
 
-#include "voxelassetmanager.h"
 #include "constants.h"
 #include "chunkbuilder.h"
 #include "fn.h"
@@ -30,12 +28,12 @@ using namespace std;
 namespace godot {
 
 	class GraphNavNode;
-	class EcoGame;
+	class VoxelWorld;
 
-	class Section : public Node {
-		GODOT_CLASS(Section, Node)
+	class Section {
 
 	private:
+		std::shared_ptr<VoxelWorld> world;
 		std::shared_ptr<Chunk>* chunks;
 		std::atomic<int> sectionSize;
 		std::atomic<int> sectionChunksLen;
@@ -46,18 +44,11 @@ namespace godot {
 		boost::mutex CHUNKS_MUTEX;
 		std::shared_ptr<Chunk> intersection(int x, int y, int z);
 	public:
-		static void _register_methods();
-
-		Section() : Section(Vector2()) {};
-		Section(Vector2 offset) : Section(offset, SECTION_SIZE) {};
-		Section(Vector2 offset, int sectionSize);
+		Section(std::shared_ptr<VoxelWorld> world) : Section(world, Vector2()) {};
+		Section(std::shared_ptr<VoxelWorld> world, Vector2 offset) : Section(world, offset, SECTION_SIZE) {};
+		Section(std::shared_ptr<VoxelWorld> world, Vector2 offset, int sectionSize);
 
 		~Section();
-
-		// our initializer called by Godot
-		void _init() {
-
-		}
 
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
 		Array getDisconnectedVoxels(Vector3 position, Vector3 start, Vector3 end);
@@ -70,7 +61,7 @@ namespace godot {
 		void build(std::shared_ptr<ChunkBuilder> builder);
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
-		void fill(EcoGame* lib, int sectionSize);
+		void fill(int sectionSize);
 
 		Vector2 getOffset();
 	};

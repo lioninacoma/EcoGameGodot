@@ -12,7 +12,7 @@ func run(actor, context, global_context) -> bool:
 		return false
 	
 	var position = actor.global_transform.origin
-	var voxels = Lib.instance.findVoxelsInRange(position, 4, voxel)
+	var voxels = Lib.world.findVoxelsInRange(position, 4, voxel)
 	var closest = null
 	var closest_dist = INF
 	if voxels.size() > 0:

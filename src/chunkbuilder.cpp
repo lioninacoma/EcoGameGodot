@@ -1,5 +1,6 @@
 #include "chunkbuilder.h"
 #include "ecogame.h"
+#include "voxelworld.h"
 #include "threadpool.h"
 #include "navigator.h"
 
@@ -8,7 +9,9 @@
 
 using namespace godot;
 
-ChunkBuilder::ChunkBuilder() {
+ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
+	ChunkBuilder::world = world;
+	ChunkBuilder::meshBuilder = std::shared_ptr<MeshBuilder>(new MeshBuilder(world));
 	ChunkBuilder::threadStarted = false;
 }
 
@@ -42,7 +45,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	try {
 		//Godot::print(String("vertices at chunk {0} building ...").format(Array::make(chunk->getOffset())));
 		BUILD_MESH_MUTEX.lock();
-		int* counts = meshBuilder.buildVertices(chunk, vertices, faces);
+		int* counts = meshBuilder->buildVertices(chunk, vertices, faces);
 		BUILD_MESH_MUTEX.unlock();
 
 		if (counts[0] <= 0) {		
@@ -138,8 +141,8 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			collisionArrayWrite[n] = vertexArray[chunkFaces[i][2]];
 			collisionArrayWrite[n + 1] = vertexArray[chunkFaces[i][1]];
 			collisionArrayWrite[n + 2] = vertexArray[chunkFaces[i][0]];
-
-			Navigator::get()->addFaceNodes(x0, x1, x2, chunk.get());
+			
+			world->getNavigator()->addFaceNodes(x0, x1, x2, chunk.get());
 		}
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
@@ -150,7 +153,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		meshData[0] = meshArrays;
 		meshData[1] = collisionArray;
 		
-		game->call_deferred("build_chunk_smooth", meshData, chunk.get());
+		game->call_deferred("build_chunk", meshData, chunk.get(), world.get());
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

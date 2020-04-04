@@ -5,8 +5,8 @@ class_name GameWorld
 func _ready():
 #	var spacecraft = Spacecraft.new()
 #	add_object(spacecraft)
-	var base = Base.new(Vector3())
-	add_object(base)
+#	var base = Base.new(Vector3())
+#	add_object(base)
 #	
 #	var dict = {
 #		"test": 123,

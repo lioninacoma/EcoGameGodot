@@ -2,23 +2,23 @@
 #include "graphnode.h"
 #include "navigator.h"
 #include "ThreadPool.h"
-#include "ecogame.h"
+#include "voxelworld.h"
 
 using namespace godot;
 
-MeshBuilder::MeshBuilder() {
-
+MeshBuilder::MeshBuilder(std::shared_ptr<VoxelWorld> world) {
+	MeshBuilder::world = world;
 }
 
 MeshBuilder::~MeshBuilder() {
 
 }
 
-float fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z) {
+float MeshBuilder::fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z) {
 	double s = 0;
 
 	if (x < 0 || x >= CHUNK_SIZE_X || z < 0 || z >= CHUNK_SIZE_Z) {
-		auto neighbour = EcoGame::get()->getChunk(chunk->getOffset() + Vector3(x, y, z));
+		auto neighbour = world->getChunk(chunk->getOffset() + Vector3(x, y, z));
 		if (neighbour && neighbour->getMeshInstanceId()) {
 			s = neighbour->getVoxel(
 				(x + CHUNK_SIZE_X) % CHUNK_SIZE_X,

@@ -1,7 +1,7 @@
 #include "chunk.h"
 #include "navigator.h"
 #include "section.h"
-#include "ecogame.h"
+#include "voxelworld.h"
 
 using namespace godot;
 
@@ -25,7 +25,7 @@ Chunk::Chunk(Vector3 offset) {
 
 Chunk::~Chunk() {
 	volume.reset();
-	delete nodes;
+	//delete nodes;
 }
 
 void Chunk::_init() {
@@ -131,8 +131,6 @@ std::shared_ptr<GraphNavNode> Chunk::findNode(Vector3 position) {
 }
 
 vector<std::shared_ptr<GraphNavNode>> Chunk::getVoxelNodes(Vector3 voxelPosition) {
-	auto lib = EcoGame::get();
-
 	vector<std::shared_ptr<GraphNavNode>> nodes;
 	std::shared_ptr<GraphNavNode> node;
 	Vector3 chunkOffset;
@@ -171,7 +169,7 @@ vector<std::shared_ptr<GraphNavNode>> Chunk::getVoxelNodes(Vector3 voxelPosition
 		chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 		if (offset != chunkOffset) {
-			node = lib->getNode(Vector3(nx, ny, nz));
+			node = world->getNode(Vector3(nx, ny, nz));
 		}
 		else {
 			node = getNode(nHash);
@@ -187,8 +185,6 @@ vector<std::shared_ptr<GraphNavNode>> Chunk::getVoxelNodes(Vector3 voxelPosition
 }
 
 vector<std::shared_ptr<GraphNavNode>> Chunk::getReachableNodes(std::shared_ptr<GraphNavNode> node) {
-	auto lib = EcoGame::get();
-
 	vector<std::shared_ptr<GraphNavNode>> nodes;
 	std::shared_ptr<GraphNavNode> reachable;
 	Vector3 position = fn::unreference(node->getPoint());
@@ -213,7 +209,7 @@ vector<std::shared_ptr<GraphNavNode>> Chunk::getReachableNodes(std::shared_ptr<G
 				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 				if (offset != chunkOffset) {
-					reachable = lib->getNode(Vector3(nx, ny, nz));
+					reachable = world->getNode(Vector3(nx, ny, nz));
 				}
 				else {
 					reachable = getNode(nHash);
@@ -229,8 +225,6 @@ vector<std::shared_ptr<GraphNavNode>> Chunk::getReachableNodes(std::shared_ptr<G
 }
 
 PoolVector3Array Chunk::getReachableVoxels(Vector3 voxelPosition) {
-	auto lib = EcoGame::get();
-
 	PoolVector3Array voxels;
 	Vector3 chunkOffset;
 	int x, y, z, nx, ny, nz, v;
@@ -251,7 +245,7 @@ PoolVector3Array Chunk::getReachableVoxels(Vector3 voxelPosition) {
 				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 				if (offset != chunkOffset) {
-					v = lib->getVoxel(Vector3(nx, ny, nz));
+					v = world->getVoxel(Vector3(nx, ny, nz));
 				}
 				else {
 					v = getVoxel(
@@ -267,8 +261,6 @@ PoolVector3Array Chunk::getReachableVoxels(Vector3 voxelPosition) {
 }
 
 PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 voxelPosition, int type) {
-	auto lib = EcoGame::get();
-
 	PoolVector3Array voxels;
 	Vector3 chunkOffset;
 	int x, y, z, nx, ny, nz, v;
@@ -287,7 +279,7 @@ PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 voxelPosition, int type
 				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
 
 				if (offset != chunkOffset) {
-					v = lib->getVoxel(Vector3(nx, ny, nz));
+					v = world->getVoxel(Vector3(nx, ny, nz));
 				}
 				else {
 					v = getVoxel(
@@ -355,7 +347,7 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 		}
 
 		// chunk and nav nodes need to be locked
-		Navigator::get()->addNode(node);
+		world->getNavigator()->addNode(node);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -373,7 +365,7 @@ void Chunk::removeNode(std::shared_ptr<GraphNavNode> node) {
 		}
 
 		// chunk and nav nodes need to be locked
-		Navigator::get()->removeNode(node);
+		world->getNavigator()->removeNode(node);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

@@ -12,14 +12,13 @@
 #include "constants.h"
 #include "objectpool.h"
 #include "chunk.h"
-#include "voxelassetmanager.h"
-#include "voxelasset.h"
 
 namespace bpt = boost::posix_time;
 using namespace std;
 
 namespace godot {
 
+	class VoxelWorld;
 	class GraphNavNode;
 
 	class MeshBuilder {
@@ -332,8 +331,11 @@ namespace godot {
 			{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, { 0.0, 0.0, 1.0}, {0.0,  0.0, 1.0}
 		};
 		void buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, float** vertices, int** faces, int* counts);
+		float fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z);
+
+		std::shared_ptr<VoxelWorld> world;
 	public:
-		MeshBuilder();
+		MeshBuilder(std::shared_ptr<VoxelWorld> world);
 		~MeshBuilder();
 
 		int* buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, int** faces);

@@ -1,14 +1,11 @@
 #include "section.h"
-#include "ecogame.h"
+#include "voxelworld.h"
 #include "graphnode.h"
 
 using namespace godot;
 
-void Section::_register_methods() {
-	register_method("getOffset", &Section::getOffset);
-}
-
-Section::Section(Vector2 offset, int sectionSize) {
+Section::Section(std::shared_ptr<VoxelWorld> world, Vector2 offset, int sectionSize) {
+	Section::world = world;
 	Section::offset = offset;
 	Section::sectionSize = sectionSize;
 	Section::sectionChunksLen = sectionSize * sectionSize;
@@ -24,7 +21,7 @@ Section::Section(Vector2 offset, int sectionSize) {
 };
 
 Section::~Section() {
-	delete[] chunks;
+	//delete[] chunks;
 }
 
 std::shared_ptr<Chunk> Section::intersection(int x, int y, int z) {
@@ -328,6 +325,7 @@ void Section::build(std::shared_ptr<ChunkBuilder> builder) {
 	for (y = 0; y < sectionSize; y++) {
 		for (x = 0; x < sectionSize; x++) {
 			chunk = std::shared_ptr<Chunk>(Chunk::_new());
+			chunk->setWorld(world);
 			chunk->setOffset(Vector3((x + offset.x) * CHUNK_SIZE_X, 0, (y + offset.y) * CHUNK_SIZE_Z));
 			chunk->setSection(std::shared_ptr<Section>(this));
 			chunk->setCenterOfGravity(cog);
@@ -347,7 +345,7 @@ Vector2 Section::getOffset() {
 	return Section::offset;
 }
 
-void Section::fill(EcoGame* lib, int sectionSize) {
+void Section::fill(int sectionSize) {
 	int xS, xE, zS, zE, x, z, sx, sy, cx, cz, ci, si;
 	std::shared_ptr<Section> section;
 	std::shared_ptr<Chunk> chunk;
@@ -370,7 +368,7 @@ void Section::fill(EcoGame* lib, int sectionSize) {
 
 	for (z = (int)(zS / sectionSize); z <= (int)(zE / sectionSize); z++) {
 		for (x = (int)(xS / sectionSize); x <= (int)(xE / sectionSize); x++) {
-			section = lib->getSection(x, z);
+			section = world->getSection(x, z);
 			if (!section) continue;
 
 			for (sy = 0; sy < sectionSize; sy++) {

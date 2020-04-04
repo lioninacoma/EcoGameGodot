@@ -32,7 +32,7 @@ func run(actor, context, global_context) -> bool:
 		if from.distance_to(to) <= 0.5:
 			return false
 		
-		Lib.instance.navigate(from, to, actor.get_instance_id())
+		Lib.world.navigate(from, to, actor.get_instance_id())
 		context.set("path_requested", true)
 		return true
 	

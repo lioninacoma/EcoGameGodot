@@ -19,7 +19,7 @@ func run(actor, context, global_context) -> bool:
 			return true
 	
 		var from = actor.global_transform.origin
-		Lib.instance.navigateToClosestVoxel(from, voxel, actor.get_instance_id())
+		Lib.world.navigateToClosestVoxel(from, voxel, actor.get_instance_id())
 		context.set("path_requested", true)
 		return true
 	

@@ -21,7 +21,7 @@ func preview_current_asset(at : Vector2):
 		current_asset.global_transform.origin.y = voxel_position.y + int(h/2) + 1
 		current_asset.global_transform.origin.z = voxel_position.z
 
-		var fits = Lib.instance.voxelAssetFits(voxel_position, asset_type)
+		var fits = Lib.world.voxelAssetFits(voxel_position, asset_type)
 		for i in range(current_asset.get_surface_material_count()):
 			var material = current_asset.mesh.surface_get_material(i)
 			var color : Color
@@ -44,9 +44,9 @@ func _input(event : InputEvent) -> void:
 				var voxel_position = controls.get_voxel_position(result)
 				
 				if current_asset:
-					var fits = Lib.instance.voxelAssetFits(voxel_position, asset_type)
+					var fits = Lib.world.voxelAssetFits(voxel_position, asset_type)
 					if !fits: return
-					Lib.instance.addVoxelAsset(voxel_position, asset_type)
+					Lib.world.addVoxelAsset(voxel_position, asset_type)
 					
 					current_asset.queue_free()
 					current_asset = null
@@ -55,13 +55,13 @@ func _input(event : InputEvent) -> void:
 					var size = 64
 					var start = voxel_position + Vector3(-size, 0, -size)
 					var end = voxel_position + Vector3(size, 0, size)
-					var voxels_in_area = Lib.instance.getVoxelsInArea(start, end, 4)
+					var voxels_in_area = Lib.world.getVoxelsInArea(start, end, 4)
 					
 					BehaviourGlobals.global_context.set("voxels_in_area", voxels_in_area)
 					BehaviourGlobals.global_context.set("storehouse_location", voxel_position)
 				else:
 					asset_type = 1
-					var meshes = Lib.instance.buildVoxelAssetByType(asset_type)
+					var meshes = Lib.world.buildVoxelAssetByType(asset_type)
 					current_asset = eco_game.build_mesh_instance(meshes, null)
 					var body = current_asset.get_node("body")
 					current_asset.remove_child(body)

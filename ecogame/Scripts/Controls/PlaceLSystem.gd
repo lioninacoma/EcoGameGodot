@@ -76,7 +76,7 @@ func build_tree(pos : Vector3):
 			var toward = current_position + delta;
 			for s in range(steps):
 				current_position = current_position.move_toward(toward, step)
-				Lib.instance.setVoxel(current_position, 1.2, true)
+				Lib.world.setVoxel(current_position, 1.2, true)
 			current_position = toward
 		elif current == "+":
 			current_rotation.x += angle

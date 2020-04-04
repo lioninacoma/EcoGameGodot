@@ -9,18 +9,18 @@ func run(actor, context, global_context) -> bool:
 	var tree_location = context.get("next_voxel_location")
 	
 	if tree_location != null:
-		Lib.instance.setVoxel(tree_location, 0)
+		Lib.world.setVoxel(tree_location, 0)
 		context.set("next_voxel_location", null)
 		
-		var volume = Lib.instance.getDisconnectedVoxels(tree_location, 6)
+		var volume = Lib.world.getDisconnectedVoxels(tree_location, 6)
 		if volume.size() <= 0: return false
 		for v in volume:
 			if v.getType() != 5:
 				return false
-		var meshes = Lib.instance.buildVoxelAssetByVolume(volume)
+		var meshes = Lib.world.buildVoxelAssetByVolume(volume)
 		if meshes.size() <= 0: return false
 		for v in volume:
-			Lib.instance.setVoxel(v.getPosition(), 0)
+			Lib.world.setVoxel(v.getPosition(), 0)
 
 		var asset = Lib.game.build_asset(meshes, null)
 		var tree = Tree.new(asset, volume)

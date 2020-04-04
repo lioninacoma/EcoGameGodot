@@ -31,9 +31,13 @@ namespace bpt = boost::posix_time;
 
 namespace godot {
 
+	class VoxelWorld;
+
 	class ChunkBuilder {
 
 	private:
+		std::shared_ptr<VoxelWorld> world;
+		std::shared_ptr<MeshBuilder> meshBuilder;
 		std::shared_ptr<boost::thread> queueThread;
 		deque<std::shared_ptr<Chunk>> buildQueue;
 		unordered_set<size_t> inque;
@@ -41,14 +45,13 @@ namespace godot {
 		void queueChunk(std::shared_ptr<Chunk> chunk);
 		void buildChunk(std::shared_ptr<Chunk> chunk);
 
-		MeshBuilder meshBuilder;
 		boost::mutex BUILD_QUEUE_MUTEX;
 		boost::mutex BUILD_QUEUE_WAIT;
 		boost::mutex BUILD_MESH_MUTEX;
 		boost::condition_variable BUILD_QUEUE_CV;
 		std::atomic<bool> threadStarted = false;
 	public:
-		ChunkBuilder();
+		ChunkBuilder(std::shared_ptr<VoxelWorld> world);
 		~ChunkBuilder() {
 			queueThread->interrupt();
 			queueThread->join();

@@ -33,7 +33,7 @@ func run(actor, context, global_context) -> bool:
 			voxels.remove(closest_i)
 			global_context.set("voxels_in_area", voxels)
 			
-			var nearby = Lib.instance.findVoxelsInRange(closest, 4, voxel)
+			var nearby = Lib.world.findVoxelsInRange(closest, 4, voxel)
 			if nearby.size() > 0:
 				next_voxel = closest
 	

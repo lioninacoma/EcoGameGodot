@@ -176,6 +176,7 @@
     <ClCompile Include="src\meshbuilder.cpp" />
     <ClCompile Include="src\navigator.cpp" />
     <ClCompile Include="src\section.cpp" />
+    <ClCompile Include="src\voxelworld.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\chunkbuilder.h" />
@@ -194,12 +195,8 @@
     <ClInclude Include="src\ecogame.h" />
     <ClInclude Include="src\threadpool.h" />
     <ClInclude Include="src\voxel.h" />
-    <ClInclude Include="src\voxelasset.h" />
-    <ClInclude Include="src\voxelassetmanager.h" />
-    <ClInclude Include="src\voxelasset_pinetree.h" />
-    <ClInclude Include="src\voxelasset_house4x4.h" />
-    <ClInclude Include="src\voxelasset_house6x6.h" />
     <ClInclude Include="src\voxeldata.h" />
+    <ClInclude Include="src\voxelworld.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

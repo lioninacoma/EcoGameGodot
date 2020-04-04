@@ -38,7 +38,7 @@ func _process(delta : float) -> void:
 			var vx = int(body.global_transform.origin.x)
 			var vy = int(body.global_transform.origin.y)
 			var vz = int(body.global_transform.origin.z)
-			Lib.instance.setVoxel(Vector3(vx, vy, vz), 4)
+			Lib.world.setVoxel(Vector3(vx, vy, vz), 4)
 			voxel_asset[1].queue_free()
 			voxel_assets.remove(i)
 		else:
@@ -51,7 +51,7 @@ func _process(delta : float) -> void:
 			if randf() > 0.2: continue
 			var voxel = volume[i]
 			var voxel_pos = voxel.getPosition()
-			var meshes = Lib.instance.buildVoxelAssetByVolume([voxel])
+			var meshes = Lib.world.buildVoxelAssetByVolume([voxel])
 			if meshes.size() <= 0: continue
 
 			var voxel_asset = Lib.game.build_asset(meshes, null)
