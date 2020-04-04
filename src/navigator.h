@@ -55,26 +55,16 @@ namespace godot {
 			}
 		};
 
-		float manhattan(Vector3 a, Vector3 b);
-		float euclidean(Vector3 a, Vector3 b);
 		float w(float distanceToGoal, float maxDistance);
 		float h(std::shared_ptr<GraphNavNode> node, std::shared_ptr<GraphNavNode> goal, float maxDistance);
-		std::shared_ptr<GraphNavNode> getNode(size_t h);
 		void setPathActor(Array path, int actorInstanceId);
 
 		std::shared_ptr<VoxelWorld> world;
-		unordered_map<size_t, std::shared_ptr<GraphNavNode>>* nodes;
-		boost::shared_mutex NAV_NODES_MUTEX;
 	public:
 		Navigator(std::shared_ptr<VoxelWorld> world);
 		~Navigator();
 
-		void addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost);
-		void addNode(std::shared_ptr<GraphNavNode> node);
-		void addFaceNodes(Vector3 a, Vector3 b, Vector3 c, Chunk* chunk);
-		void removeNode(std::shared_ptr<GraphNavNode> node);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
-		std::shared_ptr<GraphNavNode> fetchOrCreateNode(Vector3 position, Chunk* chunk);
 	};
 
 }

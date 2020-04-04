@@ -1,17 +1,11 @@
-[gd_scene load_steps=17 format=2]
+[gd_scene load_steps=11 format=2]
 
 [ext_resource path="res://Scripts/Actor/Actor.gd" type="Script" id=1]
 [ext_resource path="res://Scripts/Actor/Behaviour/BehaviourContext.gd" type="Script" id=2]
 [ext_resource path="res://Scripts/Actor/Behaviour/BehaviourTree.gd" type="Script" id=3]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/FollowPath.gd" type="Script" id=4]
 [ext_resource path="res://Scripts/Actor/Behaviour/Sequence.gd" type="Script" id=5]
-[ext_resource path="res://Scripts/Actor/Behaviour/Impl/FindNextTree.gd" type="Script" id=6]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/PathFound.gd" type="Script" id=7]
-[ext_resource path="res://Scripts/Actor/Behaviour/Impl/ChopWood.gd" type="Script" id=8]
-[ext_resource path="res://Scripts/Actor/Behaviour/Impl/FindPathToStorehouse.gd" type="Script" id=9]
-[ext_resource path="res://Scripts/Actor/Behaviour/Impl/FindPathToNextVoxel.gd" type="Script" id=10]
-[ext_resource path="res://Scripts/Actor/Behaviour/Impl/NextVoxelFound.gd" type="Script" id=11]
-[ext_resource path="res://Scripts/Actor/Behaviour/Impl/TreesInAreaFound.gd" type="Script" id=12]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/WaypointFound.gd" type="Script" id=13]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/FindPathToWaypoint.gd" type="Script" id=14]
 
@@ -36,41 +30,6 @@ material/0 = null
 
 [node name="Bin" type="Spatial" parent="."]
 visible = false
-
-[node name="TreesInAreaFound" type="Node" parent="Bin"]
-script = ExtResource( 12 )
-
-[node name="GatherWood" type="Node" parent="Bin/TreesInAreaFound"]
-script = ExtResource( 5 )
-
-[node name="FindNextTree" type="Node" parent="Bin/TreesInAreaFound/GatherWood"]
-script = ExtResource( 6 )
-
-[node name="NextTreeFound" type="Node" parent="Bin/TreesInAreaFound/GatherWood"]
-script = ExtResource( 11 )
-
-[node name="FindPathToTree" type="Node" parent="Bin/TreesInAreaFound/GatherWood/NextTreeFound"]
-script = ExtResource( 10 )
-
-[node name="PathFound" type="Node" parent="Bin/TreesInAreaFound/GatherWood/NextTreeFound"]
-script = ExtResource( 7 )
-
-[node name="FollowPath" type="Node" parent="Bin/TreesInAreaFound/GatherWood/NextTreeFound/PathFound"]
-script = ExtResource( 4 )
-
-[node name="ChopWood" type="Node" parent="Bin/TreesInAreaFound/GatherWood/NextTreeFound/PathFound"]
-script = ExtResource( 8 )
-
-[node name="FindPathToStorehouse" type="Node" parent="Bin/TreesInAreaFound/GatherWood/NextTreeFound/PathFound"]
-script = ExtResource( 9 )
-
-[node name="PathFound" type="Node" parent="Bin/TreesInAreaFound/GatherWood/NextTreeFound/PathFound"]
-script = ExtResource( 7 )
-
-[node name="FollowPath" type="Node" parent="Bin/TreesInAreaFound/GatherWood/NextTreeFound/PathFound/PathFound"]
-script = ExtResource( 4 )
-
-[node name="Repeat" type="Node" parent="Bin/TreesInAreaFound"]
 
 [node name="BehaviourTree" type="Node" parent="."]
 script = ExtResource( 3 )

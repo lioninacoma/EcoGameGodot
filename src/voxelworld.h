@@ -21,7 +21,6 @@
 #include "fn.h"
 #include "area.h"
 #include "chunkbuilder.h"
-#include "section.h"
 #include "meshbuilder.h"
 #include "intersection.h"
 #include "voxel.h"
@@ -36,15 +35,16 @@ namespace godot {
 		GODOT_CLASS(VoxelWorld, Spatial)
 
 	private:
+		std::atomic<int> width, depth;
 		std::shared_ptr<VoxelWorld> self;
-		std::shared_ptr<Section>* sections;
+		std::shared_ptr<Chunk>* chunks;
 		std::shared_ptr<Navigator> navigator;
 		std::shared_ptr<ChunkBuilder> chunkBuilder;
 
-		boost::mutex SECTIONS_MUTEX;
-
-		void buildSection(std::shared_ptr<Section> section);
+		boost::mutex CHUNKS_MUTEX;
+		
 		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId);
+		void buildChunksTask(std::shared_ptr<VoxelWorld> world);
 	public:
 		static void _register_methods();
 
@@ -53,25 +53,32 @@ namespace godot {
 
 		void _init();
 
-		std::shared_ptr<Section> intersection(int x, int y, int z);
-		vector<std::shared_ptr<Section>> getSectionsRay(Vector3 from, Vector3 to);
+		std::shared_ptr<Chunk> intersection(int x, int y, int z);
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
-		vector<std::shared_ptr<Chunk>> getChunksInRange(Vector3 center, float radius);
+		std::shared_ptr<Chunk> getChunk(int x, int z);
+		std::shared_ptr<Chunk> getChunk(int i);
 		std::shared_ptr<Chunk> getChunk(Vector3 position);
-		std::shared_ptr<Section> getSection(int x, int z);
-		std::shared_ptr<Section> getSection(int i);
 		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
-		Array getDisconnectedVoxels(Vector3 position, float radius);
-		PoolVector3Array getVoxelsInArea(Vector3 start, Vector3 end, int voxel);
-		PoolVector3Array findVoxelsInRange(Vector3 startV, float radius, int voxel);
 		int getVoxel(Vector3 position);
+		int getWidth() {
+			return width;
+		};
+		int getDepth() {
+			return depth;
+		};
 
-		void setSection(int x, int z, std::shared_ptr<Section> section);
-		void setSection(int i, std::shared_ptr<Section> section);
-		void buildSections(Vector3 center, float radius, int maxSectionsBuilt);
+		void buildChunks();
+		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
+		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void setVoxel(Vector3 position, float radius, bool set);
 		std::shared_ptr<Navigator> getNavigator() {
 			return navigator;
+		};
+		void setWidth(int width) {
+			VoxelWorld::width = width;
+		};
+		void setDepth(int depth) {
+			VoxelWorld::depth = depth;
 		};
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 	};

@@ -15,19 +15,23 @@ var smooth_mat = SpatialMaterial.new()
 
 func _ready() -> void:
 	var voxelWorld = VoxelWorld.new()
+	voxelWorld.setWidth(8)
+	voxelWorld.setDepth(8)
 	Lib.world = voxelWorld
 	add_child(Lib.instance)
 	add_child(Lib.world)
 	Lib.game = self
 	smooth_mat.albedo_color = Color(0.31, 0.46, 0.21)
+	Lib.world.buildChunks()
 
 func _process(delta : float) -> void:
 	time += delta
 	if time > TIME_PERIOD:
-		var player_pos = $Player.translation
-		Lib.world.buildSections(player_pos, WorldVariables.BUILD_DISTANCE, MAX_BUILD_SECTIONS)
+#		var player_pos = $Player.translation
 		# Reset timer
 		time = 0
+	
+#	Lib.world.rotate(Vector3(0, 1, 0), (PI / 32) * delta)
 
 func build_chunk(mesh_data : Array, chunk, world) -> void:
 	if (!mesh_data || !chunk): return

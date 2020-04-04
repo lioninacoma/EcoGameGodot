@@ -1,7 +1,9 @@
 #include "chunk.h"
+#include "graphedge.h"
+#include "graphnode.h"
 #include "navigator.h"
-#include "section.h"
 #include "voxelworld.h"
+#include "ecogame.h"
 
 using namespace godot;
 
@@ -39,10 +41,6 @@ void Chunk::_init() {
 float Chunk::getVoxel(int x, int y, int z) {
 	return volume->get(x, y, z);
 }
-
-void Chunk::setSection(std::shared_ptr<Section> section) {
-	Chunk::section = section;
-};
 
 Voxel* Chunk::intersection(int x, int y, int z) {
 	int chunkX = (int) offset.x;
@@ -130,179 +128,16 @@ std::shared_ptr<GraphNavNode> Chunk::findNode(Vector3 position) {
 	return closest;
 }
 
-vector<std::shared_ptr<GraphNavNode>> Chunk::getVoxelNodes(Vector3 voxelPosition) {
-	vector<std::shared_ptr<GraphNavNode>> nodes;
-	std::shared_ptr<GraphNavNode> node;
-	Vector3 chunkOffset;
-	int i, x, y, z;
-	float nx, ny, nz;
-	size_t nHash;
-
-	// von Neumann neighbourhood (3D)
-	int neighbours[7][3] = {
-		{ 0,  0,  0 },
-		{ 0,  1,  0 },
-		{ 0, -1,  0 },
-		{-1,  0,  0 },
-		{ 1,  0,  0 },
-		{ 0,  0,  1 },
-		{ 0,  0, -1 }
-	};
-
-	// center voxel position
-	voxelPosition += Vector3(0.5, 0.5, 0.5);
-
-	for (i = 0; i < 7; i++) {
-		x = neighbours[i][0];
-		y = neighbours[i][1];
-		z = neighbours[i][2];
-
-		nx = voxelPosition.x + x;
-		ny = voxelPosition.y + y;
-		nz = voxelPosition.z + z;
-		nHash = fn::hash(Vector3(nx, ny, nz));
-
-		chunkOffset.x = nx;
-		chunkOffset.y = ny;
-		chunkOffset.z = nz;
-		chunkOffset = fn::toChunkCoords(chunkOffset);
-		chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
-
-		if (offset != chunkOffset) {
-			node = world->getNode(Vector3(nx, ny, nz));
-		}
-		else {
-			node = getNode(nHash);
-		}
-
-		if (!node) {
-			continue;
-		}
-
-		nodes.push_back(node);
-	}
-	return nodes;
-}
-
-vector<std::shared_ptr<GraphNavNode>> Chunk::getReachableNodes(std::shared_ptr<GraphNavNode> node) {
-	vector<std::shared_ptr<GraphNavNode>> nodes;
-	std::shared_ptr<GraphNavNode> reachable;
-	Vector3 position = fn::unreference(node->getPoint());
-	Vector3 chunkOffset;
-	int x, y, z, nx, ny, nz, v;
-	size_t nHash;
-	
-	for (z = -1; z < 2; z++)
-		for (y = -1; y < 2; y++)
-			for (x = -1; x < 2; x++) {
-				if (!x && !y && !z) continue;
-
-				nx = position.x + x;
-				ny = position.y + y;
-				nz = position.z + z;
-				nHash = fn::hash(Vector3(nx, ny, nz));
-
-				chunkOffset.x = nx;
-				chunkOffset.y = ny;
-				chunkOffset.z = nz;
-				chunkOffset = fn::toChunkCoords(chunkOffset);
-				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
-
-				if (offset != chunkOffset) {
-					reachable = world->getNode(Vector3(nx, ny, nz));
-				}
-				else {
-					reachable = getNode(nHash);
-				}
-
-				if (!reachable) {
-					continue;
-				}
-
-				nodes.push_back(reachable);
-			}
-	return nodes;
-}
-
-PoolVector3Array Chunk::getReachableVoxels(Vector3 voxelPosition) {
-	PoolVector3Array voxels;
-	Vector3 chunkOffset;
-	int x, y, z, nx, ny, nz, v;
-	
-	for (z = -1; z < 2; z++)
-		for (y = -1; y < 2; y++)
-			for (x = -1; x < 2; x++) {
-				if (!x && !y && !z) continue;
-
-				nx = voxelPosition.x + x;
-				ny = voxelPosition.y + y;
-				nz = voxelPosition.z + z;
-
-				chunkOffset.x = nx;
-				chunkOffset.y = ny;
-				chunkOffset.z = nz;
-				chunkOffset = fn::toChunkCoords(chunkOffset);
-				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
-
-				if (offset != chunkOffset) {
-					v = world->getVoxel(Vector3(nx, ny, nz));
-				}
-				else {
-					v = getVoxel(
-						nx % CHUNK_SIZE_X,
-						ny % CHUNK_SIZE_Y,
-						nz % CHUNK_SIZE_Z);
-				}
-
-				if (!v) continue;
-				voxels.push_back(Vector3(nx, ny, nz));
-			}
-	return voxels;
-}
-
-PoolVector3Array Chunk::getReachableVoxelsOfType(Vector3 voxelPosition, int type) {
-	PoolVector3Array voxels;
-	Vector3 chunkOffset;
-	int x, y, z, nx, ny, nz, v;
-
-	for (y = 2; y > -3; y--)
-		for (z = -2; z < 3; z++)
-			for (x = -2; x < 3; x++) {
-				nx = voxelPosition.x + x;
-				ny = voxelPosition.y + y;
-				nz = voxelPosition.z + z;
-
-				chunkOffset.x = nx;
-				chunkOffset.y = ny;
-				chunkOffset.z = nz;
-				chunkOffset = fn::toChunkCoords(chunkOffset);
-				chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
-
-				if (offset != chunkOffset) {
-					v = world->getVoxel(Vector3(nx, ny, nz));
-				}
-				else {
-					v = getVoxel(
-						nx % CHUNK_SIZE_X,
-						ny % CHUNK_SIZE_Y,
-						nz % CHUNK_SIZE_Z);
-				}
-
-				if (v != type) continue;
-
-				voxels.push_back(Vector3(nx, ny, nz));
-			}
-	return voxels;
-}
-
 //float Chunk::isVoxel(int ix, int iy, int iz) {
+//	int width = world->getWidth();
+//	int depth = world->getDepth();
 //	float d = 0.5;
 //	float cx = ix + offset.x;
 //	float cy = iy + offset.y;
 //	float cz = iz + offset.z;
-//	float x = cx / (WORLD_SIZE * CHUNK_SIZE_X);
+//	float x = cx / (width * CHUNK_SIZE_X);
 //	float y = cy / CHUNK_SIZE_Y;
-//	float z = cz / (WORLD_SIZE * CHUNK_SIZE_Z);
+//	float z = cz / (depth * CHUNK_SIZE_Z);
 //	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.08;
 //	s += noise->get_noise_3d(cx, cy, cz) / 8;
 //	//return floorf(s * 400.0) / 400.0;
@@ -345,9 +180,6 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 		if (it == nodes->end()) {
 			nodes->emplace(hash, node);
 		}
-
-		// chunk and nav nodes need to be locked
-		world->getNavigator()->addNode(node);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -363,11 +195,81 @@ void Chunk::removeNode(std::shared_ptr<GraphNavNode> node) {
 		if (it != nodes->end()) {
 			nodes->erase(hash);
 		}
-
-		// chunk and nav nodes need to be locked
-		world->getNavigator()->removeNode(node);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
+	}
+}
+
+void Chunk::addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost) {
+	// ~600 MB
+	auto edge = std::shared_ptr<GraphEdge>(new GraphEdge(a, b, cost));
+	a->addEdge(edge);
+	b->addEdge(edge);
+}
+
+std::shared_ptr<GraphNavNode> Chunk::fetchOrCreateNode(Vector3 position) {
+	std::shared_ptr<GraphNavNode> node;
+	size_t hash = fn::hash(position);
+	Vector3 chunkOffset = position;
+	chunkOffset = fn::toChunkCoords(chunkOffset);
+	chunkOffset *= Vector3(CHUNK_SIZE_X, 0, CHUNK_SIZE_Z);
+
+	if (offset != chunkOffset) {
+		auto neighbourChunk = world->getChunk(position);
+		if (neighbourChunk != NULL) {
+			node = neighbourChunk->getNode(hash);
+		}
+	}
+	else {
+		node = getNode(hash);
+	}
+
+	if (!node) {
+		node = std::shared_ptr<GraphNavNode>(GraphNavNode::_new());
+		node->setPoint(position);
+		node->setVoxel(1);
+		addNode(node);
+	}
+
+	return node;
+}
+
+const bool SHOW_NODES_DEBUG = false;
+void Chunk::addFaceNodes(Vector3 a, Vector3 b, Vector3 c) {
+	std::shared_ptr<GraphNavNode> aNode, bNode, cNode;
+	aNode = fetchOrCreateNode(a);
+	bNode = fetchOrCreateNode(b);
+	cNode = fetchOrCreateNode(c);
+
+	addEdge(aNode, bNode, fn::euclidean(aNode->getPointU(), bNode->getPointU()));
+	addEdge(aNode, cNode, fn::euclidean(aNode->getPointU(), cNode->getPointU()));
+	addEdge(bNode, cNode, fn::euclidean(bNode->getPointU(), cNode->getPointU()));
+
+	if (SHOW_NODES_DEBUG) {
+		auto lib = EcoGame::get();
+		Node* game = lib->getNode();
+		ImmediateGeometry* geo;
+
+		geo = ImmediateGeometry::_new();
+		geo->begin(Mesh::PRIMITIVE_POINTS);
+		geo->set_color(Color(1, 0, 0, 1));
+		geo->add_vertex(aNode->getPointU());
+		geo->add_vertex(bNode->getPointU());
+		geo->add_vertex(cNode->getPointU());
+		geo->end();
+		game->call_deferred("draw_debug_dots", geo);
+
+		geo = ImmediateGeometry::_new();
+		geo->begin(Mesh::PRIMITIVE_LINES);
+		geo->set_color(Color(0, 1, 0, 1));
+		geo->add_vertex(aNode->getPointU());
+		geo->add_vertex(bNode->getPointU());
+		geo->add_vertex(bNode->getPointU());
+		geo->add_vertex(cNode->getPointU());
+		geo->add_vertex(cNode->getPointU());
+		geo->add_vertex(aNode->getPointU());
+		geo->end();
+		game->call_deferred("draw_debug", geo);
 	}
 }

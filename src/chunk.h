@@ -23,15 +23,15 @@
 #include "intersection.h"
 #include "voxel.h"
 #include "voxeldata.h"
-#include "graphnode.h"
 
 using namespace std;
 
 namespace godot {
 
 	class GraphNavNode;
-	class Section;
+	class GraphEdge;
 	class VoxelWorld;
+	class EcoGame;
 
 	class Chunk : public Node {
 		GODOT_CLASS(Chunk, Node)
@@ -45,7 +45,6 @@ namespace godot {
 		Vector3 offset, cog;
 
 		std::shared_ptr<VoxelWorld> world;
-		std::shared_ptr<Section> section;
 		std::shared_ptr<VoxelData> volume;
 		float** vertices;
 		int** faces;
@@ -72,9 +71,6 @@ namespace godot {
 		};
 		Vector3 getCenterOfGravity() {
 			return cog;
-		};
-		std::shared_ptr<Section> getSection() {
-			return section;
 		};
 		std::shared_ptr<VoxelData> getVolume() {
 			return volume;
@@ -105,10 +101,6 @@ namespace godot {
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
 		std::shared_ptr<GraphNavNode> getNode(size_t hash);
 		std::shared_ptr<GraphNavNode> findNode(Vector3 position);
-		vector<std::shared_ptr<GraphNavNode>> getVoxelNodes(Vector3 voxelPosition);
-		vector<std::shared_ptr<GraphNavNode>> getReachableNodes(std::shared_ptr<GraphNavNode> node);
-		PoolVector3Array getReachableVoxels(Vector3 voxelPosition);
-		PoolVector3Array getReachableVoxelsOfType(Vector3 voxelPosition, int type);
 		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> func) {
 			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 			std::for_each(nodes->begin(), nodes->end(), func);
@@ -131,7 +123,6 @@ namespace godot {
 		void setCenterOfGravity(Vector3 cog) {
 			Chunk::cog = cog;
 		};
-		void setSection(std::shared_ptr<Section> section);
 		void setNavigatable() {
 			navigatable = true;
 		};
@@ -179,6 +170,9 @@ namespace godot {
 		void buildVolume();
 		void addNode(std::shared_ptr<GraphNavNode> node);
 		void removeNode(std::shared_ptr<GraphNavNode> node);
+		void addFaceNodes(Vector3 a, Vector3 b, Vector3 c);
+		void addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost);
+		std::shared_ptr<GraphNavNode> fetchOrCreateNode(Vector3 position);
 	};
 
 }

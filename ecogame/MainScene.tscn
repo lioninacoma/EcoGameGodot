@@ -10,7 +10,7 @@
 [ext_resource path="res://Scripts/Controls/Controls.gd" type="Script" id=8]
 [ext_resource path="res://Scripts/Controls/PlaceWaypoint.gd" type="Script" id=9]
 [ext_resource path="res://Scripts/World/GameWorld.gd" type="Script" id=10]
-[ext_resource path="res://Scripts/Controls/PlaceLSystem.gd" type="Script" id=11]
+[ext_resource path="res://Scripts/Controls/PlaceVoxel.gd" type="Script" id=11]
 
 [sub_resource type="ProceduralSky" id=1]
 
@@ -117,6 +117,7 @@ far = 80.0
 script = ExtResource( 8 )
 
 [node name="PlaceVoxel" type="Node" parent="Player/Controls"]
+script = ExtResource( 11 )
 
 [node name="RotateCamera" type="Node" parent="Player/Controls"]
 
@@ -127,7 +128,6 @@ script = ExtResource( 6 )
 script = ExtResource( 9 )
 
 [node name="PlaceLSystem" type="Node" parent="Player/Controls"]
-script = ExtResource( 11 )
 
 [node name="Floor" type="StaticBody" parent="."]
 transform = Transform( 64, 0, 0, 0, 1, 0, 0, 0, 64, 64, 0, 64 )

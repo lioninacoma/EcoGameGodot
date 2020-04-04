@@ -110,12 +110,14 @@ int* MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, 
 	int x[3];
 	int counts[2] = { 0, 0 };
 	Vector3 o = chunk->getOffset();
+	int width = world->getWidth();
+	int depth = world->getDepth();
 
 	for (x[2] = 0; x[2] < DIMS[2] - 1; ++x[2])
 		for (x[1] = 0; x[1] < DIMS[1] - 1; ++x[1])
 			for (x[0] = 0; x[0] < DIMS[0] - 1; ++x[0]) {
-				if (o.x + x[0] >= CHUNK_SIZE_X * WORLD_SIZE) continue;
-				if (o.z + x[2] >= CHUNK_SIZE_Z * WORLD_SIZE) continue;
+				if (o.x + x[0] >= CHUNK_SIZE_X * width) continue;
+				if (o.z + x[2] >= CHUNK_SIZE_Z * depth) continue;
 				buildCell(x[0], x[1], x[2], chunk, vertices, faces, counts);
 			}
 

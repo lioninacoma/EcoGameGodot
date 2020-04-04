@@ -48,7 +48,8 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		int* counts = meshBuilder->buildVertices(chunk, vertices, faces);
 		BUILD_MESH_MUTEX.unlock();
 
-		if (counts[0] <= 0) {		
+		if (counts[0] <= 0) {	
+		//if (true) {
 			for (i = 0; i < CHUNKBUILDER_MAX_VERTICES; i++)
 				delete[] vertices[i];
 			for (i = 0; i < CHUNKBUILDER_MAX_FACES; i++)
@@ -142,7 +143,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			collisionArrayWrite[n + 1] = vertexArray[chunkFaces[i][1]];
 			collisionArrayWrite[n + 2] = vertexArray[chunkFaces[i][0]];
 			
-			world->getNavigator()->addFaceNodes(x0, x1, x2, chunk.get());
+			chunk->addFaceNodes(x0, x1, x2);
 		}
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;

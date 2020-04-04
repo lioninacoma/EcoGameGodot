@@ -61,31 +61,6 @@ namespace godot {
 			Vector3 chunkCoords = toChunkCoords(Vector3(position.x, 0, position.y));
 			return Vector2(chunkCoords.x, chunkCoords.z);
 		}
-		
-		static Vector3 toSectionCoords(Vector3 position, int sectionSize) {
-			int ix = (int)position.x;
-			int iz = (int)position.z;
-			int sectionX = ix / (sectionSize * CHUNK_SIZE_X);
-			int sectionZ = iz / (sectionSize * CHUNK_SIZE_Z);
-			position.x = sectionX;
-			position.y = 0;
-			position.z = sectionZ;
-			return position;
-		}
-
-		static Vector3 toSectionCoords(Vector3 position) {
-			return fn::toSectionCoords(position, SECTION_SIZE);
-		}
-
-		static Vector2 toSectionCoords(Vector2 position, int sectionSize) {
-			Vector3 sectionCoords = toSectionCoords(Vector3(position.x, 0, position.y), sectionSize);
-			return Vector2(sectionCoords.x, sectionCoords.z);
-		}
-
-		static Vector2 toSectionCoords(Vector2 position) {
-			Vector3 sectionCoords = toSectionCoords(Vector3(position.x, 0, position.y), SECTION_SIZE);
-			return Vector2(sectionCoords.x, sectionCoords.z);
-		}
 
 		static std::size_t hash(Vector3 v) {
 			std::size_t seed = 0;
@@ -100,6 +75,14 @@ namespace godot {
 			boost::hash_combine(seed, v.x);
 			boost::hash_combine(seed, v.y);
 			return seed;
+		}
+
+		static float manhattan(Vector3 a, Vector3 b) {
+			return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z);
+		}
+
+		static float euclidean(Vector3 a, Vector3 b) {
+			return a.distance_to(b);
 		}
 	}
 }
