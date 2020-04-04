@@ -17,6 +17,9 @@ func _init(position).(position):
 			"funds": 1000,
 			"iron": 0,
 			"transporters": [
+				{ "position": position },
+				{ "position": position },
+				{ "position": position },
 				{ "position": position }
 			],
 			"workers": [
@@ -74,12 +77,19 @@ func _on_worker_storing_iron(id, amount_iron) -> void:
 	data.child_data.resources.iron += amount_iron
 	if data.child_data.resources.iron % 100 == 0:
 		print ("resources.iron: %s"%[data.child_data.resources.iron])
+	
+	var transport_amount_iron = 500
+	if data.child_data.resources.iron >= transport_amount_iron:
+		if !idle_transporters.empty():
+			data.child_data.resources.iron -= transport_amount_iron
+			var transporter = instance_from_id(idle_transporters[0])
+			transporter.transport_iron_to_base(transport_amount_iron)
 
 func _process(delta : float) -> void:
 	if iron_mine == null:
 		emit_signal("iron_mine_unset", self.get_instance_id())
 	
-	if iron_mine != null && !idle_workers.empty():
+	if iron_mine != null:
 		for worker_id in idle_workers:
 			var worker = instance_from_id(worker_id)
 			worker.gather_iron(iron_mine)

@@ -43,6 +43,10 @@ func _on_iron_factory_iron_mine_unset(id) -> void:
 		iron_factory.iron_mine = iron_mine
 		print("iron_factory %s set iron_mine %s"%[id, iron_mine.get_instance_id()])
 
+func _on_iron_mine_changing_state(id, state) -> void:
+	if state == STATE.IDLE:
+		print("iron_mine %s is idle"%[id])
+
 func get_closest_iron_mine(position):
 	var closest_dist = INF
 	var closest_mine = null
@@ -53,7 +57,3 @@ func get_closest_iron_mine(position):
 			closest_dist = current_dist
 			closest_mine = iron_mine
 	return closest_mine
-
-func _on_iron_mine_changing_state(id, state) -> void:
-	if state == STATE.IDLE:
-		print("iron_mine %s is idle"%[id])

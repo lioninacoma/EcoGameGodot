@@ -11,7 +11,10 @@ var world
 enum STATE {
 	IDLE,
 	# Worker
-	GATHERING_IRON
+	GATHERING_IRON,
+	# Transporter
+	TRANSPORTING_IRON_TO_BASE,
+	RETURNING_TO_FACTORY
 }
 
 func _init(position):
