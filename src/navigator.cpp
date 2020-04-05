@@ -90,27 +90,20 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 		if (!currentNode) continue;
 
 		if (cHash == gHash) {
-			/*auto geo = ImmediateGeometry::_new();
-			geo->begin(Mesh::PRIMITIVE_LINES);
-			geo->set_color(Color(1, 0, 0, 1));*/
+			path.push_front(currentNode.get());
 
-			while (true) {
-				path.push_front(currentNode.get());
-				//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
-
-				if (cameFrom.find(cHash) == cameFrom.end()) break;
-
-				cHash = cameFrom[cHash];
+			while (cameFrom.find(cHash) != cameFrom.end()) {
 				currentNode = currentNode->getNeighbour(cHash);
+
 				if (!currentNode) currentNode = world->getNode(frontierPoints[cHash]);
-				if (!currentNode) return;
+				if (!currentNode) {
+					Godot::print(String("node not found at {0}!").format(Array::make(frontierPoints[cHash])));
+					break;
+				}
 
 				path.push_front(currentNode.get());
-				//geo->add_vertex(currentPoint + Vector3(0, 0.25, 0));
+				cHash = cameFrom[cHash];
 			}
-
-			/*geo->end();
-			game->call_deferred("draw_debug", geo);*/
 
 			setPathActor(path, actorInstanceId);
 

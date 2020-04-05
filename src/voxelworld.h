@@ -19,7 +19,6 @@
 
 #include "constants.h"
 #include "fn.h"
-#include "area.h"
 #include "chunkbuilder.h"
 #include "meshbuilder.h"
 #include "intersection.h"

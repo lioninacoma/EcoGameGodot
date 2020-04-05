@@ -68,9 +68,6 @@
     <ClInclude Include="src\threadpool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\area.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\navigator.h">
       <Filter>Header Files</Filter>
     </ClInclude>

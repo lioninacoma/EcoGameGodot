@@ -31,7 +31,13 @@ func _process(delta : float) -> void:
 		# Reset timer
 		time = 0
 	
-#	Lib.world.rotate(Vector3(0, 1, 0), (PI / 32) * delta)
+	var w2 = (Lib.world.getWidth() * 16.0) * 0.5
+	var d2 = (Lib.world.getDepth() * 16.0) * 0.5
+	var pivot_point = Vector3() + Vector3(w2, 0, d2)
+	var pivot_radius = Vector3() - pivot_point
+	var pivot_transform = Transform(Lib.world.transform.basis, pivot_point)
+	var r = (PI / 32) * delta
+	Lib.world.transform = pivot_transform.rotated(Vector3(0, 1, 0), r).translated(pivot_radius)
 
 func build_chunk(mesh_data : Array, chunk, world) -> void:
 	if (!mesh_data || !chunk): return
@@ -44,8 +50,7 @@ func build_chunk(mesh_data : Array, chunk, world) -> void:
 			old_mesh_instance.free()
 	
 	var mesh_instance = build_mesh_instance(mesh_data, chunk)
-	world.add_child(mesh_instance)
-	
+	Lib.world.add_child(mesh_instance)
 	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
 
 func build_mesh_instance(mesh_data : Array, owner) -> MeshInstance:

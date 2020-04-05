@@ -128,30 +128,30 @@ std::shared_ptr<GraphNavNode> Chunk::findNode(Vector3 position) {
 	return closest;
 }
 
-//float Chunk::isVoxel(int ix, int iy, int iz) {
-//	int width = world->getWidth();
-//	int depth = world->getDepth();
-//	float d = 0.5;
-//	float cx = ix + offset.x;
-//	float cy = iy + offset.y;
-//	float cz = iz + offset.z;
-//	float x = cx / (width * CHUNK_SIZE_X);
-//	float y = cy / CHUNK_SIZE_Y;
-//	float z = cz / (depth * CHUNK_SIZE_Z);
-//	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.08;
-//	s += noise->get_noise_3d(cx, cy, cz) / 8;
-//	//return floorf(s * 400.0) / 400.0;
-//	return s;
-//}
-
 float Chunk::isVoxel(int ix, int iy, int iz) {
+	int width = world->getWidth();
+	int depth = world->getDepth();
+	float d = 0.5;
 	float cx = ix + offset.x;
 	float cy = iy + offset.y;
 	float cz = iz + offset.z;
+	float x = cx / (width * CHUNK_SIZE_X);
 	float y = cy / CHUNK_SIZE_Y;
-	float s = y + noise->get_noise_3d(cx / 2, cy / 2, cz / 2);
+	float z = cz / (depth * CHUNK_SIZE_Z);
+	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.08;
+	s += noise->get_noise_3d(cx, cy, cz) / 8;
+	//return floorf(s * 400.0) / 400.0;
 	return s;
 }
+
+//float Chunk::isVoxel(int ix, int iy, int iz) {
+//	float cx = ix + offset.x;
+//	float cy = iy + offset.y;
+//	float cz = iz + offset.z;
+//	float y = cy / CHUNK_SIZE_Y;
+//	float s = y + noise->get_noise_3d(cx / 2, cy / 2, cz / 2);
+//	return s;
+//}
 
 void Chunk::buildVolume() {
 	int x, y, z, i, diff;

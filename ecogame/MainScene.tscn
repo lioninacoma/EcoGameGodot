@@ -130,7 +130,8 @@ script = ExtResource( 9 )
 [node name="PlaceLSystem" type="Node" parent="Player/Controls"]
 
 [node name="Floor" type="StaticBody" parent="."]
-transform = Transform( 64, 0, 0, 0, 1, 0, 0, 0, 64, 64, 0, 64 )
+transform = Transform( 64, 0, 0, 0, 1, 0, 0, 0, 64, 0, 0, 0 )
+visible = false
 
 [node name="MeshInstance" type="MeshInstance" parent="Floor"]
 mesh = SubResource( 5 )

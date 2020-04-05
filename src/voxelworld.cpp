@@ -11,6 +11,8 @@ using namespace godot;
 void VoxelWorld::_register_methods() {
 	register_method("setWidth", &VoxelWorld::setWidth);
 	register_method("setDepth", &VoxelWorld::setDepth);
+	register_method("getWidth", &VoxelWorld::getWidth);
+	register_method("getDepth", &VoxelWorld::getDepth);
 	register_method("setVoxel", &VoxelWorld::setVoxel);
 	register_method("getVoxel", &VoxelWorld::getVoxel);
 	register_method("buildChunks", &VoxelWorld::buildChunks);
@@ -82,6 +84,8 @@ std::shared_ptr<Chunk> VoxelWorld::getChunk(Vector3 position) {
 }
 
 void VoxelWorld::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
+	/*startV = this->to_local(startV);
+	goalV = this->to_local(goalV);*/
 	ThreadPool::getNav()->submitTask(boost::bind(&VoxelWorld::navigateTask, this, startV, goalV, actorInstanceId));
 }
 
@@ -90,6 +94,7 @@ void VoxelWorld::navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId
 }
 
 void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
+	position = this->to_local(position);
 	try {
 		int x, y, z;
 		float s, m = (set) ? -1 : 1;

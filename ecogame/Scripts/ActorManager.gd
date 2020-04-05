@@ -11,7 +11,7 @@ func _ready():
 
 func create_actor():
 	var actor = Actor.instance()
-	add_child(actor)
+	Lib.world.add_child(actor)
 	amount_actors += 1
 	actors.push_back(actor)
 	return actor

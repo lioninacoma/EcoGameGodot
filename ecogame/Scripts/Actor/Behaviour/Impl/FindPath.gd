@@ -28,6 +28,7 @@ func run(actor, context, global_context) -> bool:
 			return true
 	
 		var from = actor.global_transform.origin
+		from = Lib.world.to_local(from)
 		
 		if from.distance_to(to) <= 0.5:
 			return false

@@ -183,7 +183,6 @@
     <ClInclude Include="src\graphnode.h" />
     <ClInclude Include="src\meshbuilder.h" />
     <ClInclude Include="src\navigator.h" />
-    <ClInclude Include="src\area.h" />
     <ClInclude Include="src\fn.h" />
     <ClInclude Include="src\intersection.h" />
     <ClInclude Include="src\semaphore.h" />
