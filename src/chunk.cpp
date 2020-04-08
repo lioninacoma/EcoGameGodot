@@ -18,8 +18,8 @@ void Chunk::_register_methods() {
 
 Chunk::Chunk(Vector3 offset) {
 	Chunk::offset = offset;
-	Chunk::volume = std::shared_ptr<VoxelData>(new VoxelData(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z));
-	Chunk::nodes = new unordered_map<size_t, std::shared_ptr<GraphNavNode>>();
+	Chunk::volume = std::make_shared<VoxelData>(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
+	Chunk::nodes = std::make_shared<unordered_map<size_t, std::shared_ptr<GraphNavNode>>>();
 
 	int amountVertices, amountIndices, amountFaces;
 	const int VERTEX_BUFFER_SIZE = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * 6 * 4;
@@ -130,14 +130,13 @@ std::shared_ptr<GraphNavNode> Chunk::findNode(Vector3 position) {
 
 float Chunk::isVoxel(int ix, int iy, int iz) {
 	int width = world->getWidth();
-	int depth = world->getDepth();
 	float d = 0.5;
 	float cx = ix + offset.x;
 	float cy = iy + offset.y;
 	float cz = iz + offset.z;
 	float x = cx / (width * CHUNK_SIZE_X);
-	float y = cy / CHUNK_SIZE_Y;
-	float z = cz / (depth * CHUNK_SIZE_Z);
+	float y = cy / (width * CHUNK_SIZE_X);
+	float z = cz / (width * CHUNK_SIZE_X);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.08;
 	s += noise->get_noise_3d(cx, cy, cz) / 8;
 	//return floorf(s * 400.0) / 400.0;

@@ -13,4 +13,5 @@ func _input(event : InputEvent) -> void:
 		
 			if result:
 				var voxel_position = controls.get_voxel_position(result)
-				BehaviourGlobals.global_context.set("waypoint", Lib.world.to_local(voxel_position))
+				var world = result.collider.shape_owner_get_owner(0)
+				BehaviourGlobals.global_context.set("waypoint", world.to_local(voxel_position))

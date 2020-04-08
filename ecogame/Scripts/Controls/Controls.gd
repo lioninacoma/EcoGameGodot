@@ -33,8 +33,8 @@ func _process(delta : float) -> void:
 		mouse_mode_captured = !mouse_mode_captured
 
 func get_voxel_position(result):
-	var chunk = result.collider.shape_owner_get_owner(0)
-	if not chunk: return
+	var owner = result.collider.shape_owner_get_owner(0)
+	if not owner: return
 	
 	var voxel_position = result.position
 	var normal = result.normal

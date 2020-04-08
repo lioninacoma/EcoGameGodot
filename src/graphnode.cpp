@@ -10,8 +10,8 @@ void GraphNavNode::_register_methods() {
 }
 
 GraphNavNode::GraphNavNode(Vector3 point, char voxel) {
-	GraphNavNode::point = std::shared_ptr<Vector3>(new Vector3(point));
-	GraphNavNode::gravity = std::shared_ptr<Vector3>(new Vector3(0, -9.8, 0));
+	GraphNavNode::point = std::make_shared<Vector3>(point);
+	GraphNavNode::gravity = std::make_shared<Vector3>(0, -9.8, 0);
 	GraphNavNode::hash = fn::hash(point);
 	GraphNavNode::voxel = voxel;
 }

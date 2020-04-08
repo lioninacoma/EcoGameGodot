@@ -10,6 +10,7 @@
 #include <Vector3.hpp>
 
 #include <limits>
+#include <vector>
 #include <iostream>
 #include <unordered_map> 
 #include <iterator>
@@ -36,7 +37,7 @@ namespace godot {
 	private:
 		std::atomic<int> width, depth;
 		std::shared_ptr<VoxelWorld> self;
-		std::shared_ptr<Chunk>* chunks;
+		std::shared_ptr<vector<std::shared_ptr<Chunk>>> chunks;
 		std::shared_ptr<Navigator> navigator;
 		std::shared_ptr<ChunkBuilder> chunkBuilder;
 
@@ -51,6 +52,7 @@ namespace godot {
 		~VoxelWorld();
 
 		void _init();
+		void _notification(const int64_t what);
 
 		std::shared_ptr<Chunk> intersection(int x, int y, int z);
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
@@ -73,12 +75,7 @@ namespace godot {
 		std::shared_ptr<Navigator> getNavigator() {
 			return navigator;
 		};
-		void setWidth(int width) {
-			VoxelWorld::width = width;
-		};
-		void setDepth(int depth) {
-			VoxelWorld::depth = depth;
-		};
+		void setDimensions(Vector2 dimensions);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 	};
 }

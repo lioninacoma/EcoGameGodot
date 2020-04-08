@@ -46,9 +46,9 @@ namespace godot {
 
 		std::shared_ptr<VoxelWorld> world;
 		std::shared_ptr<VoxelData> volume;
+		std::shared_ptr<unordered_map<size_t, std::shared_ptr<GraphNavNode>>> nodes;
 		float** vertices;
 		int** faces;
-		unordered_map<size_t, std::shared_ptr<GraphNavNode>>* nodes;
 		
 		OpenSimplexNoise* noise;
 

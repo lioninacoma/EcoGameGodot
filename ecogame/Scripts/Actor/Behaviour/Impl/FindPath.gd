@@ -27,13 +27,14 @@ func run(actor, context, global_context) -> bool:
 		if path_requested != null && path_requested:
 			return true
 	
+		var world = actor.get_world()
 		var from = actor.global_transform.origin
-		from = Lib.world.to_local(from)
+		from = world.to_local(from)
 		
 		if from.distance_to(to) <= 0.5:
 			return false
 		
-		Lib.world.navigate(from, to, actor.get_instance_id())
+		world.navigate(from, to, actor.get_instance_id())
 		context.set("path_requested", true)
 		return true
 	

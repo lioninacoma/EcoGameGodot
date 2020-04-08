@@ -61,7 +61,7 @@ shadow_enabled = true
 directional_shadow_depth_range = 1
 
 [node name="Ball" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 64, 0 )
 mode = 1
 
 [node name="FPSLabel" type="Label" parent="."]
@@ -92,7 +92,7 @@ texture = ExtResource( 4 )
 stretch_mode = 1
 
 [node name="Player" type="KinematicBody" parent="."]
-transform = Transform( 1, 0, 0, 0, 0.999999, 0, 0, 0, 1, 0, 64, 0 )
+transform = Transform( -0.707107, 0, -0.707107, 0, 0.999999, 0, 0.707107, 0, -0.707107, 0, 64, 0 )
 script = ExtResource( 3 )
 
 [node name="Capsule" type="CollisionShape" parent="Player"]

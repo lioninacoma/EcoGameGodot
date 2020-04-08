@@ -51,7 +51,7 @@ func generate():
 			nextSentence += current
 	sentence = nextSentence;
 
-func build_tree(pos : Vector3):
+func build_tree(pos : Vector3, world):
 	current_position = pos
 	current_rotation = Vector2()
 	state_cache.clear()
@@ -76,7 +76,7 @@ func build_tree(pos : Vector3):
 			var toward = current_position + delta;
 			for s in range(steps):
 				current_position = current_position.move_toward(toward, step)
-				Lib.world.setVoxel(current_position, 1.2, true)
+				world.setVoxel(current_position, 1.2, true)
 			current_position = toward
 		elif current == "+":
 			current_rotation.x += angle
@@ -107,10 +107,11 @@ func _input(event : InputEvent) -> void:
 		
 			if result:
 				var voxel_position : Vector3 = controls.get_voxel_position(result)
+				var world = result.collider.shape_owner_get_owner(0)
 #				var n = (noise.get_noise_3dv(voxel_position * 8) + 1.0) / 2.0
 #				n += 0.25
 #				angle = deg2rad(35.7) * n
 #				length = 2.0 * n
 #				print ("%s/%s"%[angle, length])
-				build_tree(voxel_position)
+				build_tree(voxel_position, world)
 				

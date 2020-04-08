@@ -1,8 +1,6 @@
 extends Spatial
 class_name EcoGame
 
-var VoxelWorld = load("res://bin/VoxelWorld.gdns")
-
 # build thread variables
 const TIME_PERIOD = 0.05 # 50ms
 const MAX_BUILD_CHUNKS = 24
@@ -14,15 +12,15 @@ var build_stack : Array = []
 var smooth_mat = SpatialMaterial.new()
 
 func _ready() -> void:
-	var voxelWorld = VoxelWorld.new()
-	voxelWorld.setWidth(8)
-	voxelWorld.setDepth(8)
-	Lib.world = voxelWorld
 	add_child(Lib.instance)
-	add_child(Lib.world)
 	Lib.game = self
 	smooth_mat.albedo_color = Color(0.31, 0.46, 0.21)
-	Lib.world.buildChunks()
+	
+	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 8)
+	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 5)
+	
+	add_child(celestial_body_a)
+	add_child(celestial_body_b)
 
 func _process(delta : float) -> void:
 	time += delta
@@ -30,14 +28,6 @@ func _process(delta : float) -> void:
 #		var player_pos = $Player.translation
 		# Reset timer
 		time = 0
-	
-	var w2 = (Lib.world.getWidth() * 16.0) * 0.5
-	var d2 = (Lib.world.getDepth() * 16.0) * 0.5
-	var pivot_point = Vector3() + Vector3(w2, 0, d2)
-	var pivot_radius = Vector3() - pivot_point
-	var pivot_transform = Transform(Lib.world.transform.basis, pivot_point)
-	var r = (PI / 32) * delta
-	Lib.world.transform = pivot_transform.rotated(Vector3(0, 1, 0), r).translated(pivot_radius)
 
 func build_chunk(mesh_data : Array, chunk, world) -> void:
 	if (!mesh_data || !chunk): return
@@ -49,8 +39,8 @@ func build_chunk(mesh_data : Array, chunk, world) -> void:
 			world.remove_child(old_mesh_instance)
 			old_mesh_instance.free()
 	
-	var mesh_instance = build_mesh_instance(mesh_data, chunk)
-	Lib.world.add_child(mesh_instance)
+	var mesh_instance = build_mesh_instance(mesh_data, world)
+	world.add_child(mesh_instance)
 	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
 
 func build_mesh_instance(mesh_data : Array, owner) -> MeshInstance:
@@ -70,7 +60,6 @@ func build_mesh_instance(mesh_data : Array, owner) -> MeshInstance:
 
 	mesh_instance.add_child(static_body)
 	mesh_instance.mesh = mesh
-		
 	return mesh_instance
 
 func set_path_actor(path, actor_instance_id : int):

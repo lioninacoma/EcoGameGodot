@@ -11,7 +11,7 @@ using namespace godot;
 
 ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
 	ChunkBuilder::world = world;
-	ChunkBuilder::meshBuilder = std::shared_ptr<MeshBuilder>(new MeshBuilder(world));
+	ChunkBuilder::meshBuilder = std::make_shared<MeshBuilder>(world);
 	ChunkBuilder::threadStarted = false;
 }
 

@@ -1,6 +1,7 @@
 extends KinematicBody
 class_name Actor
 
+var world
 var velocity = Vector3()
 var acceleration = Vector3()
 
@@ -17,6 +18,12 @@ func _ready():
 
 func _process(delta : float) -> void:
 	update(delta)
+
+func set_world(world):
+	self.world = world
+
+func get_world():
+	return world
 
 func apply_force(force : Vector3):
 	acceleration += force

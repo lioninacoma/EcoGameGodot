@@ -11,10 +11,11 @@ func reset(context):
 
 func move_to_waypoint(actor):
 	if waypoint == null: return
-	var gravity = Lib.world.to_global(waypoint.getGravity())
+	var world = actor.get_world()
+	var gravity = world.to_global(waypoint.getGravity())
 	gravity = gravity.normalized()
 #	actor.balance(gravity)
-	var direction = (Lib.world.to_global(waypoint.getPoint()) - (gravity * 0.25)) - actor.global_transform.origin
+	var direction = (world.to_global(waypoint.getPoint()) - (gravity * 0.25)) - actor.global_transform.origin
 	direction = direction.normalized()
 	actor.velocity = direction * actor.MAX_SPEED
 
@@ -33,8 +34,9 @@ func run(actor, context, global_context) -> bool:
 				path.remove(0)
 	
 	move_to_waypoint(actor)
+	var world = actor.get_world()
 	
-	if waypoint != null && actor.global_transform.origin.distance_to(Lib.world.to_global(waypoint.getPoint())) <= 0.5:
+	if waypoint != null && actor.global_transform.origin.distance_to(world.to_global(waypoint.getPoint())) <= 0.5:
 		if path.size() > 0:
 			waypoint = path[0]
 			path.remove(0)

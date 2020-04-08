@@ -9,14 +9,14 @@
 using namespace godot;
 
 void VoxelWorld::_register_methods() {
-	register_method("setWidth", &VoxelWorld::setWidth);
-	register_method("setDepth", &VoxelWorld::setDepth);
+	register_method("setDimensions", &VoxelWorld::setDimensions);
 	register_method("getWidth", &VoxelWorld::getWidth);
 	register_method("getDepth", &VoxelWorld::getDepth);
 	register_method("setVoxel", &VoxelWorld::setVoxel);
 	register_method("getVoxel", &VoxelWorld::getVoxel);
 	register_method("buildChunks", &VoxelWorld::buildChunks);
 	register_method("navigate", &VoxelWorld::navigate);
+	register_method("_notification", &VoxelWorld::_notification);
 }
 
 VoxelWorld::VoxelWorld() {
@@ -24,11 +24,9 @@ VoxelWorld::VoxelWorld() {
 	VoxelWorld::depth = 8;
 
 	self = std::shared_ptr<VoxelWorld>(this);
-	chunkBuilder = std::shared_ptr<ChunkBuilder>(new ChunkBuilder(self));
-	navigator = std::shared_ptr<Navigator>(new Navigator(self));
-	chunks = new std::shared_ptr<Chunk>[width * depth * sizeof(*chunks)];
-
-	memset(chunks, 0, width * depth * sizeof(*chunks));
+	chunkBuilder = std::make_shared<ChunkBuilder>(self);
+	navigator = std::make_shared<Navigator>(self);
+	chunks = std::make_shared<vector<std::shared_ptr<Chunk>>>(width * depth);
 }
 
 VoxelWorld::~VoxelWorld() {
@@ -36,7 +34,17 @@ VoxelWorld::~VoxelWorld() {
 }
 
 void VoxelWorld::_init() {
-	
+
+}
+
+void VoxelWorld::_notification(const int64_t what) {
+	if (what == Node::NOTIFICATION_READY) {}
+}
+
+void VoxelWorld::setDimensions(Vector2 dimensions) {
+	VoxelWorld::width = dimensions.x;
+	VoxelWorld::depth = dimensions.y;
+	chunks->resize(width * depth);
 }
 
 std::shared_ptr<Chunk> VoxelWorld::intersection(int x, int y, int z) {
@@ -63,7 +71,7 @@ std::shared_ptr<Chunk> VoxelWorld::getChunk(int x, int z) {
 std::shared_ptr<Chunk> VoxelWorld::getChunk(int i) {
 	boost::unique_lock<boost::mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= width * depth) return NULL;
-	return chunks[i];
+	return chunks->at(i);
 }
 
 std::shared_ptr<Chunk> VoxelWorld::getChunk(Vector3 position) {
@@ -94,7 +102,6 @@ void VoxelWorld::navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId
 }
 
 void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
-	position = this->to_local(position);
 	try {
 		int x, y, z;
 		float s, m = (set) ? -1 : 1;
@@ -208,7 +215,7 @@ void VoxelWorld::setChunk(int x, int z, std::shared_ptr<Chunk> chunk) {
 void VoxelWorld::setChunk(int i, std::shared_ptr<Chunk> chunk) {
 	boost::unique_lock<boost::mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= width * depth) return;
-	chunks[i] = chunk;
+	chunks->insert(chunks->begin() + i, chunk);
 }
 
 void VoxelWorld::buildChunksTask(std::shared_ptr<VoxelWorld> world) {

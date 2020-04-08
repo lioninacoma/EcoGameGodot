@@ -9,9 +9,10 @@ var actors : Array = []
 func _ready():
 	pass # Replace with function body.
 
-func create_actor():
+func create_actor(world):
 	var actor = Actor.instance()
-	Lib.world.add_child(actor)
+	actor.set_world(world)
+	world.add_child(actor)
 	amount_actors += 1
 	actors.push_back(actor)
 	return actor

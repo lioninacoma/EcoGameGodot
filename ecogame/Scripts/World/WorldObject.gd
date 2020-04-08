@@ -1,4 +1,4 @@
-extends Node
+extends Spatial
 class_name WorldObject
 
 signal changing_state(id, state)
