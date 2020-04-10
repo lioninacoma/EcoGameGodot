@@ -92,7 +92,7 @@ texture = ExtResource( 4 )
 stretch_mode = 1
 
 [node name="Player" type="KinematicBody" parent="."]
-transform = Transform( -0.707107, 0, -0.707107, 0, 0.999999, 0, 0.707107, 0, -0.707107, 0, 64, 0 )
+transform = Transform( -0.707107, 0, -0.707107, 0, 0.999999, 0, 0.707107, 0, -0.707107, 0, 69, 0 )
 script = ExtResource( 3 )
 
 [node name="Capsule" type="CollisionShape" parent="Player"]

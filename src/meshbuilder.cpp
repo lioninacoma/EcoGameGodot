@@ -47,6 +47,7 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 	float grid[8];
 	int edges[12];
 	int cube_index = 0;
+	int volume_index = fn::fi3(x, y, z);
 
 	for (int i = 0; i < 8; ++i) {
 		v[0] = (cubeVerts[i][0] + x) - 1;
@@ -96,7 +97,7 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 		faces[counts[1]][0] = edges[triTable[cube_index][i]];
 		faces[counts[1]][1] = edges[triTable[cube_index][i + 1]];
 		faces[counts[1]][2] = edges[triTable[cube_index][i + 2]];
-		faces[counts[1]][3] = fn::fi3(x, y, z);
+		faces[counts[1]][3] = volume_index;
 		counts[1]++;
 	}
 }

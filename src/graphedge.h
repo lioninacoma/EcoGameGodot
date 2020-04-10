@@ -9,12 +9,11 @@
 
 #include "constants.h"
 #include "fn.h"
+#include "graphnode.h"
 
 using namespace std;
 
 namespace godot {
-	class GraphNavNode;
-
 	class GraphEdge {
 	private:
 		std::shared_ptr<GraphNavNode> a;
@@ -27,8 +26,8 @@ namespace godot {
 			GraphEdge::cost = cost;
 		};
 		~GraphEdge() {
-			//a.reset();
-			//b.reset();
+			a.reset();
+			b.reset();
 		};
 		std::shared_ptr<GraphNavNode> getA() {
 			return a;
@@ -38,6 +37,9 @@ namespace godot {
 		};
 		float getCost() {
 			return cost;
+		};
+		bool operator == (const GraphEdge& o) const {
+			return ((*a == *o.a && *b == *o.b) || (*a == *o.b && *b == *o.a)) && cost == o.cost;
 		};
 	};
 }

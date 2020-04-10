@@ -44,8 +44,8 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 	start = bpt::microsec_clock::local_time();
 
 	Array path;
-	std::shared_ptr<GraphNavNode> startNode = world->getNode(startV);
-	std::shared_ptr<GraphNavNode> goalNode = world->getNode(goalV);
+	std::shared_ptr<GraphNavNode> startNode = world->findClosestNode(startV);
+	std::shared_ptr<GraphNavNode> goalNode = world->findClosestNode(goalV);
 
 	if (!startNode || !goalNode) {
 		setPathActor(path, actorInstanceId);

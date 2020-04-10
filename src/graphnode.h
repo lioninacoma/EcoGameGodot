@@ -48,6 +48,7 @@ namespace godot {
 		void setPoint(Vector3 point);
 		void setVoxel(char voxel);
 		void determineGravity(Vector3 cog);
+		void clearEdges();
 
 		void forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func);
 		std::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash);
@@ -59,6 +60,7 @@ namespace godot {
 		size_t getHash();
 		char getVoxel();
 		bool isWalkable();
+		int getAmountEdges();
 
 		bool operator == (const GraphNavNode& o) const {
 			return hash == o.hash;

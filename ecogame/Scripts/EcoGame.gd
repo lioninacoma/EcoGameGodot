@@ -16,8 +16,8 @@ func _ready() -> void:
 	Lib.game = self
 	smooth_mat.albedo_color = Color(0.31, 0.46, 0.21)
 	
-	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 8)
-	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 5)
+	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 16)
+	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 10)
 	
 	add_child(celestial_body_a)
 	add_child(celestial_body_b)
@@ -31,15 +31,14 @@ func _process(delta : float) -> void:
 
 func build_chunk(mesh_data : Array, chunk, world) -> void:
 	if (!mesh_data || !chunk): return
-	var old_mesh_instance_id = chunk.getMeshInstanceId()
+	var mesh_instance = build_mesh_instance(mesh_data, world)
 	
+	var old_mesh_instance_id = chunk.getMeshInstanceId()
 	if old_mesh_instance_id != 0:
 		var old_mesh_instance = instance_from_id(old_mesh_instance_id)
 		if old_mesh_instance:
-			world.remove_child(old_mesh_instance)
-			old_mesh_instance.free()
+			old_mesh_instance.queue_free()
 	
-	var mesh_instance = build_mesh_instance(mesh_data, world)
 	world.add_child(mesh_instance)
 	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
 

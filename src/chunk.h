@@ -46,7 +46,7 @@ namespace godot {
 
 		std::shared_ptr<VoxelWorld> world;
 		std::shared_ptr<VoxelData> volume;
-		std::shared_ptr<unordered_map<size_t, std::shared_ptr<GraphNavNode>>> nodes;
+		unordered_map<size_t, std::shared_ptr<GraphNavNode>> nodes;
 		float** vertices;
 		int** faces;
 		
@@ -96,14 +96,18 @@ namespace godot {
 		int getAmountFaces() {
 			return amountFaces;
 		};
+		int getAmountNodes() {
+			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
+			return nodes.size();
+		};
 		float isVoxel(int x, int y, int z);
 		float getVoxel(int x, int y, int z);
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
 		std::shared_ptr<GraphNavNode> getNode(size_t hash);
-		std::shared_ptr<GraphNavNode> findNode(Vector3 position);
+		std::shared_ptr<GraphNavNode> fetchNode(Vector3 position);
 		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> func) {
 			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
-			std::for_each(nodes->begin(), nodes->end(), func);
+			std::for_each(nodes.begin(), nodes.end(), func);
 		};
 		void forEachFace(std::function<void(int* face)> func) {
 			boost::shared_lock<std::shared_mutex> lock(FACES_MUTEX);

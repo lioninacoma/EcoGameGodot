@@ -2,9 +2,9 @@
 #define CONSTANTS_H
 
 //#define WORLD_SIZE 8	  // Chunks
-#define CHUNK_SIZE_X 16    // Voxels
+#define CHUNK_SIZE_X 8    // Voxels
 #define CHUNK_SIZE_Y 128   // Voxels
-#define CHUNK_SIZE_Z 16    // Voxels
+#define CHUNK_SIZE_Z 8    // Voxels
 
 #define VERTEX_SIZE 8
 #define BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z
@@ -22,8 +22,8 @@
 #define VOXEL_CHANCE_NOISE_SCALE 1.0
 #define VOXEL_Y_NOISE_SCALE 1.0
 
-#define POOL_SIZE 4
-#define NAV_POOL_SIZE 16
+#define POOL_SIZE 8
+#define NAV_POOL_SIZE 32
 #define MAX_CHUNKS_BUILT_ASYNCH 8
 
 // navigator

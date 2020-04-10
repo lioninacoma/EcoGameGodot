@@ -26,7 +26,7 @@ VoxelWorld::VoxelWorld() {
 	self = std::shared_ptr<VoxelWorld>(this);
 	chunkBuilder = std::make_shared<ChunkBuilder>(self);
 	navigator = std::make_shared<Navigator>(self);
-	chunks = std::make_shared<vector<std::shared_ptr<Chunk>>>(width * depth);
+	chunks = vector<std::shared_ptr<Chunk>>(width * depth);
 }
 
 VoxelWorld::~VoxelWorld() {
@@ -44,7 +44,7 @@ void VoxelWorld::_notification(const int64_t what) {
 void VoxelWorld::setDimensions(Vector2 dimensions) {
 	VoxelWorld::width = dimensions.x;
 	VoxelWorld::depth = dimensions.y;
-	chunks->resize(width * depth);
+	chunks.resize(width * depth);
 }
 
 std::shared_ptr<Chunk> VoxelWorld::intersection(int x, int y, int z) {
@@ -69,23 +69,19 @@ std::shared_ptr<Chunk> VoxelWorld::getChunk(int x, int z) {
 }
 
 std::shared_ptr<Chunk> VoxelWorld::getChunk(int i) {
-	boost::unique_lock<boost::mutex> lock(CHUNKS_MUTEX);
+	boost::shared_lock<boost::shared_mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= width * depth) return NULL;
-	return chunks->at(i);
+	return chunks.at(i);
 }
 
 std::shared_ptr<Chunk> VoxelWorld::getChunk(Vector3 position) {
 	//Godot::print(String("get chunk at: {0}").format(Array::make(position)));
-	std::shared_ptr<Chunk> chunk;
-	int x, z, cx, cz;
-	Vector2 chunkOffset;
-
-	chunkOffset.x = position.x;
-	chunkOffset.y = position.z;
+	int cx, cz;
+	Vector3 chunkOffset = position;
 	chunkOffset = fn::toChunkCoords(chunkOffset);
-	cx = (int)(chunkOffset.x);
-	cz = (int)(chunkOffset.y);
-	chunk = getChunk(cx, cz);
+	cx = (int)chunkOffset.x;
+	cz = (int)chunkOffset.z;
+	auto chunk = getChunk(cx, cz);
 
 	if (!chunk) return NULL;
 	return chunk;
@@ -167,16 +163,8 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 }
 
 int VoxelWorld::getVoxel(Vector3 position) {
-	int x, y, z, cx, cz, ci;
-	Vector2 chunkOffset;
-	std::shared_ptr<Chunk> chunk;
-	chunkOffset.x = position.x;
-	chunkOffset.y = position.z;
-	chunkOffset = fn::toChunkCoords(chunkOffset);
-	cx = (int)(chunkOffset.x);
-	cz = (int)(chunkOffset.y);
-
-	chunk = getChunk(cx, cz);
+	int x, y, z;
+	auto chunk = getChunk(position);
 
 	if (!chunk) return 0;
 
@@ -190,21 +178,31 @@ int VoxelWorld::getVoxel(Vector3 position) {
 		z % CHUNK_SIZE_Z);
 }
 
-std::shared_ptr<GraphNavNode> VoxelWorld::getNode(Vector3 position) {
-	int cx, cz, ci;
-	Vector2 chunkOffset;
-	std::shared_ptr<Chunk> chunk;
-	std::shared_ptr<GraphNavNode> node;
-	chunkOffset.x = position.x;
-	chunkOffset.y = position.z;
-	chunkOffset = fn::toChunkCoords(chunkOffset);
-	cx = (int)(chunkOffset.x);
-	cz = (int)(chunkOffset.y);
-	chunk = getChunk(cx, cz);
-
+std::shared_ptr<GraphNavNode> VoxelWorld::findClosestNode(Vector3 position) {
+	auto chunk = getChunk(position);
 	if (!chunk) return NULL;
 
-	return chunk->findNode(position);
+	std::shared_ptr<GraphNavNode> closest;
+	closest = chunk->getNode(fn::hash(position));
+	if (closest) return closest;
+
+	float minDist = numeric_limits<float>::max();
+	float dist;
+	std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
+		dist = next.second->getPoint()->distance_to(position);
+		if (dist < minDist) {
+			minDist = dist;
+			closest = next.second;
+		}
+	};
+	chunk->forEachNode(lambda);
+	return closest;
+}
+
+std::shared_ptr<GraphNavNode> VoxelWorld::getNode(Vector3 position) {
+	auto chunk = getChunk(position);
+	if (!chunk) return NULL;
+	return chunk->getNode(fn::hash(position));
 }
 
 void VoxelWorld::setChunk(int x, int z, std::shared_ptr<Chunk> chunk) {
@@ -213,9 +211,9 @@ void VoxelWorld::setChunk(int x, int z, std::shared_ptr<Chunk> chunk) {
 }
 
 void VoxelWorld::setChunk(int i, std::shared_ptr<Chunk> chunk) {
-	boost::unique_lock<boost::mutex> lock(CHUNKS_MUTEX);
+	boost::unique_lock<boost::shared_mutex> lock(CHUNKS_MUTEX);
 	if (i < 0 || i >= width * depth) return;
-	chunks->insert(chunks->begin() + i, chunk);
+	chunks.insert(chunks.begin() + i, chunk);
 }
 
 void VoxelWorld::buildChunksTask(std::shared_ptr<VoxelWorld> world) {

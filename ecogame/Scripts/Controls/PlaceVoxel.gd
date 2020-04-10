@@ -3,7 +3,17 @@ extends Node
 onready var eco_game = get_tree().get_root().get_node("EcoGame")
 onready var controls = $"../"
 
-var set = true
+const TIME_PERIOD = 0.05 # 50ms
+var time = 0
+var set = false
+var world
+
+func _process(delta : float) -> void:
+	time += delta
+	if time > TIME_PERIOD && controls.middle_pressed:
+		world.setVoxel(world.to_local(controls.middle_pressed_location), 4.5, set)
+		time = 0
+		
 
 func _input(event : InputEvent) -> void:
 	if event is InputEventKey:
@@ -12,7 +22,7 @@ func _input(event : InputEvent) -> void:
 		elif event.scancode == KEY_KP_1:
 			set = false
 	elif event is InputEventMouseButton:
-		if event.button_index == BUTTON_LEFT and event.pressed and controls.control_active:
+		if event.button_index == BUTTON_MIDDLE and event.pressed and !controls.control_active:
 			var from = controls.camera.project_ray_origin(event.position)
 			var to = from + controls.camera.project_ray_normal(event.position) * WorldVariables.PICK_DISTANCE
 			var space_state = eco_game.get_world().direct_space_state
@@ -20,5 +30,4 @@ func _input(event : InputEvent) -> void:
 		
 			if result:
 				var voxel_position : Vector3 = controls.get_voxel_position(result)
-				var world = result.collider.shape_owner_get_owner(0)
-				world.setVoxel(world.to_local(voxel_position), 4.5, set)
+				world = result.collider.shape_owner_get_owner(0)

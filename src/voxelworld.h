@@ -37,11 +37,11 @@ namespace godot {
 	private:
 		std::atomic<int> width, depth;
 		std::shared_ptr<VoxelWorld> self;
-		std::shared_ptr<vector<std::shared_ptr<Chunk>>> chunks;
+		vector<std::shared_ptr<Chunk>> chunks;
 		std::shared_ptr<Navigator> navigator;
 		std::shared_ptr<ChunkBuilder> chunkBuilder;
 
-		boost::mutex CHUNKS_MUTEX;
+		boost::shared_mutex CHUNKS_MUTEX;
 		
 		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId);
 		void buildChunksTask(std::shared_ptr<VoxelWorld> world);
@@ -60,6 +60,7 @@ namespace godot {
 		std::shared_ptr<Chunk> getChunk(int i);
 		std::shared_ptr<Chunk> getChunk(Vector3 position);
 		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
+		std::shared_ptr<GraphNavNode> findClosestNode(Vector3 position);
 		int getVoxel(Vector3 position);
 		int getWidth() {
 			return width;

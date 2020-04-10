@@ -3,6 +3,7 @@
 #include "voxelworld.h"
 #include "threadpool.h"
 #include "navigator.h"
+#include "graphnode.h"
 
 #include <boost/exception/diagnostic_information.hpp> 
 #include <boost/exception_ptr.hpp> 
@@ -69,6 +70,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 
 		Array meshData;
 		Array meshArrays;
+		unordered_map<size_t, Vector3> nodePoints;
 
 		amountVertices = counts[0];
 		amountFaces = counts[1];
@@ -89,13 +91,6 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 
 		chunk->setVertices(chunkVertices, amountVertices);
 		chunk->setFaces(chunkFaces, amountFaces);
-
-		for (i = 0; i < CHUNKBUILDER_MAX_VERTICES; i++)
-			delete[] vertices[i];
-		for (i = 0; i < CHUNKBUILDER_MAX_FACES; i++)
-			delete[] faces[i];
-		delete[] vertices;
-		delete[] faces;
 		
 		PoolVector3Array vertexArray;
 		PoolVector3Array normalArray;
@@ -117,34 +112,72 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		PoolIntArray::Write indexArrayWrite = indexArray.write();
 		PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
 
+		const bool DEBUG_NODES_PRINT = false;
+		if (DEBUG_NODES_PRINT && chunk->getOffset() == Vector3(32, 0, 32)) {
+			int amountEdges = 0;
+			std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
+				amountEdges += next.second->getAmountEdges();
+			};
+			chunk->forEachNode(lambda);
+			Godot::print(String("chunk at {0} amount nodes before {1} / amount edges before {2}").format(Array::make(chunk->getOffset(), chunk->getAmountNodes(), amountEdges)));
+		}
+
+		std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
+			nodePoints.emplace(next.first, next.second->getPointU());
+		};
+		chunk->forEachNode(lambda);
+
 		for (i = 0; i < amountVertices; i++) {
 			//Godot::print(String("v {0}").format(Array::make(Vector3(v[0], v[1], v[2]))));
-			vertexArrayWrite[i] = Vector3(chunkVertices[i][0], chunkVertices[i][1], chunkVertices[i][2]);
+			vertexArrayWrite[i] = Vector3(vertices[i][0], vertices[i][1], vertices[i][2]);
 			normalArrayWrite[i] = Vector3(0, 0, 0);
+			nodePoints.erase(fn::hash(vertexArray[i]));
+		}
+
+		for (auto nodePoint : nodePoints) {
+			auto node = chunk->getNode(fn::hash(nodePoint.second));
+			if (!node) continue;
+			chunk->removeNode(node);
 		}
 
 		for (i = 0, n = 0; i < amountFaces; i++, n += 3) {
-			indexArrayWrite[n] = chunkFaces[i][2];
-			indexArrayWrite[n + 1] = chunkFaces[i][1];
-			indexArrayWrite[n + 2] = chunkFaces[i][0];
+			indexArrayWrite[n] = faces[i][2];
+			indexArrayWrite[n + 1] = faces[i][1];
+			indexArrayWrite[n + 2] = faces[i][0];
 
-			Vector3 x0 = vertexArray[chunkFaces[i][2]];
-			Vector3 x1 = vertexArray[chunkFaces[i][1]];
-			Vector3 x2 = vertexArray[chunkFaces[i][0]];
+			Vector3 x0 = vertexArray[faces[i][2]];
+			Vector3 x1 = vertexArray[faces[i][1]];
+			Vector3 x2 = vertexArray[faces[i][0]];
 			Vector3 v0 = x0 - x2;
 			Vector3 v1 = x1 - x2;
 			Vector3 normal = v1.cross(v0).normalized();
 
-			normalArrayWrite[chunkFaces[i][0]] = addNormal(normalArrayWrite[chunkFaces[i][0]], normal);
-			normalArrayWrite[chunkFaces[i][1]] = addNormal(normalArrayWrite[chunkFaces[i][1]], normal);
-			normalArrayWrite[chunkFaces[i][2]] = addNormal(normalArrayWrite[chunkFaces[i][2]], normal);
+			normalArrayWrite[faces[i][0]] = addNormal(normalArrayWrite[faces[i][0]], normal);
+			normalArrayWrite[faces[i][1]] = addNormal(normalArrayWrite[faces[i][1]], normal);
+			normalArrayWrite[faces[i][2]] = addNormal(normalArrayWrite[faces[i][2]], normal);
 
-			collisionArrayWrite[n] = vertexArray[chunkFaces[i][2]];
-			collisionArrayWrite[n + 1] = vertexArray[chunkFaces[i][1]];
-			collisionArrayWrite[n + 2] = vertexArray[chunkFaces[i][0]];
+			collisionArrayWrite[n] = vertexArray[faces[i][2]];
+			collisionArrayWrite[n + 1] = vertexArray[faces[i][1]];
+			collisionArrayWrite[n + 2] = vertexArray[faces[i][0]];
 			
 			chunk->addFaceNodes(x0, x1, x2);
 		}
+
+		if (DEBUG_NODES_PRINT && chunk->getOffset() == Vector3(32, 0, 32)) {
+			int amountEdges = 0;
+			std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
+				amountEdges += next.second->getAmountEdges();
+			};
+			chunk->forEachNode(lambda);
+			Godot::print(String("chunk at {0} amount nodes after {1} / amount edges after {2}").format(Array::make(chunk->getOffset(), chunk->getAmountNodes(), amountEdges)));
+		}
+
+		for (i = 0; i < CHUNKBUILDER_MAX_VERTICES; i++)
+			delete[] vertices[i];
+		for (i = 0; i < CHUNKBUILDER_MAX_FACES; i++)
+			delete[] faces[i];
+		delete[] vertices;
+		delete[] faces;
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
 		meshArrays[Mesh::ARRAY_NORMAL] = normalArray;
