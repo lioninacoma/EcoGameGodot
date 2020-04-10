@@ -2,11 +2,14 @@
 #define FN_H
 
 #include <vector>
+#include <memory>
+
 #include <boost/container_hash/hash.hpp>
 
 #include "constants.h"
 
 namespace godot {
+
 	namespace fn {
 		template <class T>
 		static bool contains(const std::vector<T>& vec, const T& value) {

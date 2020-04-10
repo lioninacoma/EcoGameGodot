@@ -146,7 +146,7 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 					}
 
 					s = 1.0 - (currentPosition.distance_to(position) / radius);
-					s /= 40.0;
+					s /= 100.0;
 					chunk->setVoxel(
 						x % CHUNK_SIZE_X,
 						y % CHUNK_SIZE_Y,

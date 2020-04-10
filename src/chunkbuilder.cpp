@@ -12,7 +12,7 @@ using namespace godot;
 
 ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
 	ChunkBuilder::world = world;
-	ChunkBuilder::meshBuilder = std::make_shared<MeshBuilder>(world);
+	ChunkBuilder::meshBuilder = std::make_unique<MeshBuilder>(world);
 	ChunkBuilder::threadStarted = false;
 }
 
@@ -112,7 +112,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		PoolIntArray::Write indexArrayWrite = indexArray.write();
 		PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
 
-		const bool DEBUG_NODES_PRINT = false;
+		/*const bool DEBUG_NODES_PRINT = false;
 		if (DEBUG_NODES_PRINT && chunk->getOffset() == Vector3(32, 0, 32)) {
 			int amountEdges = 0;
 			std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
@@ -120,7 +120,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			};
 			chunk->forEachNode(lambda);
 			Godot::print(String("chunk at {0} amount nodes before {1} / amount edges before {2}").format(Array::make(chunk->getOffset(), chunk->getAmountNodes(), amountEdges)));
-		}
+		}*/
 
 		std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
 			nodePoints.emplace(next.first, next.second->getPointU());
@@ -160,16 +160,31 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			collisionArrayWrite[n + 1] = vertexArray[faces[i][1]];
 			collisionArrayWrite[n + 2] = vertexArray[faces[i][0]];
 			
+			//if (!chunk->isNavigatable())
 			chunk->addFaceNodes(x0, x1, x2);
 		}
 
-		if (DEBUG_NODES_PRINT && chunk->getOffset() == Vector3(32, 0, 32)) {
-			int amountEdges = 0;
-			std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
-				amountEdges += next.second->getAmountEdges();
-			};
-			chunk->forEachNode(lambda);
-			Godot::print(String("chunk at {0} amount nodes after {1} / amount edges after {2}").format(Array::make(chunk->getOffset(), chunk->getAmountNodes(), amountEdges)));
+		size_t chunkHash = fn::hash(chunk->getOffset());
+		int amountNodes = chunk->getAmountNodes();
+		int amountEdges = 0;
+		std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> cntFn = [&](auto next) {
+			amountEdges += next.second->getAmountEdges();
+		};
+		chunk->forEachNode(cntFn);
+
+		if (!chunk->isNavigatable()) {
+			nodeInitialCounts[chunkHash] = amountNodes;
+			edgeInitialCounts[chunkHash] = amountEdges;
+			nodeInitialTotalCount += amountNodes;
+			edgeInitialTotalCount += amountEdges;
+		}
+		else {
+			int deltaAmountNodes = amountNodes - nodeInitialCounts[chunkHash];
+			int deltaAmountEdges = amountEdges - edgeInitialCounts[chunkHash];
+			nodeInitialTotalCount += deltaAmountNodes;
+			edgeInitialTotalCount += deltaAmountEdges;
+			//Godot::print(String("chunk at {0}: delta nodes {1}, delta edges {2}").format(Array::make(chunk->getOffset(), deltaAmountNodes, deltaAmountEdges)));
+			Godot::print(String("total nodes {0}, total edges {1}").format(Array::make(nodeInitialTotalCount, edgeInitialTotalCount)));
 		}
 
 		for (i = 0; i < CHUNKBUILDER_MAX_VERTICES; i++)
@@ -232,7 +247,7 @@ void ChunkBuilder::queueChunk(std::shared_ptr<Chunk> chunk) {
 void ChunkBuilder::build(std::shared_ptr<Chunk> chunk) {
 	if (!threadStarted) {
 		threadStarted = true;
-		queueThread = std::make_shared<boost::thread>(&ChunkBuilder::processQueue, this);
+		queueThread = std::make_unique<boost::thread>(&ChunkBuilder::processQueue, this);
 	}
 
 	if (chunk->isBuilding()) {

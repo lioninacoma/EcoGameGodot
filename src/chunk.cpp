@@ -18,7 +18,7 @@ void Chunk::_register_methods() {
 
 Chunk::Chunk(Vector3 offset) {
 	Chunk::offset = offset;
-	Chunk::volume = std::make_shared<VoxelData>(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
+	Chunk::volume = std::make_unique<VoxelData>(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 
 	int amountVertices, amountIndices, amountFaces;
 	const int VERTEX_BUFFER_SIZE = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * 6 * 4;
@@ -79,7 +79,10 @@ Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 	return voxel;
 }
 
+#define VOXEL_RESOLUTION 800.0
+
 void Chunk::setVoxel(int x, int y, int z, float v) {
+	//v = floorf(v * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
 	volume->set(x, y, z, v);
 }
 
@@ -112,7 +115,7 @@ float Chunk::isVoxel(int ix, int iy, int iz) {
 	float z = cz / (width * CHUNK_SIZE_X);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
 	s += noise->get_noise_3d(cx, cy, cz) / 8;
-	//return floorf(s * 400.0) / 400.0;
+	//return floorf(s * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
 	return s;
 }
 
@@ -159,18 +162,11 @@ void Chunk::removeNode(std::shared_ptr<GraphNavNode> node) {
 		chunk->removeNode(node);
 	}
 	else if (nodes.find(hash) != nodes.end()) {
-		std::shared_ptr<GraphNavNode> neighbour;
-		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> lambda = [&](auto next) {
-			neighbour = (next.second->getA()->getHash() != hash) ? next.second->getA() : next.second->getB();
-			neighbour->removeEdgeWithNode(hash);
-		};
-
-		node->forEachEdge(lambda);
-		nodes.erase(hash);
 		node->clearEdges();
+		nodes.erase(hash);
 		node.reset();
 
-		if (node.use_count() > 0)
+		if (node.use_count() > 0 || node)
 			cout << "node not deleted" << endl;
 	}
 }
@@ -190,7 +186,7 @@ void Chunk::addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNod
 	}
 
 	if (!abEdge && !baEdge) {
-		auto edge = std::shared_ptr<GraphEdge>(new GraphEdge(a, b, cost));
+		auto edge = std::make_shared<GraphEdge>(a, b, cost);
 		a->addEdge(edge);
 		b->addEdge(edge);
 	}

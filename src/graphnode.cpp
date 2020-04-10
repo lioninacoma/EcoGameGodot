@@ -27,10 +27,13 @@ void GraphNavNode::_init() {
 
 void GraphNavNode::addEdge(std::shared_ptr<GraphEdge> edge) {
 	boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
-	size_t nHash = (edge->getA()->getHash() != hash) ? edge->getA()->getHash() : edge->getB()->getHash();
+	auto neighbour = edge->getA();
+	if (neighbour->getHash() == hash)
+		neighbour = edge->getB();
+	size_t nHash = neighbour->getHash();
 	auto it = edges.find(nHash);
 	if (it == edges.end()) {
-		edges[nHash] = edge;
+		edges.emplace(nHash, edge);
 	}
 }
 
@@ -38,6 +41,7 @@ void GraphNavNode::removeEdgeWithNode(size_t nHash) {
 	boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
 	auto it = edges.find(nHash);
 	if (it == edges.end()) return;
+	it->second.reset();
 	edges.erase(nHash);
 }
 
@@ -54,14 +58,18 @@ void GraphNavNode::determineGravity(Vector3 cog) {
 	Vector3 g = cog - *point;
 	g.normalize();
 	g *= 9.8;
-	gravity = std::shared_ptr<Vector3>(new Vector3(g));
+	gravity = std::make_shared<Vector3>(g);
 }
 
 void GraphNavNode::clearEdges() {
 	boost::unique_lock<boost::shared_mutex> lock(EDGES_MUTEX);
 	for (auto edge : edges) {
+		auto neighbour = edge.second->getA();
+		if (neighbour->getHash() == hash)
+			neighbour = edge.second->getB();
+		neighbour->removeEdgeWithNode(hash);
 		edge.second.reset();
-		if (edge.second.use_count() > 0)
+		if (edge.second.use_count() > 0 || edge.second)
 			cout << "edge not deleted" << endl;
 	}
 	edges.clear();
@@ -82,7 +90,10 @@ std::shared_ptr<GraphEdge> GraphNavNode::getEdgeWithNode(size_t nHash) {
 std::shared_ptr<GraphNavNode> GraphNavNode::getNeighbour(size_t nHash) {
 	std::shared_ptr<GraphEdge> edge = getEdgeWithNode(nHash);
 	if (!edge) return NULL;
-	return (edge->getA()->getHash() != hash) ? edge->getA() : edge->getB();
+	auto neighbour = edge->getA();
+	if (neighbour->getHash() == hash)
+		neighbour = edge->getB();
+	return neighbour;
 }
 
 std::shared_ptr<Vector3> GraphNavNode::getPoint() {

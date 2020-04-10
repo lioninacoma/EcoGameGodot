@@ -45,7 +45,7 @@ namespace godot {
 		Vector3 offset, cog;
 
 		std::shared_ptr<VoxelWorld> world;
-		std::shared_ptr<VoxelData> volume;
+		std::unique_ptr<VoxelData> volume;
 		unordered_map<size_t, std::shared_ptr<GraphNavNode>> nodes;
 		float** vertices;
 		int** faces;
@@ -71,9 +71,6 @@ namespace godot {
 		};
 		Vector3 getCenterOfGravity() {
 			return cog;
-		};
-		std::shared_ptr<VoxelData> getVolume() {
-			return volume;
 		};
 		int getMeshInstanceId() {
 			return meshInstanceId;

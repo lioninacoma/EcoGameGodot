@@ -39,7 +39,9 @@ namespace godot {
 			return cost;
 		};
 		bool operator == (const GraphEdge& o) const {
-			return ((*a == *o.a && *b == *o.b) || (*a == *o.b && *b == *o.a)) && cost == o.cost;
+			size_t h1 = a->getHash() ^ b->getHash();
+			size_t h2 = o.a->getHash() ^ o.b->getHash();
+			return h1 == h2;
 		};
 	};
 }
