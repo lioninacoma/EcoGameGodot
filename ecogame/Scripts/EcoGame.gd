@@ -29,21 +29,24 @@ func _process(delta : float) -> void:
 		# Reset timer
 		time = 0
 
-func build_chunk(mesh_data : Array, chunk, world) -> void:
-	if (!mesh_data || !chunk): return
-	var mesh_instance = build_mesh_instance(mesh_data, world)
-	
+func delete_chunk(chunk, world) -> void:
 	var old_mesh_instance_id = chunk.getMeshInstanceId()
 	if old_mesh_instance_id != 0:
 		var old_mesh_instance = instance_from_id(old_mesh_instance_id)
 		if old_mesh_instance:
-			old_mesh_instance.queue_free()
+			world.remove_child(old_mesh_instance)
+			old_mesh_instance.free()
+
+func build_chunk(mesh_data : Array, chunk, world) -> void:
+	if !mesh_data || !chunk: return
+	var mesh_instance = build_mesh_instance(mesh_data, world)
 	
+	self.delete_chunk(chunk, world)
 	world.add_child(mesh_instance)
 	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
 
 func build_mesh_instance(mesh_data : Array, owner) -> MeshInstance:
-	if (!mesh_data): return null
+	if !mesh_data: return null
 	
 	var mesh_instance = MeshInstance.new()
 	var mesh : ArrayMesh = ArrayMesh.new()

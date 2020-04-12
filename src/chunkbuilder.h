@@ -36,18 +36,17 @@ namespace godot {
 	class ChunkBuilder {
 
 	private:
+		void processQueue();
+		void queueChunk(std::shared_ptr<Chunk> chunk);
+		void buildChunk(std::shared_ptr<Chunk> chunk);
+
 		std::shared_ptr<VoxelWorld> world;
 		std::unique_ptr<MeshBuilder> meshBuilder;
 		std::unique_ptr<boost::thread> queueThread;
 		deque<std::shared_ptr<Chunk>> buildQueue;
 		unordered_set<size_t> inque;
-		void processQueue();
-		void queueChunk(std::shared_ptr<Chunk> chunk);
-		void buildChunk(std::shared_ptr<Chunk> chunk);
-		unordered_map<size_t, int> edgeInitialCounts;
-		unordered_map<size_t, int> nodeInitialCounts;
-		int edgeInitialTotalCount = 0;
-		int nodeInitialTotalCount = 0;
+		unordered_map<size_t, int> edgeCounts;
+		unordered_map<size_t, int> nodeCounts;
 
 		boost::mutex BUILD_QUEUE_MUTEX;
 		boost::mutex BUILD_QUEUE_WAIT;

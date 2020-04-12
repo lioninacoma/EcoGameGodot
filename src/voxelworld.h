@@ -29,7 +29,7 @@
 using namespace std;
 
 namespace godot {
-	class GraphNavNode;
+	class GraphNode;
 
 	class VoxelWorld : public Spatial {
 		GODOT_CLASS(VoxelWorld, Spatial)
@@ -38,8 +38,8 @@ namespace godot {
 		std::atomic<int> width, depth;
 		std::shared_ptr<VoxelWorld> self;
 		vector<std::shared_ptr<Chunk>> chunks;
-		std::shared_ptr<Navigator> navigator;
-		std::shared_ptr<ChunkBuilder> chunkBuilder;
+		std::unique_ptr<Navigator> navigator;
+		std::unique_ptr<ChunkBuilder> chunkBuilder;
 
 		boost::shared_mutex CHUNKS_MUTEX;
 		
@@ -59,8 +59,8 @@ namespace godot {
 		std::shared_ptr<Chunk> getChunk(int x, int z);
 		std::shared_ptr<Chunk> getChunk(int i);
 		std::shared_ptr<Chunk> getChunk(Vector3 position);
-		std::shared_ptr<GraphNavNode> getNode(Vector3 position);
-		std::shared_ptr<GraphNavNode> findClosestNode(Vector3 position);
+		std::shared_ptr<GraphNode> getNode(Vector3 position);
+		std::shared_ptr<GraphNode> findClosestNode(Vector3 position);
 		int getVoxel(Vector3 position);
 		int getWidth() {
 			return width;
@@ -73,9 +73,6 @@ namespace godot {
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void setVoxel(Vector3 position, float radius, bool set);
-		std::shared_ptr<Navigator> getNavigator() {
-			return navigator;
-		};
 		void setDimensions(Vector2 dimensions);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 	};

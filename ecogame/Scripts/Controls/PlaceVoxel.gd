@@ -11,7 +11,7 @@ var world
 func _process(delta : float) -> void:
 	time += delta
 	if time > TIME_PERIOD && controls.middle_pressed:
-		world.setVoxel(world.to_local(controls.middle_pressed_location), 4.5, set)
+		world.setVoxel(world.to_local(controls.middle_pressed_location), 5.0, set)
 		time = 0
 		
 

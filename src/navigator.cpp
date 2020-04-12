@@ -25,7 +25,7 @@ float Navigator::w(float distanceToGoal, float maxDistance) {
 	return 1 + w * w;
 }
 
-float Navigator::h(std::shared_ptr<GraphNavNode> node, std::shared_ptr<GraphNavNode> goal, float maxDistance) {
+float Navigator::h(std::shared_ptr<GraphNode> node, std::shared_ptr<GraphNode> goal, float maxDistance) {
 	float distanceToGoal = fn::manhattan(node->getPointU(), goal->getPointU());
 	return w(distanceToGoal, maxDistance) * distanceToGoal;
 }
@@ -44,22 +44,22 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 	start = bpt::microsec_clock::local_time();
 
 	Array path;
-	std::shared_ptr<GraphNavNode> startNode = world->findClosestNode(startV);
-	std::shared_ptr<GraphNavNode> goalNode = world->findClosestNode(goalV);
+	std::shared_ptr<GraphNode> startNode = world->findClosestNode(startV);
+	std::shared_ptr<GraphNode> goalNode = world->findClosestNode(goalV);
 
 	if (!startNode || !goalNode) {
 		setPathActor(path, actorInstanceId);
 		return;
 	}
 
-	std::shared_ptr<GraphNavNode> currentNode;
-	std::shared_ptr<GraphNavNode> neighbourNode;
+	std::shared_ptr<GraphNode> currentNode;
+	std::shared_ptr<GraphNode> neighbourNode;
 
-	unordered_map<size_t, std::shared_ptr<GraphNavNode>> nodeCache;
+	unordered_map<size_t, std::shared_ptr<GraphNode>> nodeCache;
 	vector<std::shared_ptr<Chunk>> chunks = world->getChunksRay(startNode->getPointU(), goalNode->getPointU());
 
 	for (auto chunk : chunks) {
-		std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> nodeFn = [&](auto next) {
+		std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> nodeFn = [&](auto next) {
 			nodeCache.insert(next);
 		};
 		chunk->forEachNode(nodeFn);
@@ -90,7 +90,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 		if (!currentNode) continue;
 
 		if (cHash == gHash) {
-			path.push_front(currentNode.get());
+			path.push_front(currentNode->getPointU());
 
 			while (cameFrom.find(cHash) != cameFrom.end()) {
 				currentNode = currentNode->getNeighbour(cHash);
@@ -101,7 +101,7 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 					break;
 				}
 
-				path.push_front(currentNode.get());
+				path.push_front(currentNode->getPointU());
 				cHash = cameFrom[cHash];
 			}
 

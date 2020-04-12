@@ -28,7 +28,7 @@ using namespace std;
 
 namespace godot {
 
-	class GraphNavNode;
+	class GraphNode;
 	class GraphEdge;
 	class VoxelWorld;
 	class EcoGame;
@@ -36,7 +36,7 @@ namespace godot {
 	class Chunk : public Node {
 		GODOT_CLASS(Chunk, Node)
 	private:
-		std::atomic<int> amountNodes = 0, amountVertices = 0, amountFaces = 0;
+		std::atomic<int> amountNodes = 0;
 		std::atomic<int> meshInstanceId = 0;
 		std::atomic<bool> navigatable = false;
 		std::atomic<bool> building = false;
@@ -46,9 +46,7 @@ namespace godot {
 
 		std::shared_ptr<VoxelWorld> world;
 		std::unique_ptr<VoxelData> volume;
-		unordered_map<size_t, std::shared_ptr<GraphNavNode>> nodes;
-		float** vertices;
-		int** faces;
+		unordered_map<size_t, std::shared_ptr<GraphNode>> nodes;
 		
 		OpenSimplexNoise* noise;
 
@@ -81,18 +79,6 @@ namespace godot {
 		bool isBuilding() {
 			return building;
 		};
-		float** getVertices() {
-			return vertices;
-		};
-		int** getFaces() {
-			return faces;
-		};
-		int getAmountVertices() {
-			return amountVertices;
-		};
-		int getAmountFaces() {
-			return amountFaces;
-		};
 		int getAmountNodes() {
 			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 			return nodes.size();
@@ -100,19 +86,11 @@ namespace godot {
 		float isVoxel(int x, int y, int z);
 		float getVoxel(int x, int y, int z);
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
-		std::shared_ptr<GraphNavNode> getNode(size_t hash);
-		std::shared_ptr<GraphNavNode> fetchNode(Vector3 position);
-		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNavNode>>)> func) {
+		std::shared_ptr<GraphNode> getNode(size_t hash);
+		std::shared_ptr<GraphNode> fetchNode(Vector3 position);
+		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func) {
 			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 			std::for_each(nodes.begin(), nodes.end(), func);
-		};
-		void forEachFace(std::function<void(int* face)> func) {
-			boost::shared_lock<std::shared_mutex> lock(FACES_MUTEX);
-			std::for_each(faces, faces + amountFaces, func);
-		};
-		void forEachVertex(std::function<void(float* vertex)> func) {
-			boost::shared_lock<std::shared_mutex> lock(VERTICES_MUTEX);
-			std::for_each(vertices, vertices + amountVertices, func);
 		};
 
 		void setWorld(std::shared_ptr<VoxelWorld> world) {
@@ -124,8 +102,8 @@ namespace godot {
 		void setCenterOfGravity(Vector3 cog) {
 			Chunk::cog = cog;
 		};
-		void setNavigatable() {
-			navigatable = true;
+		void setNavigatable(bool navigatable) {
+			Chunk::navigatable = navigatable;
 		};
 		void setBuilding(bool building) {
 			Chunk::building = building;
@@ -133,47 +111,13 @@ namespace godot {
 		void setMeshInstanceId(int meshInstanceId) {
 			Chunk::meshInstanceId = meshInstanceId;
 		};
-		float* getVertex(int i) {
-			if (i < 0 || i >= amountVertices) return NULL;
-			boost::shared_lock<std::shared_mutex> lock(VERTICES_MUTEX);
-			return vertices[i];
-		};
-		int* getFace(int i) {
-			if (i < 0 || i >= amountFaces) return NULL;
-			boost::shared_lock<std::shared_mutex> lock(FACES_MUTEX);
-			return faces[i];
-		};
-		void setVertices(float** vertices, int amountVertices) {
-			boost::unique_lock<std::shared_mutex> lock(VERTICES_MUTEX);
-			if (Chunk::amountVertices > 0) {
-				int i;
-				for (i = 0; i < Chunk::amountVertices; i++)
-					delete[] Chunk::vertices[i];
-				delete[] Chunk::vertices;
-			}
-
-			Chunk::vertices = vertices;
-			Chunk::amountVertices = amountVertices;
-		};
-		void setFaces(int** faces, int amountFaces) {
-			boost::unique_lock<std::shared_mutex> lock(FACES_MUTEX);
-			if (Chunk::amountFaces > 0) {
-				int i;
-				for (i = 0; i < Chunk::amountFaces; i++)
-					delete[] Chunk::faces[i];
-				delete[] Chunk::faces;
-			}
-
-			Chunk::faces = faces;
-			Chunk::amountFaces = amountFaces;
-		};
 		void setVoxel(int x, int y, int z, float v);
 		void buildVolume();
-		void addNode(std::shared_ptr<GraphNavNode> node);
-		void removeNode(std::shared_ptr<GraphNavNode> node);
+		void addNode(std::shared_ptr<GraphNode> node);
+		void removeNode(std::shared_ptr<GraphNode> node);
 		void addFaceNodes(Vector3 a, Vector3 b, Vector3 c);
-		void addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost);
-		std::shared_ptr<GraphNavNode> fetchOrCreateNode(Vector3 position);
+		void addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost);
+		std::shared_ptr<GraphNode> fetchOrCreateNode(Vector3 position);
 	};
 
 }

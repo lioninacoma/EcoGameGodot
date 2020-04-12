@@ -12,7 +12,7 @@
 using namespace std;
 
 namespace godot {
-	class GraphNavNode;
+	class GraphNode;
 
 	class EcoGame : public Node {
 		GODOT_CLASS(EcoGame, Node)

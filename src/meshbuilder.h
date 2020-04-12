@@ -19,7 +19,7 @@ using namespace std;
 namespace godot {
 
 	class VoxelWorld;
-	class GraphNavNode;
+	class GraphNode;
 
 	class MeshBuilder {
 	private:

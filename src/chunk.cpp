@@ -19,9 +19,6 @@ void Chunk::_register_methods() {
 Chunk::Chunk(Vector3 offset) {
 	Chunk::offset = offset;
 	Chunk::volume = std::make_unique<VoxelData>(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
-
-	int amountVertices, amountIndices, amountFaces;
-	const int VERTEX_BUFFER_SIZE = CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z * 6 * 4;
 }
 
 Chunk::~Chunk() {
@@ -79,29 +76,14 @@ Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 	return voxel;
 }
 
-#define VOXEL_RESOLUTION 800.0
+//#define USE_VOXEL_RESOLUTION
+#define VOXEL_RESOLUTION 2000.0
 
 void Chunk::setVoxel(int x, int y, int z, float v) {
-	//v = floorf(v * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
+#ifdef USE_VOXEL_RESOLUTION
+	v = floorf(v * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
+#endif // USE_VOXEL_RESOLUTION
 	volume->set(x, y, z, v);
-}
-
-std::shared_ptr<GraphNavNode> Chunk::fetchNode(Vector3 position) {
-	std::shared_ptr<GraphNavNode> node;
-	node = getNode(fn::hash(position));
-
-	if (!node) {
-		node = world->getNode(position);
-	}
-
-	return node;
-}
-
-std::shared_ptr<GraphNavNode> Chunk::getNode(size_t hash) {
-	boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
-	auto it = Chunk::nodes.find(hash);
-	if (it == Chunk::nodes.end()) return NULL;
-	return it->second;
 }
 
 float Chunk::isVoxel(int ix, int iy, int iz) {
@@ -115,8 +97,28 @@ float Chunk::isVoxel(int ix, int iy, int iz) {
 	float z = cz / (width * CHUNK_SIZE_X);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
 	s += noise->get_noise_3d(cx, cy, cz) / 8;
-	//return floorf(s * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
+#ifdef USE_VOXEL_RESOLUTION
+	s = floorf(s * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
+#endif // USE_VOXEL_RESOLUTION
 	return s;
+}
+
+std::shared_ptr<GraphNode> Chunk::fetchNode(Vector3 position) {
+	std::shared_ptr<GraphNode> node;
+	node = getNode(fn::hash(position));
+
+	if (!node) {
+		node = world->getNode(position);
+	}
+
+	return node;
+}
+
+std::shared_ptr<GraphNode> Chunk::getNode(size_t hash) {
+	boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
+	auto it = Chunk::nodes.find(hash);
+	if (it == Chunk::nodes.end()) return NULL;
+	return it->second;
 }
 
 //float Chunk::isVoxel(int ix, int iy, int iz) {
@@ -139,7 +141,7 @@ void Chunk::buildVolume() {
 	volumeBuilt = true;
 }
 
-void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
+void Chunk::addNode(std::shared_ptr<GraphNode> node) {
 	boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	size_t hash = node->getHash();
 
@@ -153,7 +155,7 @@ void Chunk::addNode(std::shared_ptr<GraphNavNode> node) {
 	}
 }
 
-void Chunk::removeNode(std::shared_ptr<GraphNavNode> node) {
+void Chunk::removeNode(std::shared_ptr<GraphNode> node) {
 	boost::unique_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	size_t hash = node->getHash();
 
@@ -171,36 +173,32 @@ void Chunk::removeNode(std::shared_ptr<GraphNavNode> node) {
 	}
 }
 
-void Chunk::addEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost) {
+void Chunk::addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost) {
+	if (*a == *b) return;
+
 	auto abEdge = a->getEdgeWithNode(b->getHash());
 	auto baEdge = b->getEdgeWithNode(a->getHash());
-	if (abEdge && baEdge) return;
 
 	if (abEdge && !baEdge) {
 		b->addEdge(abEdge);
-		return;
 	}
 	else if (!abEdge && baEdge) {
 		a->addEdge(baEdge);
-		return;
 	}
-
-	if (!abEdge && !baEdge) {
+	else if (!abEdge && !baEdge) {
 		auto edge = std::make_shared<GraphEdge>(a, b, cost);
 		a->addEdge(edge);
 		b->addEdge(edge);
 	}
 }
 
-std::shared_ptr<GraphNavNode> Chunk::fetchOrCreateNode(Vector3 position) {
-	std::shared_ptr<GraphNavNode> node;
+std::shared_ptr<GraphNode> Chunk::fetchOrCreateNode(Vector3 position) {
+	std::shared_ptr<GraphNode> node;
 
 	node = fetchNode(position);
 
 	if (!node) {
-		node = std::shared_ptr<GraphNavNode>(GraphNavNode::_new());
-		node->setPoint(position);
-		node->setVoxel(1);
+		node = std::make_shared<GraphNode>(position, 1);
 		addNode(node);
 	}
 
@@ -209,7 +207,7 @@ std::shared_ptr<GraphNavNode> Chunk::fetchOrCreateNode(Vector3 position) {
 
 const bool SHOW_NODES_DEBUG = false;
 void Chunk::addFaceNodes(Vector3 a, Vector3 b, Vector3 c) {
-	std::shared_ptr<GraphNavNode> aNode, bNode, cNode;
+	std::shared_ptr<GraphNode> aNode, bNode, cNode;
 	aNode = fetchOrCreateNode(a);
 	bNode = fetchOrCreateNode(b);
 	cNode = fetchOrCreateNode(c);

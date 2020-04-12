@@ -25,7 +25,7 @@ using namespace std;
 
 namespace godot {
 
-	class GraphNavNode;
+	class GraphNode;
 	class GraphEdge;
 	class EcoGame;
 	class VoxelWorld;
@@ -56,7 +56,7 @@ namespace godot {
 		};
 
 		float w(float distanceToGoal, float maxDistance);
-		float h(std::shared_ptr<GraphNavNode> node, std::shared_ptr<GraphNavNode> goal, float maxDistance);
+		float h(std::shared_ptr<GraphNode> node, std::shared_ptr<GraphNode> goal, float maxDistance);
 		void setPathActor(Array path, int actorInstanceId);
 
 		std::shared_ptr<VoxelWorld> world;

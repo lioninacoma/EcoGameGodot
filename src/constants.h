@@ -22,9 +22,9 @@
 #define VOXEL_CHANCE_NOISE_SCALE 1.0
 #define VOXEL_Y_NOISE_SCALE 1.0
 
-#define POOL_SIZE 8
+#define POOL_SIZE 16
 #define NAV_POOL_SIZE 32
-#define MAX_CHUNKS_BUILT_ASYNCH 8
+#define MAX_CHUNKS_BUILT_ASYNCH POOL_SIZE
 
 // navigator
 #define MAX_WEIGHT 5.0

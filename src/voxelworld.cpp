@@ -24,8 +24,8 @@ VoxelWorld::VoxelWorld() {
 	VoxelWorld::depth = 8;
 
 	self = std::shared_ptr<VoxelWorld>(this);
-	chunkBuilder = std::make_shared<ChunkBuilder>(self);
-	navigator = std::make_shared<Navigator>(self);
+	chunkBuilder = std::make_unique<ChunkBuilder>(self);
+	navigator = std::make_unique<Navigator>(self);
 	chunks = vector<std::shared_ptr<Chunk>>(width * depth);
 }
 
@@ -178,17 +178,17 @@ int VoxelWorld::getVoxel(Vector3 position) {
 		z % CHUNK_SIZE_Z);
 }
 
-std::shared_ptr<GraphNavNode> VoxelWorld::findClosestNode(Vector3 position) {
+std::shared_ptr<GraphNode> VoxelWorld::findClosestNode(Vector3 position) {
 	auto chunk = getChunk(position);
 	if (!chunk) return NULL;
 
-	std::shared_ptr<GraphNavNode> closest;
+	std::shared_ptr<GraphNode> closest;
 	closest = chunk->getNode(fn::hash(position));
 	if (closest) return closest;
 
 	float minDist = numeric_limits<float>::max();
 	float dist;
-	std::function<void(pair<size_t, std::shared_ptr<GraphNavNode>>)> lambda = [&](auto next) {
+	std::function<void(pair<size_t, std::shared_ptr<GraphNode>>)> lambda = [&](auto next) {
 		dist = next.second->getPoint()->distance_to(position);
 		if (dist < minDist) {
 			minDist = dist;
@@ -199,7 +199,7 @@ std::shared_ptr<GraphNavNode> VoxelWorld::findClosestNode(Vector3 position) {
 	return closest;
 }
 
-std::shared_ptr<GraphNavNode> VoxelWorld::getNode(Vector3 position) {
+std::shared_ptr<GraphNode> VoxelWorld::getNode(Vector3 position) {
 	auto chunk = getChunk(position);
 	if (!chunk) return NULL;
 	return chunk->getNode(fn::hash(position));

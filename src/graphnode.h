@@ -22,8 +22,7 @@ namespace godot {
 
 	class GraphEdge;
 
-	class GraphNavNode : public Node {
-		GODOT_CLASS(GraphNavNode, Node)
+	class GraphNode {
 	private:
 		unordered_map<size_t, std::shared_ptr<GraphEdge>> edges;
 
@@ -35,13 +34,9 @@ namespace godot {
 
 		boost::shared_mutex EDGES_MUTEX;
 	public:
-		static void _register_methods();
-
-		GraphNavNode() : GraphNavNode(Vector3(), 0) {};
-		GraphNavNode(Vector3 point, char voxel);
-		~GraphNavNode();
-
-		void _init(); // our initializer called by Godot
+		GraphNode() : GraphNode(Vector3(), 0) {};
+		GraphNode(Vector3 point, char voxel);
+		~GraphNode();
 
 		void addEdge(std::shared_ptr<GraphEdge> edge);
 		void removeEdgeWithNode(size_t nHash);
@@ -52,7 +47,7 @@ namespace godot {
 
 		void forEachEdge(std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> func);
 		std::shared_ptr<GraphEdge> getEdgeWithNode(size_t nHash);
-		std::shared_ptr<GraphNavNode> getNeighbour(size_t nHash);
+		std::shared_ptr<GraphNode> getNeighbour(size_t nHash);
 		std::shared_ptr<Vector3> getPoint();
 		std::shared_ptr<Vector3> getGravity();
 		Vector3 getPointU();
@@ -62,7 +57,7 @@ namespace godot {
 		bool isWalkable();
 		int getAmountEdges();
 
-		bool operator == (const GraphNavNode& o) const {
+		bool operator == (const GraphNode& o) const {
 			return hash == o.hash;
 		};
 	};

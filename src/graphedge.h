@@ -16,11 +16,11 @@ using namespace std;
 namespace godot {
 	class GraphEdge {
 	private:
-		std::shared_ptr<GraphNavNode> a;
-		std::shared_ptr<GraphNavNode> b;
+		std::shared_ptr<GraphNode> a;
+		std::shared_ptr<GraphNode> b;
 		std::atomic<float> cost;
 	public:
-		GraphEdge(std::shared_ptr<GraphNavNode> a, std::shared_ptr<GraphNavNode> b, float cost) {
+		GraphEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost) {
 			GraphEdge::a = a;
 			GraphEdge::b = b;
 			GraphEdge::cost = cost;
@@ -29,10 +29,10 @@ namespace godot {
 			a.reset();
 			b.reset();
 		};
-		std::shared_ptr<GraphNavNode> getA() {
+		std::shared_ptr<GraphNode> getA() {
 			return a;
 		};
-		std::shared_ptr<GraphNavNode> getB() {
+		std::shared_ptr<GraphNode> getB() {
 			return b;
 		};
 		float getCost() {
