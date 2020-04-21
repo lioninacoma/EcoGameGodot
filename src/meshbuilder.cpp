@@ -8,6 +8,8 @@ using namespace godot;
 
 MeshBuilder::MeshBuilder(std::shared_ptr<VoxelWorld> world) {
 	MeshBuilder::world = world;
+	MeshBuilder::worldWidth = world->getWidth();
+	MeshBuilder::worldDepth = world->getDepth();
 }
 
 MeshBuilder::~MeshBuilder() {
@@ -15,11 +17,17 @@ MeshBuilder::~MeshBuilder() {
 }
 
 float MeshBuilder::fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z) {
-	double s = 0;
+	double s = 1.0;
 
 	if (x < 0 || x >= CHUNK_SIZE_X || z < 0 || z >= CHUNK_SIZE_Z) {
-		auto neighbour = world->getChunk(chunk->getOffset() + Vector3(x, y, z));
-		if (neighbour && neighbour->getMeshInstanceId()) {
+		Vector3 position = chunk->getOffset() + Vector3(x, y, z);
+		
+		if (position.x < 0 || position.x >= worldWidth * CHUNK_SIZE_X
+			|| position.z < 0 || position.z >= worldDepth * CHUNK_SIZE_Z)
+			return s;
+
+		auto neighbour = world->getChunk(position);
+		if (neighbour) {
 			s = neighbour->getVoxel(
 				(x + CHUNK_SIZE_X) % CHUNK_SIZE_X,
 				(y + CHUNK_SIZE_Y) % CHUNK_SIZE_Y,
@@ -111,14 +119,12 @@ int* MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, 
 	int x[3];
 	int counts[2] = { 0, 0 };
 	Vector3 o = chunk->getOffset();
-	int width = world->getWidth();
-	int depth = world->getDepth();
 
 	for (x[2] = 0; x[2] < DIMS[2] - 1; ++x[2])
 		for (x[1] = 0; x[1] < DIMS[1] - 1; ++x[1])
 			for (x[0] = 0; x[0] < DIMS[0] - 1; ++x[0]) {
-				if (o.x + x[0] >= CHUNK_SIZE_X * width) continue;
-				if (o.z + x[2] >= CHUNK_SIZE_Z * depth) continue;
+				if (o.x + x[0] >= CHUNK_SIZE_X * worldWidth) continue;
+				if (o.z + x[2] >= CHUNK_SIZE_Z * worldDepth) continue;
 				buildCell(x[0], x[1], x[2], chunk, vertices, faces, counts);
 			}
 

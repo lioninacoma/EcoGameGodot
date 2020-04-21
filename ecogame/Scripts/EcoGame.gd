@@ -17,7 +17,7 @@ func _ready() -> void:
 	smooth_mat.albedo_color = Color(0.31, 0.46, 0.21)
 	
 	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 16)
-	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 10)
+	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 8)
 	
 	add_child(celestial_body_a)
 	add_child(celestial_body_b)

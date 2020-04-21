@@ -5,6 +5,7 @@
 #include <Node.hpp>
 #include <MeshInstance.hpp>
 #include <OpenSimplexNoise.hpp>
+#include <FuncRef.hpp>
 
 #include <vector>
 #include <unordered_map>
@@ -43,6 +44,7 @@ namespace godot {
 		std::atomic<bool> volumeBuilt = false;
 		
 		Vector3 offset, cog;
+		Ref<FuncRef> isVoxelFn;
 
 		std::shared_ptr<VoxelWorld> world;
 		std::unique_ptr<VoxelData> volume;
@@ -64,53 +66,26 @@ namespace godot {
 
 		void _init(); // our initializer called by Godot
 		
-		Vector3 getOffset() {
-			return offset;
-		};
-		Vector3 getCenterOfGravity() {
-			return cog;
-		};
-		int getMeshInstanceId() {
-			return meshInstanceId;
-		};
-		bool isNavigatable() {
-			return navigatable;
-		};
-		bool isBuilding() {
-			return building;
-		};
-		int getAmountNodes() {
-			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
-			return nodes.size();
-		};
+		Vector3 getOffset();
+		Vector3 getCenterOfGravity();
+		bool isNavigatable();
+		bool isBuilding();
+		int getMeshInstanceId();
+		int getAmountNodes();
 		float isVoxel(int x, int y, int z);
 		float getVoxel(int x, int y, int z);
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
 		std::shared_ptr<GraphNode> getNode(size_t hash);
 		std::shared_ptr<GraphNode> fetchNode(Vector3 position);
-		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func) {
-			boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
-			std::for_each(nodes.begin(), nodes.end(), func);
-		};
+		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func);
 
-		void setWorld(std::shared_ptr<VoxelWorld> world) {
-			Chunk::world = world;
-		};
-		void setOffset(Vector3 offset) {
-			Chunk::offset = offset;
-		};
-		void setCenterOfGravity(Vector3 cog) {
-			Chunk::cog = cog;
-		};
-		void setNavigatable(bool navigatable) {
-			Chunk::navigatable = navigatable;
-		};
-		void setBuilding(bool building) {
-			Chunk::building = building;
-		};
-		void setMeshInstanceId(int meshInstanceId) {
-			Chunk::meshInstanceId = meshInstanceId;
-		};
+		void setWorld(std::shared_ptr<VoxelWorld> world);
+		void setOffset(Vector3 offset);
+		void setCenterOfGravity(Vector3 cog);
+		void setNavigatable(bool navigatable);
+		void setBuilding(bool building);
+		void setMeshInstanceId(int meshInstanceId);
+		void setIsVoxelFn(Ref<FuncRef> fnRef);
 		void setVoxel(int x, int y, int z, float v);
 		void buildVolume();
 		void addNode(std::shared_ptr<GraphNode> node);

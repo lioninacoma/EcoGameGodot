@@ -8,6 +8,7 @@
 #include <String.hpp>
 #include <Array.hpp>
 #include <Vector3.hpp>
+#include <FuncRef.hpp>
 
 #include <limits>
 #include <vector>
@@ -40,6 +41,7 @@ namespace godot {
 		vector<std::shared_ptr<Chunk>> chunks;
 		std::unique_ptr<Navigator> navigator;
 		std::unique_ptr<ChunkBuilder> chunkBuilder;
+		Ref<FuncRef> isVoxelFn;
 
 		boost::shared_mutex CHUNKS_MUTEX;
 		
@@ -62,14 +64,11 @@ namespace godot {
 		std::shared_ptr<GraphNode> getNode(Vector3 position);
 		std::shared_ptr<GraphNode> findClosestNode(Vector3 position);
 		int getVoxel(Vector3 position);
-		int getWidth() {
-			return width;
-		};
-		int getDepth() {
-			return depth;
-		};
+		int getWidth();
+		int getDepth();
 
 		void buildChunks();
+		void setIsVoxelFn(Variant fnRef);
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void setVoxel(Vector3 position, float radius, bool set);

@@ -6,6 +6,7 @@ const CHUNK_SIZE_Z : int = 8
 var PICK_DISTANCE : int = 200
 const BUILD_DISTANCE : int = 1024
 const WORLD_RADIUS : int = 64
+const NOISE_SEED : int = 123
 
 var materials : Array = []
 var grassMaterial : SpatialMaterial = SpatialMaterial.new()

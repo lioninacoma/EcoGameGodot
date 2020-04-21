@@ -34,6 +34,31 @@ void Chunk::_init() {
 	Chunk::noise->set_persistence(0.5);
 }
 
+Vector3 Chunk::getOffset() {
+	return offset;
+}
+
+Vector3 Chunk::getCenterOfGravity() {
+	return cog;
+}
+
+int Chunk::getMeshInstanceId() {
+	return meshInstanceId;
+}
+
+bool Chunk::isNavigatable() {
+	return navigatable;
+}
+
+bool Chunk::isBuilding() {
+	return building;
+}
+
+int Chunk::getAmountNodes() {
+	boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
+	return nodes.size();
+}
+
 float Chunk::getVoxel(int x, int y, int z) {
 	return volume->get(x, y, z);
 }
@@ -76,6 +101,39 @@ Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
 	return voxel;
 }
 
+void Chunk::forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func) {
+	boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
+	std::for_each(nodes.begin(), nodes.end(), func);
+}
+
+void Chunk::setWorld(std::shared_ptr<VoxelWorld> world) {
+	Chunk::world = world;
+}
+
+void Chunk::setOffset(Vector3 offset) {
+	Chunk::offset = offset;
+}
+
+void Chunk::setCenterOfGravity(Vector3 cog) {
+	Chunk::cog = cog;
+}
+
+void Chunk::setNavigatable(bool navigatable) {
+	Chunk::navigatable = navigatable;
+}
+
+void Chunk::setBuilding(bool building) {
+	Chunk::building = building;
+}
+
+void Chunk::setMeshInstanceId(int meshInstanceId) {
+	Chunk::meshInstanceId = meshInstanceId;
+}
+
+void Chunk::setIsVoxelFn(Ref<FuncRef> fnRef) {
+	Chunk::isVoxelFn = fnRef;
+}
+
 //#define USE_VOXEL_RESOLUTION
 #define VOXEL_RESOLUTION 2000.0
 
@@ -87,16 +145,18 @@ void Chunk::setVoxel(int x, int y, int z, float v) {
 }
 
 float Chunk::isVoxel(int ix, int iy, int iz) {
-	int width = world->getWidth();
-	float d = 0.5;
-	float cx = ix + offset.x;
-	float cy = iy + offset.y;
-	float cz = iz + offset.z;
-	float x = cx / (width * CHUNK_SIZE_X);
-	float y = cy / (width * CHUNK_SIZE_X);
-	float z = cz / (width * CHUNK_SIZE_X);
-	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
-	s += noise->get_noise_3d(cx, cy, cz) / 8;
+	//int width = world->getWidth();
+	//float d = 0.5;
+	//float cx = ix + offset.x;
+	//float cy = iy + offset.y;
+	//float cz = iz + offset.z;
+	//float x = cx / (width * CHUNK_SIZE_X);
+	//float y = cy / (width * CHUNK_SIZE_X);
+	//float z = cz / (width * CHUNK_SIZE_X);
+	//float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
+	//s += noise->get_noise_3d(cx, cy, cz) / 8;
+
+	float s = isVoxelFn->call_funcv(Array::make(ix, iy, iz, offset));
 #ifdef USE_VOXEL_RESOLUTION
 	s = floorf(s * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
 #endif // USE_VOXEL_RESOLUTION

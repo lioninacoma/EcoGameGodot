@@ -16,17 +16,18 @@ void VoxelWorld::_register_methods() {
 	register_method("getVoxel", &VoxelWorld::getVoxel);
 	register_method("buildChunks", &VoxelWorld::buildChunks);
 	register_method("navigate", &VoxelWorld::navigate);
+	register_method("setIsVoxelFn", &VoxelWorld::setIsVoxelFn);
 	register_method("_notification", &VoxelWorld::_notification);
 }
 
 VoxelWorld::VoxelWorld() {
-	VoxelWorld::width = 8;
-	VoxelWorld::depth = 8;
+	VoxelWorld::width = 16;
+	VoxelWorld::depth = 16;
 
 	self = std::shared_ptr<VoxelWorld>(this);
 	chunkBuilder = std::make_unique<ChunkBuilder>(self);
 	navigator = std::make_unique<Navigator>(self);
-	chunks = vector<std::shared_ptr<Chunk>>(width * depth);
+	chunks = vector<std::shared_ptr<Chunk>>(size_t(width * depth));
 }
 
 VoxelWorld::~VoxelWorld() {
@@ -35,16 +36,6 @@ VoxelWorld::~VoxelWorld() {
 
 void VoxelWorld::_init() {
 
-}
-
-void VoxelWorld::_notification(const int64_t what) {
-	if (what == Node::NOTIFICATION_READY) {}
-}
-
-void VoxelWorld::setDimensions(Vector2 dimensions) {
-	VoxelWorld::width = dimensions.x;
-	VoxelWorld::depth = dimensions.y;
-	chunks.resize(width * depth);
 }
 
 std::shared_ptr<Chunk> VoxelWorld::intersection(int x, int y, int z) {
@@ -64,6 +55,7 @@ vector<std::shared_ptr<Chunk>> VoxelWorld::getChunksRay(Vector3 from, Vector3 to
 }
 
 std::shared_ptr<Chunk> VoxelWorld::getChunk(int x, int z) {
+	if (x < 0 || x >= width || z < 0 || z >= depth) return NULL;
 	int i = fn::fi2(x, z, width);
 	return getChunk(i);
 }
@@ -76,6 +68,10 @@ std::shared_ptr<Chunk> VoxelWorld::getChunk(int i) {
 
 std::shared_ptr<Chunk> VoxelWorld::getChunk(Vector3 position) {
 	//Godot::print(String("get chunk at: {0}").format(Array::make(position)));
+	if (position.x < 0 || position.x >= width * CHUNK_SIZE_X
+		|| position.z < 0 || position.z >= depth * CHUNK_SIZE_Z)
+		return NULL;
+
 	int cx, cz;
 	Vector3 chunkOffset = position;
 	chunkOffset = fn::toChunkCoords(chunkOffset);
@@ -87,6 +83,26 @@ std::shared_ptr<Chunk> VoxelWorld::getChunk(Vector3 position) {
 	return chunk;
 }
 
+int VoxelWorld::getWidth() {
+	return width;
+}
+
+int VoxelWorld::getDepth() {
+	return depth;
+}
+
+void VoxelWorld::_notification(const int64_t what) {
+	if (what == Node::NOTIFICATION_READY) {}
+}
+
+void VoxelWorld::setDimensions(Vector2 dimensions) {
+	VoxelWorld::width = dimensions.x;
+	VoxelWorld::depth = dimensions.y;
+	// TODO: NOT WORKING? INITIAL WIDTH AND DEPTH ARE SET
+	//chunks.resize(width * depth);
+	//chunks = vector<std::shared_ptr<Chunk>>(size_t(dimensions.x * dimensions.y));
+}
+
 void VoxelWorld::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 	/*startV = this->to_local(startV);
 	goalV = this->to_local(goalV);*/
@@ -95,6 +111,11 @@ void VoxelWorld::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 
 void VoxelWorld::navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 	navigator->navigate(startV, goalV, actorInstanceId);
+}
+
+void VoxelWorld::setIsVoxelFn(Variant fnRef) {
+	Ref<FuncRef> ref = Object::cast_to<FuncRef>(fnRef);
+	VoxelWorld::isVoxelFn = ref;
 }
 
 void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
@@ -217,6 +238,8 @@ void VoxelWorld::setChunk(int i, std::shared_ptr<Chunk> chunk) {
 }
 
 void VoxelWorld::buildChunksTask(std::shared_ptr<VoxelWorld> world) {
+	if (isVoxelFn == NULL) return;
+
 	int x, y, i;
 	std::shared_ptr<Chunk> chunk;
 
@@ -231,6 +254,7 @@ void VoxelWorld::buildChunksTask(std::shared_ptr<VoxelWorld> world) {
 			chunk->setOffset(Vector3(x * CHUNK_SIZE_X, 0, y * CHUNK_SIZE_Z));
 			chunk->setCenterOfGravity(cog);
 			chunk->setWorld(world);
+			chunk->setIsVoxelFn(isVoxelFn);
 			setChunk(x, y, chunk);
 			chunk->buildVolume();
 		}
