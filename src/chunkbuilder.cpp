@@ -24,7 +24,7 @@ Vector3 addNormal(Vector3 src, Vector3 normal) {
 
 void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	if (!chunk) return;
-	Node* game = EcoGame::get()->getNode();
+	Node* parent = world->get_parent();
 
 	bpt::ptime start, stop;
 	bpt::time_duration dur;
@@ -63,7 +63,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			dur = stop - start;
 			ms = dur.total_milliseconds();
 
-			game->call_deferred("delete_chunk", chunk.get(), world.get());
+			parent->call_deferred("delete_chunk", chunk.get(), world.get());
 
 			if (chunk->isNavigatable())
 				Godot::print(String("chunk at {0} deleted").format(Array::make(chunk->getOffset(), ms)));
@@ -83,7 +83,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		
 		PoolVector3Array vertexArray;
 		PoolVector3Array normalArray;
-		//PoolVector2Array uvArray;
+		PoolVector2Array uvArray;
 		PoolIntArray indexArray;
 		PoolVector3Array collisionArray;
 
@@ -91,13 +91,13 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		meshArrays.resize(Mesh::ARRAY_MAX);
 		vertexArray.resize(amountVertices);
 		normalArray.resize(amountVertices);
-		//uvArray.resize(amountVertices);
+		uvArray.resize(amountVertices);
 		indexArray.resize(amountIndices);
 		collisionArray.resize(amountIndices);
 
 		PoolVector3Array::Write vertexArrayWrite = vertexArray.write();
 		PoolVector3Array::Write normalArrayWrite = normalArray.write();
-		//PoolVector2Array::Write uvArrayWrite = uvArray.write();
+		PoolVector2Array::Write uvArrayWrite = uvArray.write();
 		PoolIntArray::Write indexArrayWrite = indexArray.write();
 		PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
 
@@ -106,10 +106,15 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		};
 		chunk->forEachNode(lambda);
 
+		float width = world->getWidth() * CHUNK_SIZE_X;
+		float depth = world->getDepth() * CHUNK_SIZE_Z;
+
 		for (i = 0; i < amountVertices; i++) {
 			//Godot::print(String("v {0}").format(Array::make(Vector3(v[0], v[1], v[2]))));
 			vertexArrayWrite[i] = Vector3(vertices[i][0], vertices[i][1], vertices[i][2]);
 			normalArrayWrite[i] = Vector3(0, 0, 0);
+			//uvArrayWrite[i] = Vector2((width - vertices[i][0]) / width, vertices[i][2] / depth);
+			uvArrayWrite[i] = Vector2(vertices[i][0], vertices[i][2]);
 			nodePoints.erase(fn::hash(vertexArray[i]));
 		}
 
@@ -169,13 +174,13 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
 		meshArrays[Mesh::ARRAY_NORMAL] = normalArray;
-		//meshArrays[Mesh::ARRAY_TEX_UV] = uvArray;
+		meshArrays[Mesh::ARRAY_TEX_UV] = uvArray;
 		meshArrays[Mesh::ARRAY_INDEX] = indexArray;
 		
 		meshData[0] = meshArrays;
 		meshData[1] = collisionArray;
 		
-		game->call_deferred("build_chunk", meshData, chunk.get(), world.get());
+		parent->call_deferred("build_chunk", meshData, chunk.get(), world.get());
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);

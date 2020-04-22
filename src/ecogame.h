@@ -19,7 +19,7 @@ namespace godot {
 
 	private:
 	public:
-		static std::shared_ptr<EcoGame> get();;
+		static std::shared_ptr<EcoGame> get();
 
 		Node* getNode() {
 			return get_tree()->get_root()->get_node("EcoGame");
