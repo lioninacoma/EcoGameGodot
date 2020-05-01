@@ -6,6 +6,7 @@
 #include <Mesh.hpp>
 #include <Texture.hpp>
 #include <ImmediateGeometry.hpp>
+#include <FuncRef.hpp>
 
 #include <deque>
 #include <queue>
@@ -60,10 +61,12 @@ namespace godot {
 		void setPathActor(Array path, int actorInstanceId);
 
 		std::shared_ptr<VoxelWorld> world;
+		Ref<FuncRef> isWalkableFn;
 	public:
 		Navigator(std::shared_ptr<VoxelWorld> world);
 		~Navigator();
 
+		void setIsWalkableFn(Ref<FuncRef> fnRef);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 	};
 

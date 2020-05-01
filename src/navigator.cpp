@@ -12,10 +12,15 @@ using namespace godot;
 
 Navigator::Navigator(std::shared_ptr<VoxelWorld> world) {
 	Navigator::world = world;
+	Navigator::isWalkableFn = (Ref<FuncRef>) NULL;
 }
 
 Navigator::~Navigator() {
 
+}
+
+void Navigator::setIsWalkableFn(Ref<FuncRef> fnRef) {
+	Navigator::isWalkableFn = fnRef;
 }
 
 float Navigator::w(float distanceToGoal, float maxDistance) {
@@ -26,7 +31,7 @@ float Navigator::w(float distanceToGoal, float maxDistance) {
 }
 
 float Navigator::h(std::shared_ptr<GraphNode> node, std::shared_ptr<GraphNode> goal, float maxDistance) {
-	float distanceToGoal = fn::manhattan(node->getPointU(), goal->getPointU());
+	float distanceToGoal = fn::euclidean(node->getPointU(), goal->getPointU());
 	return w(distanceToGoal, maxDistance) * distanceToGoal;
 }
 
@@ -69,9 +74,13 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 	unordered_map<size_t, Vector3> frontierPoints;
 	unordered_map<size_t, size_t> cameFrom;
 	unordered_map<size_t, float> costSoFar;
+
+	Ref<FuncRef> conditionRef;
+	bool walkable;
+	//if (condition) conditionRef = (Ref<FuncRef>) Object::cast_to<FuncRef>(condition);
 	
 	size_t cHash, nHash, sHash = startNode->getHash(), gHash = goalNode->getHash();
-	float maxDistance = fn::manhattan(startNode->getPointU(), goalNode->getPointU());
+	float maxDistance = fn::euclidean(startNode->getPointU(), goalNode->getPointU());
 
 	frontier.put(sHash, 0);
 	costSoFar[sHash] = 0;
@@ -115,9 +124,13 @@ void Navigator::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
 			return;
 		}
 
+		//conditionRef->call_funcv(Array::make(currentNode->getPointU(), currentNode->getPointU(), currentNode->getNormalU()));
+
 		std::function<void(std::pair<size_t, std::shared_ptr<GraphEdge>>)> fn = [&](auto next) {
 			neighbourNode = (next.second->getA()->getHash() != cHash) ? next.second->getA() : next.second->getB();
-			if (neighbourNode->isWalkable()) {
+			walkable = (isWalkableFn != NULL) ? (bool)isWalkableFn->call_funcv(Array::make(currentNode->getPointU(), neighbourNode->getPointU(), neighbourNode->getNormalU())) : true;
+			//Array::make(currentNode->getPointU(), neighbourNode->getPointU(), neighbourNode->getNormalU());
+			if (walkable) {
 				nHash = neighbourNode->getHash();
 				float newCost = costSoFar[cHash] + next.second->getCost();
 				if (costSoFar.find(nHash) == costSoFar.end()

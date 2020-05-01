@@ -1,10 +1,11 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Scripts/Actor/Actor.gd" type="Script" id=1]
 [ext_resource path="res://Scripts/Actor/Behaviour/BehaviourContext.gd" type="Script" id=2]
 [ext_resource path="res://Scripts/Actor/Behaviour/BehaviourTree.gd" type="Script" id=3]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/FollowPath.gd" type="Script" id=4]
 [ext_resource path="res://Scripts/Actor/Behaviour/Sequence.gd" type="Script" id=5]
+[ext_resource path="res://Scripts/Actor/Behaviour/Impl/MoveToWaypoint.gd" type="Script" id=6]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/PathFound.gd" type="Script" id=7]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/WaypointFound.gd" type="Script" id=13]
 [ext_resource path="res://Scripts/Actor/Behaviour/Impl/FindPathToWaypoint.gd" type="Script" id=14]
@@ -31,23 +32,31 @@ material/0 = null
 [node name="Bin" type="Spatial" parent="."]
 visible = false
 
+[node name="Root" type="Node" parent="Bin"]
+script = ExtResource( 5 )
+
+[node name="WaypointFound" type="Node" parent="Bin/Root"]
+script = ExtResource( 13 )
+
+[node name="FindPathToWaypoint" type="Node" parent="Bin/Root/WaypointFound"]
+script = ExtResource( 14 )
+
+[node name="PathFound" type="Node" parent="Bin/Root/WaypointFound"]
+script = ExtResource( 7 )
+
+[node name="FollowPath" type="Node" parent="Bin/Root/WaypointFound/PathFound"]
+script = ExtResource( 4 )
+
+[node name="Repeat" type="Node" parent="Bin/Root"]
+
 [node name="BehaviourTree" type="Node" parent="."]
 script = ExtResource( 3 )
 
 [node name="Root" type="Node" parent="BehaviourTree"]
 script = ExtResource( 5 )
 
-[node name="WaypointFound" type="Node" parent="BehaviourTree/Root"]
-script = ExtResource( 13 )
-
-[node name="FindPathToWaypoint" type="Node" parent="BehaviourTree/Root/WaypointFound"]
-script = ExtResource( 14 )
-
-[node name="PathFound" type="Node" parent="BehaviourTree/Root/WaypointFound"]
-script = ExtResource( 7 )
-
-[node name="FollowPath" type="Node" parent="BehaviourTree/Root/WaypointFound/PathFound"]
-script = ExtResource( 4 )
+[node name="MoveToWaypoint" type="Node" parent="BehaviourTree/Root"]
+script = ExtResource( 6 )
 
 [node name="Repeat" type="Node" parent="BehaviourTree/Root"]
 

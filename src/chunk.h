@@ -43,7 +43,7 @@ namespace godot {
 		std::atomic<bool> building = false;
 		std::atomic<bool> volumeBuilt = false;
 		
-		Vector3 offset, cog;
+		Vector3 offset;
 		Ref<FuncRef> isVoxelFn;
 
 		std::shared_ptr<VoxelWorld> world;
@@ -67,7 +67,6 @@ namespace godot {
 		void _init(); // our initializer called by Godot
 		
 		Vector3 getOffset();
-		Vector3 getCenterOfGravity();
 		bool isNavigatable();
 		bool isBuilding();
 		int getMeshInstanceId();
@@ -81,7 +80,6 @@ namespace godot {
 
 		void setWorld(std::shared_ptr<VoxelWorld> world);
 		void setOffset(Vector3 offset);
-		void setCenterOfGravity(Vector3 cog);
 		void setNavigatable(bool navigatable);
 		void setBuilding(bool building);
 		void setMeshInstanceId(int meshInstanceId);
@@ -90,9 +88,9 @@ namespace godot {
 		void buildVolume();
 		void addNode(std::shared_ptr<GraphNode> node);
 		void removeNode(std::shared_ptr<GraphNode> node);
-		void addFaceNodes(Vector3 a, Vector3 b, Vector3 c);
+		void addFaceNodes(Vector3 a, Vector3 b, Vector3 c, Vector3 normal);
 		void addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost);
-		std::shared_ptr<GraphNode> fetchOrCreateNode(Vector3 position);
+		std::shared_ptr<GraphNode> fetchOrCreateNode(Vector3 position, Vector3 normal);
 	};
 
 }

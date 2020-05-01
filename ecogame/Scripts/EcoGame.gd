@@ -14,11 +14,14 @@ func _ready() -> void:
 	add_child(Lib.instance)
 	Lib.game = self
 	
-	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 16)
-	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 8)
+#	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 16)
+#	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 8)
+	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 8)
+#	var iron_vein = IronVein.new(Vector3(64, 64, 64), 8)
 	
 	add_child(celestial_body_a)
-	add_child(celestial_body_b)
+#	add_child(celestial_body_b)
+#	add_child(iron_vein)
 
 func _process(delta : float) -> void:
 	time += delta

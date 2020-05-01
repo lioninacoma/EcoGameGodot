@@ -83,7 +83,6 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		
 		PoolVector3Array vertexArray;
 		PoolVector3Array normalArray;
-		PoolVector2Array uvArray;
 		PoolIntArray indexArray;
 		PoolVector3Array collisionArray;
 
@@ -91,31 +90,26 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		meshArrays.resize(Mesh::ARRAY_MAX);
 		vertexArray.resize(amountVertices);
 		normalArray.resize(amountVertices);
-		uvArray.resize(amountVertices);
 		indexArray.resize(amountIndices);
 		collisionArray.resize(amountIndices);
 
 		PoolVector3Array::Write vertexArrayWrite = vertexArray.write();
 		PoolVector3Array::Write normalArrayWrite = normalArray.write();
-		PoolVector2Array::Write uvArrayWrite = uvArray.write();
 		PoolIntArray::Write indexArrayWrite = indexArray.write();
 		PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
 
-		std::function<void(pair<size_t, std::shared_ptr<GraphNode>>)> lambda = [&](auto next) {
-			nodePoints.emplace(next.first, next.second->getPointU());
-		};
-		chunk->forEachNode(lambda);
-
-		float width = world->getWidth() * CHUNK_SIZE_X;
-		float depth = world->getDepth() * CHUNK_SIZE_Z;
-
+		if (chunk->isNavigatable()) {
+			std::function<void(pair<size_t, std::shared_ptr<GraphNode>>)> lambda = [&](auto next) {
+				nodePoints.emplace(next.first, next.second->getPointU());
+			};
+			chunk->forEachNode(lambda);
+		}
+		
 		for (i = 0; i < amountVertices; i++) {
-			//Godot::print(String("v {0}").format(Array::make(Vector3(v[0], v[1], v[2]))));
 			vertexArrayWrite[i] = Vector3(vertices[i][0], vertices[i][1], vertices[i][2]);
 			normalArrayWrite[i] = Vector3(0, 0, 0);
-			//uvArrayWrite[i] = Vector2((width - vertices[i][0]) / width, vertices[i][2] / depth);
-			uvArrayWrite[i] = Vector2(vertices[i][0], vertices[i][2]);
-			nodePoints.erase(fn::hash(vertexArray[i]));
+			if (chunk->isNavigatable())
+				nodePoints.erase(fn::hash(vertexArray[i]));
 		}
 
 		for (auto nodePoint : nodePoints) {
@@ -129,22 +123,22 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			indexArrayWrite[n + 1] = faces[i][1];
 			indexArrayWrite[n + 2] = faces[i][0];
 
-			Vector3 x0 = vertexArray[faces[i][2]];
+			Vector3 x0 = vertexArray[faces[i][0]];
 			Vector3 x1 = vertexArray[faces[i][1]];
-			Vector3 x2 = vertexArray[faces[i][0]];
+			Vector3 x2 = vertexArray[faces[i][2]];
 			Vector3 v0 = x0 - x2;
 			Vector3 v1 = x1 - x2;
-			Vector3 normal = v1.cross(v0).normalized();
+			Vector3 normal = v0.cross(v1).normalized();
 
 			normalArrayWrite[faces[i][0]] = addNormal(normalArrayWrite[faces[i][0]], normal);
 			normalArrayWrite[faces[i][1]] = addNormal(normalArrayWrite[faces[i][1]], normal);
 			normalArrayWrite[faces[i][2]] = addNormal(normalArrayWrite[faces[i][2]], normal);
 
-			collisionArrayWrite[n] = vertexArray[faces[i][2]];
+			collisionArrayWrite[n] = vertexArray[faces[i][0]];
 			collisionArrayWrite[n + 1] = vertexArray[faces[i][1]];
-			collisionArrayWrite[n + 2] = vertexArray[faces[i][0]];
+			collisionArrayWrite[n + 2] = vertexArray[faces[i][2]];
 			
-			chunk->addFaceNodes(x0, x1, x2);
+			chunk->addFaceNodes(x0, x1, x2, normal);
 		}
 
 #ifdef DEBUG_NODE_COUNT
@@ -174,7 +168,6 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
  
 		meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;
 		meshArrays[Mesh::ARRAY_NORMAL] = normalArray;
-		meshArrays[Mesh::ARRAY_TEX_UV] = uvArray;
 		meshArrays[Mesh::ARRAY_INDEX] = indexArray;
 		
 		meshData[0] = meshArrays;

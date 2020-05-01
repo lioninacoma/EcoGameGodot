@@ -1,15 +1,15 @@
 extends KinematicBody
 class_name Actor
 
-var world
+var voxel_world
 var velocity = Vector3()
 var acceleration = Vector3()
 
 # walk variables
 var gravity = Vector3(0, -9.8, 0)
-const MAX_SPEED = 6
-const ACCEL = 2
+const MAX_SPEED = 3
 
+onready var eco_game = get_tree().get_root().get_node("EcoGame")
 onready var context = $BehaviourContext
 
 func _ready():
@@ -19,11 +19,11 @@ func _ready():
 func _process(delta : float) -> void:
 	update(delta)
 
-func set_world(world):
-	self.world = world
+func set_voxel_world(voxel_world):
+	self.voxel_world = voxel_world
 
-func get_world():
-	return world
+func get_voxel_world():
+	return voxel_world
 
 func apply_force(force : Vector3):
 	acceleration += force
@@ -36,9 +36,62 @@ func update(delta : float) -> void:
 	move_and_slide(velocity, Vector3(0, 1, 0))
 	acceleration *= 0
 
-func balance(g : Vector3):
-	var basis = get_global_transform().basis
-	var at = basis.z.cross(g)
-	var pos = global_transform.origin
-	look_at_from_position(Vector3(0, 0, 0), at, basis.y)
-	global_transform.origin = pos
+	var cog = voxel_world.get_parent().get_center_of_gravity()
+	var g = (transform.origin - cog).normalized()
+	var yB = global_transform.basis.y
+	var o = global_transform.origin
+	var start = o + yB
+	var end   = o - yB
+	var space_state = eco_game.get_world().direct_space_state
+	var result = space_state.intersect_ray(start, end)
+	
+	if result:
+		var mesh = result.collider.get_parent().mesh
+		var arrays = mesh.surface_get_arrays(0)
+		var vertices = arrays[Mesh.ARRAY_VERTEX]
+		var indices  = arrays[Mesh.ARRAY_INDEX]
+		var normals  = arrays[Mesh.ARRAY_NORMAL]
+		
+		start = voxel_world.to_local(start)
+		end   = voxel_world.to_local(end)
+		var normal = result.normal
+		
+		for i in range(0, indices.size(), 3):
+			var a_i = indices[i]
+			var b_i = indices[i + 1]
+			var c_i = indices[i + 2]
+			var a = vertices[a_i]
+			var b = vertices[b_i]
+			var c = vertices[c_i]
+			if Geometry.segment_intersects_triangle(start, end, a, b, c):
+				normal = (normals[a_i] + normals[b_i] + normals[c_i]).normalized()
+				break
+		
+		rotate_to(normal, delta)
+#		rotate_to(g + normal, delta)
+
+var source_basis = null
+var target_basis = null
+var lerp_i = 0
+
+func rotate_to(normal : Vector3, delta : float):
+	lerp_i += 3 * delta
+
+	if target_basis:
+		if lerp_i <= 1.0:
+			transform.basis = source_basis.slerp(target_basis, lerp_i)
+			return
+		transform.basis = target_basis
+
+	source_basis = Basis(transform.basis)
+	var D = normal
+	var W0 = Vector3(-D.y, D.x, 0)
+	var U0 = W0.cross(D)
+	target_basis = Basis(W0, D, U0).orthonormalized()
+	lerp_i = 0
+
+func set_rotation_to(normal : Vector3):
+	var D = normal
+	var W0 = Vector3(-D.y, D.x, 0)
+	var U0 = W0.cross(D)
+	transform.basis = Basis(W0, D, U0).orthonormalized()

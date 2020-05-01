@@ -38,10 +38,6 @@ Vector3 Chunk::getOffset() {
 	return offset;
 }
 
-Vector3 Chunk::getCenterOfGravity() {
-	return cog;
-}
-
 int Chunk::getMeshInstanceId() {
 	return meshInstanceId;
 }
@@ -112,10 +108,6 @@ void Chunk::setWorld(std::shared_ptr<VoxelWorld> world) {
 
 void Chunk::setOffset(Vector3 offset) {
 	Chunk::offset = offset;
-}
-
-void Chunk::setCenterOfGravity(Vector3 cog) {
-	Chunk::cog = cog;
 }
 
 void Chunk::setNavigatable(bool navigatable) {
@@ -210,7 +202,6 @@ void Chunk::addNode(std::shared_ptr<GraphNode> node) {
 		chunk->addNode(node);
 	}
 	else if (nodes.find(hash) == nodes.end()) {
-		node->determineGravity(cog);
 		nodes.emplace(hash, node);
 	}
 }
@@ -252,13 +243,13 @@ void Chunk::addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, 
 	}
 }
 
-std::shared_ptr<GraphNode> Chunk::fetchOrCreateNode(Vector3 position) {
+std::shared_ptr<GraphNode> Chunk::fetchOrCreateNode(Vector3 position, Vector3 normal) {
 	std::shared_ptr<GraphNode> node;
 
 	node = fetchNode(position);
 
 	if (!node) {
-		node = std::make_shared<GraphNode>(position, 1);
+		node = std::make_shared<GraphNode>(position, normal);
 		addNode(node);
 	}
 
@@ -266,11 +257,11 @@ std::shared_ptr<GraphNode> Chunk::fetchOrCreateNode(Vector3 position) {
 }
 
 const bool SHOW_NODES_DEBUG = false;
-void Chunk::addFaceNodes(Vector3 a, Vector3 b, Vector3 c) {
+void Chunk::addFaceNodes(Vector3 a, Vector3 b, Vector3 c, Vector3 normal) {
 	std::shared_ptr<GraphNode> aNode, bNode, cNode;
-	aNode = fetchOrCreateNode(a);
-	bNode = fetchOrCreateNode(b);
-	cNode = fetchOrCreateNode(c);
+	aNode = fetchOrCreateNode(a, normal);
+	bNode = fetchOrCreateNode(b, normal);
+	cNode = fetchOrCreateNode(c, normal);
 
 	addEdge(aNode, bNode, fn::euclidean(aNode->getPointU(), bNode->getPointU()));
 	addEdge(aNode, cNode, fn::euclidean(aNode->getPointU(), cNode->getPointU()));

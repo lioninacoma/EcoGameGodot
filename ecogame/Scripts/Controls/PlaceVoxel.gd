@@ -28,5 +28,4 @@ func _input(event : InputEvent) -> void:
 			var result = space_state.intersect_ray(from, to)
 		
 			if result:
-#				var voxel_position : Vector3 = controls.get_voxel_position(result)
 				world = result.collider.shape_owner_get_owner(0)

@@ -11,7 +11,7 @@ func _ready():
 
 func create_actor(world):
 	var actor = Actor.instance()
-	actor.set_world(world)
+	actor.set_voxel_world(world)
 	world.add_child(actor)
 	amount_actors += 1
 	actors.push_back(actor)

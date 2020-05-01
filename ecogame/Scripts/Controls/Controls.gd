@@ -32,18 +32,6 @@ func _process(delta : float) -> void:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 		mouse_mode_captured = !mouse_mode_captured
 
-func get_voxel_position(result):
-	var owner = result.collider.shape_owner_get_owner(0)
-	if not owner: return
-	
-	var voxel_position = result.position
-	var normal = result.normal
-	var b = 0.01
-	var vx = int(voxel_position.x - (b if normal.x > 0 else 0))
-	var vy = int(voxel_position.y - (b if normal.y > 0 else 0))
-	var vz = int(voxel_position.z - (b if normal.z > 0 else 0))
-	return Vector3(vx, vy, vz)
-
 func _input(event : InputEvent) -> void:
 	if event is InputEventMouseMotion and middle_pressed:
 		var from = camera.project_ray_origin(event.position)
@@ -52,8 +40,7 @@ func _input(event : InputEvent) -> void:
 		var result = space_state.intersect_ray(from, to)
 		
 		if result:
-			var voxel_position = get_voxel_position(result)
-			middle_pressed_location = voxel_position
+			middle_pressed_location = result.position
 	elif event is InputEventKey:
 		if event.scancode == KEY_CONTROL:
 			control_active = event.pressed

@@ -27,7 +27,7 @@
 #define MAX_CHUNKS_BUILT_ASYNCH POOL_SIZE
 
 // navigator
-#define MAX_WEIGHT 5.0
+#define MAX_WEIGHT 1.0
 #define MAX_WEIGHT_ROOT sqrt(MAX_WEIGHT)
 
 #endif

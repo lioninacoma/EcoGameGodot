@@ -3,16 +3,14 @@
 
 using namespace godot;
 
-GraphNode::GraphNode(Vector3 point, char voxel) {
+GraphNode::GraphNode(Vector3 point, Vector3 normal) {
 	GraphNode::point = std::make_shared<Vector3>(point);
-	GraphNode::gravity = std::make_shared<Vector3>(0, -9.8, 0);
+	GraphNode::normal = std::make_shared<Vector3>(normal);
 	GraphNode::hash = fn::hash(point);
-	GraphNode::voxel = voxel;
 }
 
 GraphNode::~GraphNode() {
 	point.reset();
-	gravity.reset();
 }
 
 void GraphNode::addEdge(std::shared_ptr<GraphEdge> edge) {
@@ -30,17 +28,6 @@ void GraphNode::addEdge(std::shared_ptr<GraphEdge> edge) {
 void GraphNode::setPoint(Vector3 point) {
 	GraphNode::point = std::make_shared<Vector3>(point);
 	GraphNode::hash = fn::hash(point);
-}
-
-void GraphNode::setVoxel(char voxel) {
-	GraphNode::voxel = voxel;
-}
-
-void GraphNode::determineGravity(Vector3 cog) {
-	Vector3 g = cog - *point;
-	g.normalize();
-	g *= 9.8;
-	gravity = std::make_shared<Vector3>(g);
 }
 
 void GraphNode::removeEdgeWithNode(size_t nHash) {
@@ -96,28 +83,20 @@ std::shared_ptr<Vector3> GraphNode::getPoint() {
 	return point;
 }
 
-std::shared_ptr<Vector3> GraphNode::getGravity() {
-	return gravity;
-}
-
 Vector3 GraphNode::getPointU() {
 	return fn::unreference(point);
 }
 
-Vector3 GraphNode::getGravityU() {
-	return fn::unreference(gravity);
+std::shared_ptr<Vector3> GraphNode::getNormal() {
+	return normal;
+}
+
+Vector3 GraphNode::getNormalU() {
+	return fn::unreference(normal);
 }
 
 size_t GraphNode::getHash() {
 	return hash;
-}
-
-char GraphNode::getVoxel() {
-	return voxel;
-}
-
-bool GraphNode::isWalkable() {
-	return true;
 }
 
 int GraphNode::getAmountEdges() {

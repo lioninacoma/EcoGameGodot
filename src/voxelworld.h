@@ -69,6 +69,7 @@ namespace godot {
 
 		void buildChunks();
 		void setIsVoxelFn(Variant fnRef);
+		void setIsWalkableFn(Variant fnRef);
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void setVoxel(Vector3 position, float radius, bool set);

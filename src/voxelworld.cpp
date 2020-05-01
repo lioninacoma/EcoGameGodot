@@ -17,6 +17,7 @@ void VoxelWorld::_register_methods() {
 	register_method("buildChunks", &VoxelWorld::buildChunks);
 	register_method("navigate", &VoxelWorld::navigate);
 	register_method("setIsVoxelFn", &VoxelWorld::setIsVoxelFn);
+	register_method("setIsWalkableFn", &VoxelWorld::setIsWalkableFn);
 	register_method("_notification", &VoxelWorld::_notification);
 }
 
@@ -118,6 +119,11 @@ void VoxelWorld::setIsVoxelFn(Variant fnRef) {
 	VoxelWorld::isVoxelFn = ref;
 }
 
+void VoxelWorld::setIsWalkableFn(Variant fnRef) {
+	Ref<FuncRef> ref = Object::cast_to<FuncRef>(fnRef);
+	navigator->setIsWalkableFn(ref);
+}
+
 void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 	try {
 		int x, y, z;
@@ -167,7 +173,7 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 					}
 
 					s = 1.0 - (currentPosition.distance_to(position) / radius);
-					s /= 100.0;
+					s /= 20.0;
 					chunk->setVoxel(
 						x % CHUNK_SIZE_X,
 						y % CHUNK_SIZE_Y,
@@ -243,16 +249,10 @@ void VoxelWorld::buildChunksTask(std::shared_ptr<VoxelWorld> world) {
 	int x, y, i;
 	std::shared_ptr<Chunk> chunk;
 
-	float world_width_2 = CHUNK_SIZE_X * width / 2;
-	float world_height_2 = CHUNK_SIZE_Y / 2;
-	float world_depth_2 = CHUNK_SIZE_Z * depth / 2;
-	Vector3 cog = Vector3(world_width_2, world_height_2, world_depth_2);
-
 	for (y = 0; y < depth; y++) {
 		for (x = 0; x < width; x++) {
 			chunk = std::shared_ptr<Chunk>(Chunk::_new());
 			chunk->setOffset(Vector3(x * CHUNK_SIZE_X, 0, y * CHUNK_SIZE_Z));
-			chunk->setCenterOfGravity(cog);
 			chunk->setWorld(world);
 			chunk->setIsVoxelFn(isVoxelFn);
 			setChunk(x, y, chunk);

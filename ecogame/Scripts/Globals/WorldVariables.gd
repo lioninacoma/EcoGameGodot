@@ -17,7 +17,7 @@ var leavesMaterial : SpatialMaterial = SpatialMaterial.new()
 var waterMaterial : SpatialMaterial = SpatialMaterial.new()
 
 var grassTexture : Texture = preload("res://Images/grass.png")
-var stoneTexture : Texture = preload("res://Images/stone.png")
+var stoneTexture : Texture = preload("res://Images/stone2.png")
 var dirtTexture : Texture = preload("res://Images/dirt.png")
 var woodTexture : Texture = preload("res://Images/wood.png")
 var leavesTexture : Texture = preload("res://Images/leaves.png")
@@ -30,6 +30,9 @@ func _ready() -> void:
 	woodMaterial.albedo_texture = woodTexture
 	leavesMaterial.albedo_texture = leavesTexture
 	waterMaterial.albedo_texture = waterTexture
+	
+	stoneMaterial.uv1_triplanar = true
+	stoneMaterial.uv2_triplanar = true
 	
 	materials.push_back(grassMaterial)
 	materials.push_back(stoneMaterial)

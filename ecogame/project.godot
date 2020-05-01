@@ -15,6 +15,11 @@ _global_script_classes=[ {
 "path": "res://Scripts/Actor/Actor.gd"
 }, {
 "base": "WorldObject",
+"class": "Asteroid",
+"language": "GDScript",
+"path": "res://Scripts/World/Asteroid.gd"
+}, {
+"base": "WorldObject",
 "class": "Base",
 "language": "GDScript",
 "path": "res://Scripts/World/Base.gd"
@@ -69,6 +74,16 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://Scripts/World/IronMine.gd"
 }, {
+"base": "VoxelWorld",
+"class": "IronVein",
+"language": "GDScript",
+"path": "res://Scripts/World/IronVein.gd"
+}, {
+"base": "Behaviour",
+"class": "MoveToWaypoint",
+"language": "GDScript",
+"path": "res://Scripts/Actor/Behaviour/Impl/MoveToWaypoint.gd"
+}, {
 "base": "Node",
 "class": "ObjectPool",
 "language": "GDScript",
@@ -106,6 +121,7 @@ _global_script_classes=[ {
 } ]
 _global_script_class_icons={
 "Actor": "",
+"Asteroid": "",
 "Base": "",
 "Behaviour": "",
 "BehaviourContext": "",
@@ -117,6 +133,8 @@ _global_script_class_icons={
 "GameWorld": "",
 "IronFactory": "",
 "IronMine": "",
+"IronVein": "",
+"MoveToWaypoint": "",
 "ObjectPool": "",
 "Sequence": "",
 "ThreadPool": "",

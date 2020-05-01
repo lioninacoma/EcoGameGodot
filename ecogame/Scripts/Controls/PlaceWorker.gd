@@ -21,10 +21,10 @@ func _input(event : InputEvent) -> void:
 			var result = space_state.intersect_ray(from, to)
 
 			if result:
-				var voxel_position = controls.get_voxel_position(result)
 				var world = result.collider.shape_owner_get_owner(0)
 				var actor = actor_manager.create_actor(world)
-				actor.global_transform.origin.x = voxel_position.x + 0.5
-				actor.global_transform.origin.y = voxel_position.y + 0.5
-				actor.global_transform.origin.z = voxel_position.z + 0.5
+				actor.global_transform.origin = result.position
+				var cog = world.get_parent().get_center_of_gravity()
+				var g = (actor.transform.origin - cog).normalized()
+				actor.set_rotation_to(g + result.normal)
 				print("%s actors created."%[actor_manager.amount_actors()])
