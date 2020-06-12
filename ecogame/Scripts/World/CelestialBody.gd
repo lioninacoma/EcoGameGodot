@@ -21,6 +21,9 @@ func _init(position, size).(position, Vector3(size, size, size), WorldVariables.
 	noise.set_period(192.0)
 	noise.set_persistence(0.5)
 
+func _ready():
+	BehaviourGlobals.global_context.set("waypoint", center_of_gravity)
+
 func is_walkable(from : Vector3, to : Vector3, normal : Vector3):
 #	var gravity = (center_of_gravity - to).normalized() * 8
 #	var inv_normal = -normal

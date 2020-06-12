@@ -55,20 +55,21 @@ func update(delta : float) -> void:
 		return
 	
 	if time > TIME_PERIOD:
-		time = 0
 		lerp_i = 0
+		time = 0
 		
-		var cog = voxel_world.get_parent().get_center_of_gravity()
-		var g = (transform.origin - cog).normalized()
+#		var cog = voxel_world.get_parent().get_center_of_gravity()
+#		var g = (transform.origin - cog).normalized()
 		var yB = global_transform.basis.y
-		var o = global_transform.origin
+		var o  = global_transform.origin
 		var start = o + yB
 		var end   = o - yB
 		var space_state = eco_game.get_world().direct_space_state
 		var result = space_state.intersect_ray(start, end)
 		
 		if result:
-			var mesh = result.collider.get_parent().mesh
+			var normal = result.normal
+			var mesh   = result.collider.get_parent().mesh
 			var arrays = mesh.surface_get_arrays(0)
 			var vertices = arrays[Mesh.ARRAY_VERTEX]
 			var indices  = arrays[Mesh.ARRAY_INDEX]
@@ -76,7 +77,6 @@ func update(delta : float) -> void:
 			
 			start = voxel_world.to_local(start)
 			end   = voxel_world.to_local(end)
-			var normal = result.normal
 			
 			for i in range(0, indices.size(), 3):
 				var a_i = indices[i]
@@ -89,16 +89,15 @@ func update(delta : float) -> void:
 					normal = (normals[a_i] + normals[b_i] + normals[c_i]).normalized()
 					break
 			
-			rotate_to(normal, delta)
-#			rotate_to(g + normal, delta)
+			lerp_rotate_to(normal)
+#			lerp_rotate_to(g + normal)
 
-func rotate_to(normal : Vector3, delta : float):
+func lerp_rotate_to(normal : Vector3):
 	var D = normal
 	var W0 = Vector3(-D.y, D.x, 0)
 	var U0 = W0.cross(D)
 	source_basis = Basis(transform.basis)
 	target_basis = Basis(W0, D, U0).orthonormalized()
-	
 
 func set_rotation_to(normal : Vector3):
 	var D = normal

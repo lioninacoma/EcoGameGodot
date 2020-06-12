@@ -5,6 +5,7 @@ onready var eco_game = get_tree().get_root().get_node("EcoGame")
 
 var path = null
 var waypoint = null
+var to = null
 
 func reset(context):
 	.reset(context)
@@ -24,7 +25,7 @@ func move_to_waypoint(actor):
 	actor.velocity = direction * actor.MAX_SPEED
 
 func request_path(actor, context, global_context):
-	var to = context.get("waypoint")
+	to = context.get("waypoint")
 	if to == null:
 		to = global_context.get("waypoint")
 	if to == null: return
@@ -61,7 +62,7 @@ func run(actor, context, global_context) -> bool:
 	var world = actor.get_voxel_world()
 	move_to_waypoint(actor)
 	
-	if waypoint != null && actor.global_transform.origin.distance_to(world.to_global(waypoint)) <= 0.5:
+	if waypoint != null && actor.transform.origin.distance_to(waypoint) <= 0.5:
 		if path != null && path.size() > 0:
 			waypoint = path[0]
 			path.remove(0)
@@ -70,5 +71,10 @@ func run(actor, context, global_context) -> bool:
 			actor.acceleration *= 0
 			waypoint = null
 			path = null
+			
+			if actor.transform.origin.distance_to(to) > 2.5:
+				var dir = (to - actor.transform.origin).normalized()
+				var pos = actor.transform.origin + dir
+				world.setVoxel(pos, 2.5, false)
 	
 	return true

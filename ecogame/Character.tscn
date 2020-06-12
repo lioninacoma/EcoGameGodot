@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://figure.dae" type="PackedScene" id=1]
+
+[node name="Character" instance=ExtResource( 1 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.163054, 0.133797, -0.0803413 )
