@@ -49,6 +49,7 @@ float MeshBuilder::fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z) {
 
 void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, float** vertices, int** faces, int* counts) {
 	Vector3 offset = chunk->getOffset();
+	int gridSize = chunk->getGridSize();
 	int e[2];
 	int v[3];
 	float p[3];
@@ -58,11 +59,11 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 	int volume_index = fn::fi3(x, y, z);
 
 	for (int i = 0; i < 8; ++i) {
-		v[0] = (cubeVerts[i][0] + x) - 1;
-		v[1] = (cubeVerts[i][1] + y);
-		v[2] = (cubeVerts[i][2] + z) - 1;
+		v[0] = cubeVerts[i][0] * gridSize + x;
+		v[1] = cubeVerts[i][1] * gridSize + y;
+		v[2] = cubeVerts[i][2] * gridSize + z;
 
-		float s = fSample(chunk, v[0], v[1], v[2]);
+		float s = fSample(chunk, v[0] - 1, v[1], v[2] - 1);
 
 		grid[i] = s;
 		cube_index |= (s > 0) ? 1 << i : 0;
@@ -83,9 +84,9 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 		e[0] = edgeIndex[i][0];
 		e[1] = edgeIndex[i][1];
 
-		p[0] = cubeVerts[e[0]][0];
-		p[1] = cubeVerts[e[0]][1];
-		p[2] = cubeVerts[e[0]][2];
+		p[0] = cubeVerts[e[0]][0] * gridSize;
+		p[1] = cubeVerts[e[0]][1] * gridSize;
+		p[2] = cubeVerts[e[0]][2] * gridSize;
 
 		float a = grid[e[0]];
 		float b = grid[e[1]];
@@ -95,9 +96,9 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 		if (abs(d) > 1e-6)
 			t = a / d;
 
-		vertices[counts[0]][0] = (offset.x + x + p[0] + t * edgeDirection[i][0]) - 0.5;
-		vertices[counts[0]][1] = (offset.y + y + p[1] + t * edgeDirection[i][1]) - 0.5;
-		vertices[counts[0]][2] = (offset.z + z + p[2] + t * edgeDirection[i][2]) - 0.5;
+		vertices[counts[0]][0] = (offset.x + x + p[0] + t * edgeDirection[i][0] * gridSize) - 0.5;
+		vertices[counts[0]][1] = (offset.y + y + p[1] + t * edgeDirection[i][1] * gridSize) - 0.5;
+		vertices[counts[0]][2] = (offset.z + z + p[2] + t * edgeDirection[i][2] * gridSize) - 0.5;
 		counts[0]++;
 	}
 
@@ -111,21 +112,17 @@ void MeshBuilder::buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, f
 }
 
 int* MeshBuilder::buildVertices(std::shared_ptr<Chunk> chunk, float** vertices, int** faces) {
-	int DIMS[3] = {
-		CHUNK_SIZE_X + 1,
-		CHUNK_SIZE_Y,
-		CHUNK_SIZE_Z + 1
-	};
-	int x[3];
-	int counts[2] = { 0, 0 };
 	Vector3 o = chunk->getOffset();
+	int gridSize = chunk->getGridSize();
+	int counts[2] = { 0, 0 };
+	int x[3];
 
-	for (x[2] = 0; x[2] < DIMS[2] - 1; ++x[2])
-		for (x[1] = 0; x[1] < DIMS[1] - 1; ++x[1])
-			for (x[0] = 0; x[0] < DIMS[0] - 1; ++x[0]) {
+	for (x[2] = 0; x[2] < CHUNK_SIZE_Z / gridSize; ++x[2])
+		for (x[1] = 0; x[1] < CHUNK_SIZE_Y / gridSize - 1; ++x[1])
+			for (x[0] = 0; x[0] < CHUNK_SIZE_X / gridSize; ++x[0]) {
 				if (o.x + x[0] >= CHUNK_SIZE_X * worldWidth) continue;
 				if (o.z + x[2] >= CHUNK_SIZE_Z * worldDepth) continue;
-				buildCell(x[0], x[1], x[2], chunk, vertices, faces, counts);
+				buildCell(x[0] * gridSize, x[1] * gridSize, x[2] * gridSize, chunk, vertices, faces, counts);
 			}
 
 	return counts;

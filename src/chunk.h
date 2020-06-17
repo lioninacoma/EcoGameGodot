@@ -37,6 +37,7 @@ namespace godot {
 	class Chunk : public Node {
 		GODOT_CLASS(Chunk, Node)
 	private:
+		std::atomic<int> gridSize;
 		std::atomic<int> amountNodes = 0;
 		std::atomic<int> meshInstanceId = 0;
 		std::atomic<bool> navigatable = false;
@@ -70,6 +71,7 @@ namespace godot {
 		bool isNavigatable();
 		bool isBuilding();
 		int getMeshInstanceId();
+		int getGridSize();
 		int getAmountNodes();
 		float isVoxel(int x, int y, int z);
 		float getVoxel(int x, int y, int z);

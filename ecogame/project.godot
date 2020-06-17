@@ -49,6 +49,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://Scripts/Actor/Behaviour/Condition.gd"
 }, {
+"base": "MeshInstance",
+"class": "CubeSphere",
+"language": "GDScript",
+"path": "res://Scripts/Meshes/CubeSphere.gd"
+}, {
 "base": "Spatial",
 "class": "EcoGame",
 "language": "GDScript",
@@ -89,6 +94,21 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://Scripts/ObjectPool.gd"
 }, {
+"base": "Reference",
+"class": "Point2",
+"language": "GDScript",
+"path": "res://Scripts/DataStructures/Point2.gd"
+}, {
+"base": "MeshInstance",
+"class": "QuadTreeMesh",
+"language": "GDScript",
+"path": "res://Scripts/Meshes/QuadTreeMesh.gd"
+}, {
+"base": "Reference",
+"class": "QuadTreeQuad",
+"language": "GDScript",
+"path": "res://Scripts/Meshes/QuadTreeQuad.gd"
+}, {
 "base": "Behaviour",
 "class": "Sequence",
 "language": "GDScript",
@@ -128,6 +148,7 @@ _global_script_class_icons={
 "BehaviourTree": "",
 "CelestialBody": "",
 "Condition": "",
+"CubeSphere": "",
 "EcoGame": "",
 "FindPath": "",
 "GameWorld": "",
@@ -136,6 +157,9 @@ _global_script_class_icons={
 "IronVein": "",
 "MoveToWaypoint": "",
 "ObjectPool": "",
+"Point2": "",
+"QuadTreeMesh": "",
+"QuadTreeQuad": "",
 "Sequence": "",
 "ThreadPool": "",
 "Transporter": "",
@@ -218,4 +242,4 @@ quality/filters/anisotropic_filter_level=2
 quality/reflections/texture_array_reflections=false
 quality/reflections/high_quality_ggx=false
 quality/depth/hdr=false
-environment/default_environment="res://default_env.tres"
+environment/default_environment="res://default_environment.tres"

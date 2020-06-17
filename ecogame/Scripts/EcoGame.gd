@@ -14,14 +14,15 @@ func _ready() -> void:
 	add_child(Lib.instance)
 	Lib.game = self
 	
-#	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 16)
-#	var celestial_body_b = CelestialBody.new(Vector3(-64, 64, -64), 8)
-	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 8)
-#	var iron_vein = IronVein.new(Vector3(64, 64, 64), 8)
+#	var cubeSphere = CubeSphere.new(Vector3(8, 64, 8), 2)
+#	add_child(cubeSphere)
 	
-	add_child(celestial_body_a)
+#	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 16, "a")
+#	var celestial_body_b = CelestialBody.new(Vector3(0, 64, 64), 8, "lo_res_world")
+#	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 32, "hi_res_world")
+	
+#	add_child(celestial_body_a)
 #	add_child(celestial_body_b)
-#	add_child(iron_vein)
 
 func _process(delta : float) -> void:
 	time += delta
@@ -48,4 +49,3 @@ func draw_debug_dots(geometry : ImmediateGeometry):
 	m.params_point_size = 4
 	geometry.set_material_override(m)
 	add_child(geometry)
-

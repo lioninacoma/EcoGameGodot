@@ -8,7 +8,7 @@ var size : int
 var noise : OpenSimplexNoise
 var center_of_gravity
 
-func _init(position, size).(position, Vector3(size, size, size), WorldVariables.stoneMaterial):
+func _init(position, size, name).(position, Vector3(size, size, size), WorldVariables.stoneMaterial, name):
 	self.size = size
 	center_of_gravity = Vector3(
 		size * WorldVariables.CHUNK_SIZE_X / 2, 
@@ -18,7 +18,7 @@ func _init(position, size).(position, Vector3(size, size, size), WorldVariables.
 	noise = OpenSimplexNoise.new()
 	noise.set_seed(WorldVariables.NOISE_SEED)
 	noise.set_octaves(4)
-	noise.set_period(192.0)
+	noise.set_period(64.0)
 	noise.set_persistence(0.5)
 
 func _ready():
@@ -33,15 +33,16 @@ func is_walkable(from : Vector3, to : Vector3, normal : Vector3):
 
 func is_voxel(ix : int, iy : int, iz : int, offset : Vector3) -> float:
 	if noise == null: return 0.0
-	var d = 0.5
 	var cx = ix + offset.x
 	var cy = iy + offset.y
 	var cz = iz + offset.z
 	var x = cx / (size * WorldVariables.CHUNK_SIZE_X)
 	var y = cy / (size * WorldVariables.CHUNK_SIZE_X)
 	var z = cz / (size * WorldVariables.CHUNK_SIZE_X)
-	var s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.05
-	s += noise.get_noise_3d(cx, cy, cz) / 2
+	var d = 0.5
+	var r = 0.08 * (noise.get_noise_3d(cx, cy, cz) * 0.5 + 0.5)
+	var s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - r
+#	s -= noise.get_noise_3d(cx, cy, cz) / 4
 	return s
 
 func get_center_of_gravity():

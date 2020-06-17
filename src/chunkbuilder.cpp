@@ -21,6 +21,7 @@ Vector3 addNormal(Vector3 src, Vector3 normal) {
 }
 
 //#define DEBUG_NODE_COUNT
+//#define DEBUG_FACE_COUNT
 
 void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	if (!chunk) return;
@@ -80,7 +81,14 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 		amountVertices = counts[0];
 		amountFaces = counts[1];
 		amountIndices = amountFaces * 3;
-		
+
+#ifdef DEBUG_FACE_COUNT
+		amountFacesTotal += amountFaces;
+		if (amountFacesTotal % 4 == 0) {
+			Godot::print(String("{0} has {1} faces").format(Array::make(world->get_name(), amountFacesTotal)));
+		}
+#endif //DEBUG_FACE_COUNT
+
 		PoolVector3Array vertexArray;
 		PoolVector3Array normalArray;
 		PoolIntArray indexArray;
@@ -138,7 +146,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			collisionArrayWrite[n + 1] = vertexArray[faces[i][1]];
 			collisionArrayWrite[n + 2] = vertexArray[faces[i][2]];
 			
-			chunk->addFaceNodes(x0, x1, x2, normal);
+			//chunk->addFaceNodes(x0, x1, x2, normal);
 		}
 
 #ifdef DEBUG_NODE_COUNT

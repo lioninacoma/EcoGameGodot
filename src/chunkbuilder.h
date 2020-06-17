@@ -53,6 +53,7 @@ namespace godot {
 		boost::mutex BUILD_MESH_MUTEX;
 		boost::condition_variable BUILD_QUEUE_CV;
 		std::atomic<bool> threadStarted = false;
+		int amountFacesTotal = 0;
 	public:
 		ChunkBuilder(std::shared_ptr<VoxelWorld> world);
 		~ChunkBuilder() {

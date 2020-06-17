@@ -1,9 +1,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-//#define WORLD_SIZE 8	  // Chunks
 #define CHUNK_SIZE_X 8    // Voxels
-#define CHUNK_SIZE_Y 128   // Voxels
+#define CHUNK_SIZE_Y 128  // Voxels
 #define CHUNK_SIZE_Z 8    // Voxels
 
 #define VERTEX_SIZE 8

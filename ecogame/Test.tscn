@@ -1,0 +1,44 @@
+[gd_scene load_steps=7 format=2]
+
+[ext_resource path="res://Images/grass.png" type="Texture" id=1]
+[ext_resource path="res://Surface.shader" type="Shader" id=2]
+
+[sub_resource type="OpenSimplexNoise" id=1]
+
+[sub_resource type="NoiseTexture" id=2]
+noise = SubResource( 1 )
+
+[sub_resource type="ShaderMaterial" id=3]
+shader = ExtResource( 2 )
+shader_param/albedo = Color( 1, 1, 1, 1 )
+shader_param/specular = 0.5
+shader_param/metallic = 0.0
+shader_param/roughness = 0.6
+shader_param/point_size = 1.0
+shader_param/uv1_blend_sharpness = 1.0
+shader_param/uv1_scale = Vector3( 1, 1, 1 )
+shader_param/uv1_offset = Vector3( 0, 0, 0 )
+shader_param/uv2_scale = Vector3( 1, 1, 1 )
+shader_param/uv2_offset = Vector3( 0, 0, 0 )
+shader_param/height = 1.5
+shader_param/texture_albedo = ExtResource( 1 )
+shader_param/Front = SubResource( 2 )
+shader_param/Right = SubResource( 2 )
+shader_param/Left = SubResource( 2 )
+shader_param/Back = SubResource( 2 )
+shader_param/Up = SubResource( 2 )
+shader_param/Down = SubResource( 2 )
+shader_param/Surface = SubResource( 2 )
+
+[sub_resource type="SphereMesh" id=4]
+material = SubResource( 3 )
+radius = 16.0
+height = 32.0
+radial_segments = 512
+rings = 256
+
+[node name="Spatial" type="Spatial"]
+
+[node name="MeshInstance" type="MeshInstance" parent="."]
+mesh = SubResource( 4 )
+material/0 = null

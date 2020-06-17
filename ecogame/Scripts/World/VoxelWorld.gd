@@ -7,14 +7,15 @@ var VoxelWorldNative = load("res://bin/VoxelWorld.gdns")
 var voxel_body
 var material : SpatialMaterial
 
-func _init(position : Vector3, chunk_dims : Vector3, material : SpatialMaterial).(position):
+func _init(position : Vector3, chunk_dims : Vector3, material : SpatialMaterial, name : String).(position):
 	self.material = material
 	
 	voxel_body = VoxelWorldNative.new()
 	voxel_body.setDimensions(Vector2(chunk_dims.x, chunk_dims.z))
 	voxel_body.setIsVoxelFn(funcref(self, "is_voxel"))
 	voxel_body.setIsWalkableFn(funcref(self, "is_walkable"))
-	add_child(voxel_body)
+	voxel_body.set_name(name)
+	add_child(voxel_body, true)
 	
 	voxel_body.global_translate(-0.5 * WorldVariables.CHUNK_SIZE_X * chunk_dims)
 	global_translate(position)

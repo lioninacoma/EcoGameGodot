@@ -17,6 +17,7 @@ void Chunk::_register_methods() {
 }
 
 Chunk::Chunk(Vector3 offset) {
+	Chunk::gridSize = 1;
 	Chunk::offset = offset;
 	Chunk::volume = std::make_unique<VoxelData>(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
 }
@@ -48,6 +49,10 @@ bool Chunk::isNavigatable() {
 
 bool Chunk::isBuilding() {
 	return building;
+}
+
+int Chunk::getGridSize() {
+	return Chunk::gridSize;
 }
 
 int Chunk::getAmountNodes() {
@@ -137,22 +142,23 @@ void Chunk::setVoxel(int x, int y, int z, float v) {
 }
 
 float Chunk::isVoxel(int ix, int iy, int iz) {
-	//int width = world->getWidth();
-	//float d = 0.5;
-	//float cx = ix + offset.x;
-	//float cy = iy + offset.y;
-	//float cz = iz + offset.z;
-	//float x = cx / (width * CHUNK_SIZE_X);
-	//float y = cy / (width * CHUNK_SIZE_X);
-	//float z = cz / (width * CHUNK_SIZE_X);
-	//float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - 0.1;
-	//s += noise->get_noise_3d(cx, cy, cz) / 8;
-
-	float s = isVoxelFn->call_funcv(Array::make(ix, iy, iz, offset));
-#ifdef USE_VOXEL_RESOLUTION
-	s = floorf(s * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
-#endif // USE_VOXEL_RESOLUTION
+	int width = world->getWidth();
+	float cx = ix + offset.x;
+	float cy = iy + offset.y;
+	float cz = iz + offset.z;
+	float x = cx / (width * CHUNK_SIZE_X);
+	float y = cy / (width * CHUNK_SIZE_X);
+	float z = cz / (width * CHUNK_SIZE_X);
+	float d = 0.5;
+	float r = 0.08 * (noise->get_noise_3d(cx, cy, cz) * 0.5 + 0.5);
+	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - r;
 	return s;
+
+//	float s = isVoxelFn->call_funcv(Array::make(ix, iy, iz, offset));
+//#ifdef USE_VOXEL_RESOLUTION
+//	s = floorf(s * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
+//#endif // USE_VOXEL_RESOLUTION
+//	return s;
 }
 
 std::shared_ptr<GraphNode> Chunk::fetchNode(Vector3 position) {
