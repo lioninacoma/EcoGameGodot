@@ -4,7 +4,7 @@ class_name IronVein
 var size : int
 var noise : OpenSimplexNoise
 
-func _init(position, size).(position, Vector3(size, size, size), WorldVariables.dirtMaterial):
+func _init(position, size).(position, Vector3(size, size, size), WorldVariables.dirtMaterial, "vein"):
 	self.size = size
 	
 	noise = OpenSimplexNoise.new()

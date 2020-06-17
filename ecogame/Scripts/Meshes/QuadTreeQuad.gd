@@ -244,7 +244,7 @@ func create_child(index, quad_data):
 		child[index] = create_instance(q)
 		pass
 
-var detail_threshold = 41
+var detail_threshold = 10
 
 func box_test(x, z, size, camera_location):
 	var half = size * 0.5
