@@ -1,34 +1,6 @@
 class_name QuadTreeQuad
 
-# child_index mapping:
-# +-+-+
-# |1|0|
-# +-+-+
-# |2|3|
-# +-+-+
-#
-# verts mapping:
-# 1-0
-# | |
-# 2-3
-#
-# vertex mapping:
-# +-2-+
-# | | |
-# 3-0-1
-# | | |
-# +-4-+
 var child : Array
-
-# quad_data dict:
-# {
-#	 "parent": null,
-#	 "quad": null,
-#	 "child_index": 0,
-#	 "level": 0,
-#	 "xorg": 0,
-#	 "zorg": 0,
-# }
 var quad_data : Dictionary
 
 # bits 0-7: e, n, w, s, ne, nw, sw, se
@@ -55,7 +27,7 @@ func _init(quad_data):
 func build_mesh(quad_data, vertices, indices, counts):
 	var half = 1 << quad_data.level
 	var whole = 2 << quad_data.level
-
+	
 	var flags = 0
 	var mask = 1
 	for i in range(4):
@@ -64,14 +36,12 @@ func build_mesh(quad_data, vertices, indices, counts):
 			child[i].build_mesh(q, vertices, indices, counts)
 		else:
 			flags |= mask
-		
+		mask <<= 1
+			
 	if flags == 0: return
-#	print ("x: %s, z: %s, i: %s, lvl: %s, enabled: %s" 
-#		% [quad_data.xorg, quad_data.zorg, quad_data.child_index, quad_data.level, enabled_flags])
-#	if quad_data.xorg == 4 && quad_data.zorg == 4:
-#		pass
 	
-	# Init vertex data.
+	var index_offset = counts[0]
+	
 	counts[0] = init_vert(counts[0], quad_data.xorg + half, 0, quad_data.zorg + half, vertices)
 	counts[0] = init_vert(counts[0], quad_data.xorg + whole, 0, quad_data.zorg + half, vertices)
 	counts[0] = init_vert(counts[0], quad_data.xorg + whole, 0, quad_data.zorg, vertices)
@@ -81,37 +51,37 @@ func build_mesh(quad_data, vertices, indices, counts):
 	counts[0] = init_vert(counts[0], quad_data.xorg, 0, quad_data.zorg + whole, vertices)
 	counts[0] = init_vert(counts[0], quad_data.xorg + half, 0, quad_data.zorg + whole, vertices)
 	counts[0] = init_vert(counts[0], quad_data.xorg + whole, 0, quad_data.zorg + whole, vertices)
-
+	
 	# Make the list of triangles to draw.
-	if (enabled_flags & 1) == 0: counts[1] = tri(counts[1], 0, 8, 2, indices);
+	if (enabled_flags & 1) == 0: counts[1] = tri(counts[1], index_offset, 0, 8, 2, indices)
 	else:
-		if flags & 8: counts[1] = tri(counts[1], 0, 8, 1, indices)
-		if flags & 1: counts[1] = tri(counts[1], 0, 1, 2, indices)
-	if (enabled_flags & 2) == 0: counts[1] = tri(counts[1], 0, 2, 4, indices)
+		if flags & 8: counts[1] = tri(counts[1], index_offset, 0, 8, 1, indices)
+		if flags & 1: counts[1] = tri(counts[1], index_offset, 0, 1, 2, indices)
+	if (enabled_flags & 2) == 0: counts[1] = tri(counts[1], index_offset, 0, 2, 4, indices)
 	else:
-		if flags & 1: counts[1] = tri(counts[1], 0, 2, 3, indices)
-		if flags & 2: counts[1] = tri(counts[1], 0, 3, 4, indices)
-	if (enabled_flags & 4) == 0: counts[1] = tri(counts[1], 0, 4, 6, indices)
+		if flags & 1: counts[1] = tri(counts[1], index_offset, 0, 2, 3, indices)
+		if flags & 2: counts[1] = tri(counts[1], index_offset, 0, 3, 4, indices)
+	if (enabled_flags & 4) == 0: counts[1] = tri(counts[1], index_offset, 0, 4, 6, indices)
 	else:
-		if flags & 2: counts[1] = tri(counts[1], 0, 4, 5, indices)
-		if flags & 4: counts[1] = tri(counts[1], 0, 5, 6, indices)
-	if (enabled_flags & 8) == 0: counts[1] = tri(counts[1], 0, 6, 8, indices)
+		if flags & 2: counts[1] = tri(counts[1], index_offset, 0, 4, 5, indices)
+		if flags & 4: counts[1] = tri(counts[1], index_offset, 0, 5, 6, indices)
+	if (enabled_flags & 8) == 0: counts[1] = tri(counts[1], index_offset, 0, 6, 8, indices)
 	else:
-		if flags & 4: counts[1] = tri(counts[1], 0, 6, 7, indices)
-		if flags & 8: counts[1] = tri(counts[1], 0, 7, 8, indices)
+		if flags & 4: counts[1] = tri(counts[1], index_offset, 0, 6, 7, indices)
+		if flags & 8: counts[1] = tri(counts[1], index_offset, 0, 7, 8, indices)
+	
+	if (enabled_flags & 1) == 0: pass
 
-func tri(index, a, b, c, indices):
-	indices[index] = a
-	indices[index + 1] = b
-	indices[index + 2] = c
+func tri(index, offset, a, b, c, indices):
+	indices[index] = offset + a
+	indices[index + 1] = offset + c
+	indices[index + 2] = offset + b
 	index += 3
 	return index
 
 func init_vert(index, x, y, z, vertices):
-	vertices[index] = x
-	vertices[index + 1] = y
-	vertices[index + 2] = z
-	index += 3
+	vertices[index] = Vector3(x, y, z)
+	index += 1
 	return index
 
 func update(quad_data, camera_location : Vector3):
@@ -151,27 +121,24 @@ func update(quad_data, camera_location : Vector3):
 		if enabled_flags & 128:
 			var q = setup_child_quad_data(quad_data, 3)
 			child[3].update(q, camera_location)
-
-#	print ("x: %s, z: %s, i: %s, lvl: %s, enabled: %s" 
-#		% [quad_data.xorg, quad_data.zorg, quad_data.child_index, quad_data.level, enabled_flags])
 	
 	#Test for disabling.  East, South, and center.
-#	if ((enabled_flags & 1) && sub_enabled_count[0] == 0 
-#		&& !vertex_test(quad_data.xorg + whole, quad_data.zorg + half, camera_location)):
-#		enabled_flags &= ~1
-#		var s = get_neighbour(0, quad_data)
-#		if s: s.enabled_flags &= ~4
-#	if ((enabled_flags & 8) && sub_enabled_count[1] == 0 
-#		&& !vertex_test(quad_data.xorg + half, quad_data.zorg + whole, camera_location)):
-#		enabled_flags &= ~8
-#		var s = get_neighbour(3, quad_data)
-#		if s: s.enabled_flags &= ~2
-#	if (enabled_flags == 0
-#		&& quad_data.parent != null
-#		&& !box_test(quad_data.xorg, quad_data.zorg, whole, camera_location)):
-#		# Disable ourself.
-#		# nb: possibly deletes 'this'.
-#		quad_data.parent.quad.notify_child_disable(quad_data.parent, quad_data.child_index)
+	if ((enabled_flags & 1) && sub_enabled_count[0] == 0 
+		&& !vertex_test(quad_data.xorg + whole, quad_data.zorg + half, camera_location)):
+		enabled_flags &= ~1
+		var s = get_neighbour(0, quad_data)
+		if s: s.enabled_flags &= ~4
+	if ((enabled_flags & 8) && sub_enabled_count[1] == 0 
+		&& !vertex_test(quad_data.xorg + half, quad_data.zorg + whole, camera_location)):
+		enabled_flags &= ~8
+		var s = get_neighbour(3, quad_data)
+		if s: s.enabled_flags &= ~2
+	if (enabled_flags == 0
+		&& quad_data.parent != null
+		&& !box_test(quad_data.xorg, quad_data.zorg, whole, camera_location)):
+		# Disable ourself.
+		# nb: possibly deletes 'this'.
+		quad_data.parent.quad.notify_child_disable(quad_data.parent, quad_data.child_index)
 
 func enable_edge_vertex(index, increment_count, quad_data):
 	if (enabled_flags & (1 << index)) && !increment_count: return
@@ -197,7 +164,7 @@ func enable_edge_vertex(index, increment_count, quad_data):
 		p = pqd.parent.quad
 		pqd = pqd.parent
 		
-		var same_parent = bool((index - ci) & 2)
+		var same_parent = true if ((index - ci) & 2) else false
 		
 		ci = ci ^ 1 ^ ((index & 1) << 1) # Child index of neighbor node.
 		
@@ -217,7 +184,7 @@ func enable_edge_vertex(index, increment_count, quad_data):
 func enable_descendant(count, path, quad_data):
 	count -= 1
 	var child_index = path[count]
-
+	
 	if (enabled_flags & (16 << child_index)) == 0:
 		enable_child(child_index, quad_data)
 	
@@ -254,18 +221,19 @@ func notify_child_disable(quad_data, index):
 	child[index] = null
 
 func get_neighbour(dir, quad_data):
-	if quad_data.parent == 0: return 0
+	if !quad_data.parent: return null
 	
-	var p = null
+	var p : QuadTreeQuad = null
 	
 	var index = quad_data.child_index ^ 1 ^ ((dir & 1) << 1)
-	var same_parent = bool((dir - quad_data.child_index) & 2)
+	var same_parent = true if ((dir - quad_data.child_index) & 2) else false
 	
 	if same_parent:
 		p = quad_data.parent.quad
 	else:
-		p = quad_data.parent.quad.get_neighbor(dir, quad_data.parent)
-		if p == 0: return 0
+		p = quad_data.parent.quad
+		p = p.get_neighbour(dir, quad_data.parent)
+		if !p: return null
 	
 	var n = p.child[index]
 	return n
