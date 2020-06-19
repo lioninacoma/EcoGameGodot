@@ -87,6 +87,10 @@ namespace godot {
 		static float euclidean(Vector3 a, Vector3 b) {
 			return a.distance_to(b);
 		}
+
+		static Vector3 addNormal(Vector3 src, Vector3 normal) {
+			return (src + normal).normalized();
+		}
 	}
 }
 

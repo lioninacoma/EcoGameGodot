@@ -1,5 +1,3 @@
-tool
-
 extends MeshInstance
 class_name QuadTreeMesh
 
@@ -12,7 +10,7 @@ var SurfaceNoiseShader = preload("res://SurfaceNoise.shader")
 var material : ShaderMaterial
 var noise : OpenSimplexNoise
 var noise_texture : NoiseTexture
-const TIME_PERIOD = 0.1 # 100ms
+const TIME_PERIOD = 0.05 # 50ms
 var time = 0
 
 func _init():
@@ -38,9 +36,10 @@ func _init():
 	material.set_shader(SurfaceNoiseShader)
 	material.set_shader_param("height_scale", 3.0)
 	material.set_shader_param("noise", noise_texture)
-	rebuild_geom()
 
 func _process(delta):
+	if !camera_path: return
+	
 	if !camera:
 		camera = get_node(camera_path)
 		return
@@ -71,7 +70,6 @@ func create_mesh():
 	
 	root.update(quad_data, to_local(camera.global_transform.origin))
 	root.build_mesh(quad_data, vertices, indices, counts)
-	print("count vertices: %s" % [counts[0]])
 	
 	vertex_array.resize(counts[0])
 	normal_array.resize(counts[0])
@@ -97,5 +95,4 @@ func add_normal(src, normal) -> Vector3:
 func rebuild_geom():
 	if mesh && mesh.get_surface_count() > 0:
 		mesh.surface_remove(0)
-	
 	create_mesh()

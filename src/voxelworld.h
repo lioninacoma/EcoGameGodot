@@ -21,6 +21,7 @@
 
 #include "constants.h"
 #include "fn.h"
+#include "quadtreebuilder.h"
 #include "chunkbuilder.h"
 #include "meshbuilder.h"
 #include "intersection.h"
@@ -39,14 +40,17 @@ namespace godot {
 		std::atomic<int> width, depth;
 		std::shared_ptr<VoxelWorld> self;
 		vector<std::shared_ptr<Chunk>> chunks;
+		vector<std::shared_ptr<quadsquare>> quadtrees;
 		std::unique_ptr<Navigator> navigator;
 		std::unique_ptr<ChunkBuilder> chunkBuilder;
+		std::unique_ptr<QuadTreeBuilder> quadtreeBuilder;
 		Ref<FuncRef> isVoxelFn;
 
 		boost::shared_mutex CHUNKS_MUTEX;
 		
 		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId);
 		void buildChunksTask(std::shared_ptr<VoxelWorld> world);
+		void buildQuadTreesTask(std::shared_ptr<VoxelWorld> world, Vector3 cameraPosition);
 	public:
 		static void _register_methods();
 
@@ -68,6 +72,7 @@ namespace godot {
 		int getDepth();
 
 		void buildChunks();
+		void buildQuadTrees(Vector3 cameraPosition);
 		void setIsVoxelFn(Variant fnRef);
 		void setIsWalkableFn(Variant fnRef);
 		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);

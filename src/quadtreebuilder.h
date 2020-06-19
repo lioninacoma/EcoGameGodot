@@ -1,5 +1,5 @@
-#ifndef CHUNKBUILDER_H
-#define CHUNKBUILDER_H
+﻿#ifndef QUADTREEBUILDER_H
+#define QUADTREEBUILDER_H
 
 #include <Spatial.hpp>
 #include <String.hpp>
@@ -18,51 +18,51 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "constants.h"
-#include "chunk.h"
-#include "meshbuilder.h"
+#include "quadtree.h"
 #include "objectpool.h"
 #include "fn.h"
 
 using namespace std;
 namespace bpt = boost::posix_time;
 
-#define CHUNKBUILDER_VERTEX_SIZE 3
-#define CHUNKBUILDER_FACE_SIZE 4
-#define CHUNKBUILDER_MAX_VERTICES (BUFFER_SIZE * 6 * 4) / 2
-#define CHUNKBUILDER_MAX_FACES CHUNKBUILDER_MAX_VERTICES / 3
+#define QUADTREEBUILDER_VERTEX_SIZE 3
+#define QUADTREEBUILDER_FACE_SIZE 3
+#define QUADTREEBUILDER_MAX_VERTICES pow(4, QUADTREE_LEVEL) * 9
+#define QUADTREEBUILDER_MAX_FACES QUADTREEBUILDER_MAX_VERTICES
 
 namespace godot {
 
 	class VoxelWorld;
 
-	class ChunkBuilder {
+	class QuadTreeBuilder {
 
 	private:
+		struct queueEntry {
+			std::shared_ptr<quadsquare> quadtree;
+			Vector3 cameraPosition;
+		};
+
 		void processQueue();
-		void queueChunk(std::shared_ptr<Chunk> chunk);
-		void buildChunk(std::shared_ptr<Chunk> chunk);
+		void queueQuadTree(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition);
+		void buildQuadTree(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition);
 
 		std::shared_ptr<VoxelWorld> world;
-		std::unique_ptr<MeshBuilder> meshBuilder;
 		std::unique_ptr<boost::thread> queueThread;
-		deque<std::shared_ptr<Chunk>> buildQueue;
+		deque<queueEntry> buildQueue;
 		unordered_set<size_t> inque;
-		unordered_map<size_t, int> edgeCounts;
-		unordered_map<size_t, int> nodeCounts;
 
 		boost::mutex BUILD_QUEUE_MUTEX;
 		boost::mutex BUILD_QUEUE_WAIT;
 		boost::mutex BUILD_MESH_MUTEX;
 		boost::condition_variable BUILD_QUEUE_CV;
 		std::atomic<bool> threadStarted = false;
-		int amountFacesTotal = 0;
 	public:
-		ChunkBuilder(std::shared_ptr<VoxelWorld> world);
-		~ChunkBuilder() {
+		QuadTreeBuilder(std::shared_ptr<VoxelWorld> world);
+		~QuadTreeBuilder() {
 			queueThread->interrupt();
 			queueThread->join();
 		};
-		void build(std::shared_ptr<Chunk> chunk);
+		void build(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition);
 	};
 
 }

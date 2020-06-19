@@ -109,6 +109,11 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://Scripts/Meshes/QuadTreeQuad.gd"
 }, {
+"base": "MeshInstance",
+"class": "QuadTreeWorld",
+"language": "GDScript",
+"path": "res://Scripts/Meshes/QuadTreeWorld.gd"
+}, {
 "base": "Behaviour",
 "class": "Sequence",
 "language": "GDScript",
@@ -160,6 +165,7 @@ _global_script_class_icons={
 "Point2": "",
 "QuadTreeMesh": "",
 "QuadTreeQuad": "",
+"QuadTreeWorld": "",
 "Sequence": "",
 "ThreadPool": "",
 "Transporter": "",

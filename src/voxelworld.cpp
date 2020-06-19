@@ -15,6 +15,7 @@ void VoxelWorld::_register_methods() {
 	register_method("setVoxel", &VoxelWorld::setVoxel);
 	register_method("getVoxel", &VoxelWorld::getVoxel);
 	register_method("buildChunks", &VoxelWorld::buildChunks);
+	register_method("buildQuadTrees", &VoxelWorld::buildQuadTrees);
 	register_method("navigate", &VoxelWorld::navigate);
 	register_method("setIsVoxelFn", &VoxelWorld::setIsVoxelFn);
 	register_method("setIsWalkableFn", &VoxelWorld::setIsWalkableFn);
@@ -27,8 +28,11 @@ VoxelWorld::VoxelWorld() {
 
 	self = std::shared_ptr<VoxelWorld>(this);
 	chunkBuilder = std::make_unique<ChunkBuilder>(self);
+	quadtreeBuilder = std::make_unique<QuadTreeBuilder>(self);
 	navigator = std::make_unique<Navigator>(self);
 	chunks = vector<std::shared_ptr<Chunk>>(size_t(width * depth));
+	quadtrees = vector<std::shared_ptr<quadsquare>>(size_t(1));
+	quadtrees[0] = std::shared_ptr<quadsquare>(quadsquare::_new());
 }
 
 VoxelWorld::~VoxelWorld() {
@@ -267,6 +271,14 @@ void VoxelWorld::buildChunksTask(std::shared_ptr<VoxelWorld> world) {
 	}
 }
 
+void VoxelWorld::buildQuadTreesTask(std::shared_ptr<VoxelWorld> world, Vector3 cameraPosition) {
+	quadtreeBuilder->build(quadtrees[0], cameraPosition);
+}
+
 void VoxelWorld::buildChunks() {
 	ThreadPool::get()->submitTask(boost::bind(&VoxelWorld::buildChunksTask, this, self));
+}
+
+void VoxelWorld::buildQuadTrees(Vector3 cameraPosition) {
+	ThreadPool::get()->submitTask(boost::bind(&VoxelWorld::buildQuadTreesTask, this, self, cameraPosition));
 }

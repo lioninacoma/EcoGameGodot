@@ -16,10 +16,6 @@ ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
 	ChunkBuilder::threadStarted = false;
 }
 
-Vector3 addNormal(Vector3 src, Vector3 normal) {
-	return (src + normal).normalized();
-}
-
 //#define DEBUG_NODE_COUNT
 //#define DEBUG_FACE_COUNT
 
@@ -138,9 +134,9 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 			Vector3 v1 = x1 - x2;
 			Vector3 normal = v0.cross(v1).normalized();
 
-			normalArrayWrite[faces[i][0]] = addNormal(normalArrayWrite[faces[i][0]], normal);
-			normalArrayWrite[faces[i][1]] = addNormal(normalArrayWrite[faces[i][1]], normal);
-			normalArrayWrite[faces[i][2]] = addNormal(normalArrayWrite[faces[i][2]], normal);
+			normalArrayWrite[faces[i][0]] = fn::addNormal(normalArrayWrite[faces[i][0]], normal);
+			normalArrayWrite[faces[i][1]] = fn::addNormal(normalArrayWrite[faces[i][1]], normal);
+			normalArrayWrite[faces[i][2]] = fn::addNormal(normalArrayWrite[faces[i][2]], normal);
 
 			collisionArrayWrite[n] = vertexArray[faces[i][0]];
 			collisionArrayWrite[n + 1] = vertexArray[faces[i][1]];

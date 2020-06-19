@@ -7,7 +7,8 @@ var quad_data : Dictionary
 var enabled_flags : int
 var sub_enabled_count : Array
 
-# data for array mesh
+var detail_threshold = 10
+
 var arrays : Array
 
 func create_instance(quad_data):
@@ -52,7 +53,6 @@ func build_mesh(quad_data, vertices, indices, counts):
 	counts[0] = init_vert(counts[0], quad_data.xorg + half, 0, quad_data.zorg + whole, vertices)
 	counts[0] = init_vert(counts[0], quad_data.xorg + whole, 0, quad_data.zorg + whole, vertices)
 	
-	# Make the list of triangles to draw.
 	if (enabled_flags & 1) == 0: counts[1] = tri(counts[1], index_offset, 0, 8, 2, indices)
 	else:
 		if flags & 8: counts[1] = tri(counts[1], index_offset, 0, 8, 1, indices)
@@ -71,18 +71,6 @@ func build_mesh(quad_data, vertices, indices, counts):
 		if flags & 8: counts[1] = tri(counts[1], index_offset, 0, 7, 8, indices)
 	
 	if (enabled_flags & 1) == 0: pass
-
-func tri(index, offset, a, b, c, indices):
-	indices[index] = offset + a
-	indices[index + 1] = offset + c
-	indices[index + 2] = offset + b
-	index += 3
-	return index
-
-func init_vert(index, x, y, z, vertices):
-	vertices[index] = Vector3(x, y, z)
-	index += 1
-	return index
 
 func update(quad_data, camera_location : Vector3):
 	var half = 1 << quad_data.level
@@ -108,7 +96,6 @@ func update(quad_data, camera_location : Vector3):
 			if box_test(quad_data.xorg + half, quad_data.zorg + half, half, camera_location):
 				enable_child(3, quad_data) # se child
 		
-		# Recurse into child quadrants as necessary.
 		if enabled_flags & 32:
 			var q = setup_child_quad_data(quad_data, 1)
 			child[1].update(q, camera_location)
@@ -122,7 +109,7 @@ func update(quad_data, camera_location : Vector3):
 			var q = setup_child_quad_data(quad_data, 3)
 			child[3].update(q, camera_location)
 	
-	#Test for disabling.  East, South, and center.
+	# bits 0-7: e, n, w, s, ne, nw, sw, se
 	if ((enabled_flags & 1) && sub_enabled_count[0] == 0 
 		&& !vertex_test(quad_data.xorg + whole, quad_data.zorg + half, camera_location)):
 		enabled_flags &= ~1
@@ -136,8 +123,6 @@ func update(quad_data, camera_location : Vector3):
 	if (enabled_flags == 0
 		&& quad_data.parent != null
 		&& !box_test(quad_data.xorg, quad_data.zorg, whole, camera_location)):
-		# Disable ourself.
-		# nb: possibly deletes 'this'.
 		quad_data.parent.quad.notify_child_disable(quad_data.parent, quad_data.child_index)
 
 func enable_edge_vertex(index, increment_count, quad_data):
@@ -153,29 +138,26 @@ func enable_edge_vertex(index, increment_count, quad_data):
 	var stack = []
 	stack.resize(32)
 	
-	# Travel upwards through the tree, looking for the parent in common with our desired neighbor.
-	# Remember the path through the tree, so we can travel down the complementary path to get to the neighbor.
 	while true:
 		var ci = pqd.child_index
 		
 		if pqd.parent == null || pqd.parent.quad == null:
-			# Neighbor doesn't exist (it's outside the tree), so there's no alias vertex to enable.
 			return;
 		p = pqd.parent.quad
 		pqd = pqd.parent
 		
 		var same_parent = true if ((index - ci) & 2) else false
 		
-		ci = ci ^ 1 ^ ((index & 1) << 1) # Child index of neighbor node.
+		ci = ci ^ 1 ^ ((index & 1) << 1)
 		
 		stack[ct] = ci
 		ct += 1
 		
 		if same_parent: break
 	
+	
 	p = p.enable_descendant(ct, stack, pqd)
 	
-	# Finally: enable the vertex on the opposite edge of our neighbor, the alias of the original vertex.
 	index ^= 2
 	p.enabled_flags |= (1 << index)
 	if increment_count && (index == 0 || index == 3):
@@ -194,6 +176,7 @@ func enable_descendant(count, path, quad_data):
 	else:
 		return child[child_index]
 
+
 func enable_child(index, quad_data):
 	if (enabled_flags & (16 << index)) == 0:
 		enabled_flags |= (16 << index)
@@ -210,13 +193,12 @@ func notify_child_disable(quad_data, index):
 	
 	if index & 2: s = self
 	else: s = get_neighbour(1, quad_data)
-	if s:
-		s.sub_enabled_count[1] -= 1
+	if s: s.sub_enabled_count[1] -= 1
 	
-	if index == 1 || index == 2: s = get_neighbour(2, quad_data)
+	if index == 1 || index == 2: 
+		s = get_neighbour(2, quad_data)
 	else: s = self
-	if s:
-		s.sub_enabled_count[0] -= 1
+	if s: s.sub_enabled_count[0] -= 1
 	
 	child[index] = null
 
@@ -242,9 +224,18 @@ func create_child(index, quad_data):
 	if !child[index]:
 		var q = setup_child_quad_data(quad_data, index)
 		child[index] = create_instance(q)
-		pass
 
-var detail_threshold = 10
+func tri(index, offset, a, b, c, indices):
+	indices[index] = offset + a
+	indices[index + 1] = offset + c
+	indices[index + 2] = offset + b
+	index += 3
+	return index
+
+func init_vert(index, x, y, z, vertices):
+	vertices[index] = Vector3(x, y, z)
+	index += 1
+	return index
 
 func box_test(x, z, size, camera_location):
 	var half = size * 0.5
@@ -254,12 +245,9 @@ func box_test(x, z, size, camera_location):
 	var d = dx
 	if dy > d: d = dy
 	if dz > d: d = dz
-#	print ("x: %s, z: %s, size: %s, cam: %s, distance: %s" 
-#		% [x, z, size, camera_location, d])
 	return detail_threshold > d
 
 func vertex_test(x, z, camera_location):
-#	var d = Vector3(x, 0, z).distance_to(camera_location)
 	var dx = abs(x - camera_location.x)
 	var dy = abs(camera_location.y)
 	var dz = abs(z - camera_location.z)

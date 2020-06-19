@@ -1,6 +1,7 @@
 #include "ecogame.h"
 #include "voxel.h"
 #include "chunk.h"
+#include "quadtree.h"
 #include "voxelworld.h"
 
 extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
@@ -17,5 +18,6 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 	godot::register_class<godot::EcoGame>();
 	godot::register_class<godot::Voxel>();
 	godot::register_class<godot::Chunk>();
+	godot::register_class<godot::quadsquare>();
 	godot::register_class<godot::VoxelWorld>();
 }
