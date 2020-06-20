@@ -24,14 +24,14 @@
 
 using namespace std;
 
-#define QUADTREE_LEVEL 4
+#define QUADTREE_LEVEL 10
 
 typedef unsigned short uint16;
 typedef unsigned int uint32;
 typedef short int16;
 typedef int int32;
 
-static float DetailThreshold = 40;
+static float DetailThreshold = 60;
 
 namespace godot {
 

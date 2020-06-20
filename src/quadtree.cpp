@@ -289,20 +289,34 @@ void quadsquare::NotifyChildDisable(quadcornerdata* cd, int index)
 	removeChild(index);
 }
 
+float VertexDist(float x, float z, const float Viewer[3])
+{
+	float dx = fabs(x - Viewer[0]);
+	float dz = fabs(z - Viewer[2]);
+	float d = dx;
+	if (dz > d) d = dz;
+
+	return d;
+}
+
 bool VertexTest(float x, float z, const float Viewer[3])
 // Returns true if the vertex at (x,z) with the given world-space error between
 // its interpolated location and its true location, should be enabled, given that
 // the viewpoint is located at Viewer[].
 {
-	float dx = fabs(x - Viewer[0]);
-	float dy = fabs(Viewer[1]);
-	float dz = fabs(z - Viewer[2]);
+	return DetailThreshold > VertexDist(x, z, Viewer);
+}
+
+float BoxDist(float x, float z, float size, const float Viewer[3])
+{
+	// Find the minimum distance to the box.
+	float half = size * 0.5;
+	float dx = fabs(x + half - Viewer[0]) - half;
+	float dz = fabs(z + half - Viewer[2]) - half;
 	float d = dx;
-	if (dy > d) d = dy;
 	if (dz > d) d = dz;
 
-	//float d = Vector2(x, z).distance_to(Vector2(Viewer[0], Viewer[2]));
-	return DetailThreshold > d;
+	return d;
 }
 
 bool BoxTest(float x, float z, float size, const float Viewer[3])
@@ -310,27 +324,24 @@ bool BoxTest(float x, float z, float size, const float Viewer[3])
 // edges of length size) with the given error value could be enabled
 // based on the given viewer location.
 {
-	// Find the minimum distance to the box.
-	float half = size * 0.5;
-	float dx = fabs(x + half - Viewer[0]) - half;
-	float dy = fabs(Viewer[1]);
-	float dz = fabs(z + half - Viewer[2]) - half;
-	float d = dx;
-	if (dy > d) d = dy;
-	if (dz > d) d = dz;
-
-	/*float cx = max(min(Viewer[0], x + half), x);
-	float cy = max(min(Viewer[2], z + half), z);
-	float d = sqrt((Viewer[0] - cx) * (Viewer[0] - cx) + (Viewer[2] - cy) * (Viewer[2] - cy));*/
-
-	return DetailThreshold > d;
+	return DetailThreshold > BoxDist(x, z, size, Viewer);
 }
+
+static const int DIST_FACTOR = 2.0;
 
 void quadsquare::update(quadcornerdata* cd, const float ViewerLocation[3])
 // Does the actual work of updating enabled states and tree growing/shrinking.
 {
 	int half = 1 << cd->Level;
 	int whole = half << 1;
+
+	/*float d = BoxDist(cd->xorg, cd->zorg, whole, ViewerLocation);
+	float max_d = DetailThreshold;
+	int min_level = QUADTREE_LEVEL - 1;
+
+	if (d <= max_d) {
+		min_level = ceil(pow(pow(QUADTREE_LEVEL, DIST_FACTOR) * d / max_d, 1.0 / DIST_FACTOR));
+	}*/
 
 	// See about enabling child verts.
 	if (!getEnabledFlags(0) && VertexTest(cd->xorg + whole, cd->zorg + half, ViewerLocation))
