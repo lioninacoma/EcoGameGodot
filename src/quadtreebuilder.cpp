@@ -10,7 +10,7 @@ QuadTreeBuilder::QuadTreeBuilder(std::shared_ptr<VoxelWorld> world) {
 	QuadTreeBuilder::threadStarted = false;
 }
 
-void QuadTreeBuilder::buildQuadTree(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition) {
+void QuadTreeBuilder::buildQuadTree(quadsquare* quadtree, Vector3 cameraPosition) {
 	if (!quadtree) return;
 	Node* parent = world->get_parent();
 
@@ -35,12 +35,13 @@ void QuadTreeBuilder::buildQuadTree(std::shared_ptr<quadsquare> quadtree, Vector
 
 	try {
 		BUILD_MESH_MUTEX.lock();
-		int* counts = new int[2];
-		counts[0] = 0; counts[1] = 0;
+		int* counts = new int[2]{ 0, 0 };
+		int* minLevel = new int{ QUADTREE_LEVEL };
 		const float viewerLocation[3] = { cameraPosition.x, cameraPosition.y, cameraPosition.z };
-		quadcornerdata root = quadcornerdata();
+		quadcornerdata* root = new quadcornerdata();
+		root->Square = quadtree;
 		quadtree->update(root, viewerLocation);
-		quadtree->buildVertices(root, vertices, faces, counts);
+		quadtree->buildVertices(root, vertices, faces, counts, minLevel);
 		BUILD_MESH_MUTEX.unlock();
 
 		if (counts[0] <= 0) {
@@ -56,7 +57,7 @@ void QuadTreeBuilder::buildQuadTree(std::shared_ptr<quadsquare> quadtree, Vector
 			dur = stop - start;
 			ms = dur.total_milliseconds();
 
-			parent->call_deferred("delete_quadtree", quadtree.get(), world.get());
+			parent->call_deferred("delete_quadtree", quadtree, world.get());
 
 			Godot::print(String("quadsquare at {0} deleted").format(Array::make(quadtree->getOffset(), ms)));
 			quadtree->setBuilding(false);
@@ -72,7 +73,7 @@ void QuadTreeBuilder::buildQuadTree(std::shared_ptr<quadsquare> quadtree, Vector
 		amountFaces = counts[1];
 		amountIndices = amountFaces * 3;
 
-		Godot::print(String("amountVertices: {0}, amountFaces: {1}").format(Array::make(amountVertices, amountFaces)));
+		Godot::print(String("amountVertices: {0}, amountFaces: {1}, minLevel: {2}").format(Array::make(amountVertices, amountFaces, minLevel[0])));
 
 		PoolVector3Array vertexArray;
 		PoolVector3Array normalArray;
@@ -132,7 +133,7 @@ void QuadTreeBuilder::buildQuadTree(std::shared_ptr<quadsquare> quadtree, Vector
 		meshData[0] = meshArrays;
 		meshData[1] = collisionArray;
 
-		parent->call_deferred("build_quadtree", meshData, quadtree.get(), world.get());
+		parent->call_deferred("build_quadtree", meshData, quadtree, world.get());
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -164,7 +165,7 @@ void QuadTreeBuilder::processQueue() {
 	}
 }
 
-void QuadTreeBuilder::queueQuadTree(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition) {
+void QuadTreeBuilder::queueQuadTree(quadsquare* quadtree, Vector3 cameraPosition) {
 	boost::unique_lock<boost::mutex> lock(BUILD_QUEUE_MUTEX);
 
 	size_t hash = fn::hash(quadtree->getOffset());
@@ -176,14 +177,14 @@ void QuadTreeBuilder::queueQuadTree(std::shared_ptr<quadsquare> quadtree, Vector
 	buildQueue.push_back(entry);
 }
 
-void QuadTreeBuilder::build(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition) {
-	if (!threadStarted) {
+void QuadTreeBuilder::build(quadsquare* quadtree, Vector3 cameraPosition) {
+	/*if (!threadStarted) {
 		threadStarted = true;
 		queueThread = std::make_unique<boost::thread>(&QuadTreeBuilder::processQueue, this);
-	}
+	}*/
 
 	if (quadtree->isBuilding()) {
-		queueQuadTree(quadtree, cameraPosition);
+		//queueQuadTree(quadtree, cameraPosition);
 		return;
 	}
 

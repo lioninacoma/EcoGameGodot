@@ -31,8 +31,8 @@ VoxelWorld::VoxelWorld() {
 	quadtreeBuilder = std::make_unique<QuadTreeBuilder>(self);
 	navigator = std::make_unique<Navigator>(self);
 	chunks = vector<std::shared_ptr<Chunk>>(size_t(width * depth));
-	quadtrees = vector<std::shared_ptr<quadsquare>>(size_t(1));
-	quadtrees[0] = std::shared_ptr<quadsquare>(quadsquare::_new());
+	quadtrees = vector<quadsquare*>(size_t(1));
+	quadtrees[0] = quadsquare::_new();
 }
 
 VoxelWorld::~VoxelWorld() {

@@ -13,7 +13,7 @@ const TIME_PERIOD = 0.05 # 50ms
 var time = 0
 
 func _init():
-	self.material = WorldVariables.stoneMaterial
+	#self.material = WorldVariables.stoneMaterial
 	if !mesh: mesh = ArrayMesh.new()
 	voxel_body = VoxelWorldNative.new()
 	add_child(voxel_body)
@@ -63,7 +63,7 @@ func build_mesh(mesh_data : Array, owner):
 	
 	var id = mesh.get_surface_count()
 	mesh.add_surface_from_arrays(ArrayMesh.PRIMITIVE_TRIANGLES, mesh_data[0])
-	mesh.surface_set_material(id, material)
+	#mesh.surface_set_material(id, material)
 	
 #	var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
 #	polygon_shape.set_faces(mesh_data[1])

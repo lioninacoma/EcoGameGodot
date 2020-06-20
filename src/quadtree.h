@@ -24,7 +24,7 @@
 
 using namespace std;
 
-#define QUADTREE_LEVEL 6
+#define QUADTREE_LEVEL 4
 
 typedef unsigned short uint16;
 typedef unsigned int uint32;
@@ -40,8 +40,8 @@ namespace godot {
 	// A structure used during recursive traversal of the tree to hold
 	// relevant but transitory data.
 	struct quadcornerdata {
-		const quadcornerdata* Parent;
-		std::shared_ptr<quadsquare> Square;
+		quadcornerdata* Parent;
+		quadsquare* Square;
 		int ChildIndex;
 		int Level;
 		int xorg, zorg;
@@ -60,33 +60,32 @@ namespace godot {
 	class quadsquare : public Node {
 		GODOT_CLASS(quadsquare, Node)
 	private:
-		std::shared_ptr<quadsquare> self;
-		vector<std::shared_ptr<quadsquare>> Child;
+		vector<quadsquare*> Child;
 		Vector3 offset;
 
 		unsigned char EnabledFlags; // bits 0-7: e, n, w, s, ne, nw, sw, se
-		unsigned char SubEnabledCount[2]; // e, s enabled reference counts.
+		int SubEnabledCount[2]; // e, s enabled reference counts.
 		std::atomic<bool> building = false;
 		std::atomic<int> meshInstanceId = 0;
 
 		std::shared_mutex CHILD_MUTEX;
 		std::shared_mutex ENABLED_FLAGS_MUTEX;
 
-		void EnableEdgeVertex(int index, bool IncrementCount, const quadcornerdata& cd);
-		std::shared_ptr<quadsquare> EnableDescendant(int count, int stack[], const quadcornerdata& cd);
-		void EnableChild(int index, const quadcornerdata& cd);
-		void NotifyChildDisable(const quadcornerdata& cd, int index);
+		void EnableEdgeVertex(int index, bool IncrementCount, quadcornerdata* cd);
+		quadsquare* EnableDescendant(int count, int stack[], quadcornerdata* cd);
+		void EnableChild(int index, quadcornerdata* cd);
+		void NotifyChildDisable(quadcornerdata* cd, int index);
 
 		void setEnabledFlags(int pos, bool set);
 		bool getEnabledFlags(int pos);
 		bool isEmptyEnabledFlags();
-		std::shared_ptr<quadsquare> getChild(int index);
-		void setChild(int index, std::shared_ptr<quadsquare> square);
+		quadsquare* getChild(int index);
+		void setChild(int index, quadsquare* square);
 		void removeChild(int index);
 
-		std::shared_ptr<quadsquare> GetNeighbor(int dir, const quadcornerdata& cd);
-		void CreateChild(int index, const quadcornerdata& cd);
-		void SetupCornerData(quadcornerdata* q, const quadcornerdata& pd, int ChildIndex);
+		quadsquare* GetNeighbor(int dir, quadcornerdata* cd);
+		void CreateChild(int index, quadcornerdata* cd);
+		void SetupCornerData(quadcornerdata* q, quadcornerdata* cd, int ChildIndex);
 	public:
 		static void _register_methods();
 
@@ -99,8 +98,8 @@ namespace godot {
 
 		void setBuilding(bool building);
 		void setMeshInstanceId(int meshInstanceId);
-		void update(const quadcornerdata& cd, const float ViewerLocation[3]);
-		void buildVertices(const quadcornerdata& cd, float** vertices, int** faces, int* counts);
+		void update(quadcornerdata* cd, const float ViewerLocation[3]);
+		void buildVertices(quadcornerdata* cd, float** vertices, int** faces, int* counts, int* minLevel);
 		
 		bool isBuilding();
 		int getMeshInstanceId();

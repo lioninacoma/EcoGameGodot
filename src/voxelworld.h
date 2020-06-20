@@ -40,7 +40,7 @@ namespace godot {
 		std::atomic<int> width, depth;
 		std::shared_ptr<VoxelWorld> self;
 		vector<std::shared_ptr<Chunk>> chunks;
-		vector<std::shared_ptr<quadsquare>> quadtrees;
+		vector<quadsquare*> quadtrees;
 		std::unique_ptr<Navigator> navigator;
 		std::unique_ptr<ChunkBuilder> chunkBuilder;
 		std::unique_ptr<QuadTreeBuilder> quadtreeBuilder;

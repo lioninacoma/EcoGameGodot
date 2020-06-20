@@ -27,7 +27,7 @@ namespace bpt = boost::posix_time;
 
 #define QUADTREEBUILDER_VERTEX_SIZE 3
 #define QUADTREEBUILDER_FACE_SIZE 3
-#define QUADTREEBUILDER_MAX_VERTICES pow(4, QUADTREE_LEVEL) * 9
+#define QUADTREEBUILDER_MAX_VERTICES pow(4, QUADTREE_LEVEL) * 9 * 2
 #define QUADTREEBUILDER_MAX_FACES QUADTREEBUILDER_MAX_VERTICES
 
 namespace godot {
@@ -38,13 +38,13 @@ namespace godot {
 
 	private:
 		struct queueEntry {
-			std::shared_ptr<quadsquare> quadtree;
+			quadsquare* quadtree;
 			Vector3 cameraPosition;
 		};
 
 		void processQueue();
-		void queueQuadTree(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition);
-		void buildQuadTree(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition);
+		void queueQuadTree(quadsquare* quadtree, Vector3 cameraPosition);
+		void buildQuadTree(quadsquare* quadtree, Vector3 cameraPosition);
 
 		std::shared_ptr<VoxelWorld> world;
 		std::unique_ptr<boost::thread> queueThread;
@@ -62,7 +62,7 @@ namespace godot {
 			queueThread->interrupt();
 			queueThread->join();
 		};
-		void build(std::shared_ptr<quadsquare> quadtree, Vector3 cameraPosition);
+		void build(quadsquare* quadtree, Vector3 cameraPosition);
 	};
 
 }
