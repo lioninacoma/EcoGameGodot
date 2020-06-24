@@ -1,8 +1,8 @@
 extends Node
 
 # world building variables
-const CHUNK_SIZE_X : int = 8
-const CHUNK_SIZE_Z : int = 8
+const CHUNK_SIZE_X : int = 16
+const CHUNK_SIZE_Z : int = 16
 var PICK_DISTANCE : int = 200
 const BUILD_DISTANCE : int = 1024
 const WORLD_RADIUS : int = 64

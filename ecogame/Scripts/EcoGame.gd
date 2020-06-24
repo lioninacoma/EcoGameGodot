@@ -17,11 +17,11 @@ func _ready() -> void:
 #	var cubeSphere = CubeSphere.new(Vector3(8, 64, 8), 2)
 #	add_child(cubeSphere)
 	
-#	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 16, "a")
+	var celestial_body_a = CelestialBody.new(Vector3.ZERO, 64, "a")
 #	var celestial_body_b = CelestialBody.new(Vector3(0, 64, 64), 8, "lo_res_world")
 #	var celestial_body_a = CelestialBody.new(Vector3(64, 64, 64), 32, "hi_res_world")
 	
-#	add_child(celestial_body_a)
+	add_child(celestial_body_a)
 #	add_child(celestial_body_b)
 
 func _process(delta : float) -> void:

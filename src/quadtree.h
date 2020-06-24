@@ -26,12 +26,7 @@ using namespace std;
 
 #define QUADTREE_LEVEL 10
 
-typedef unsigned short uint16;
-typedef unsigned int uint32;
-typedef short int16;
-typedef int int32;
-
-static float DetailThreshold = 60;
+static const float DetailThreshold = 60;
 
 namespace godot {
 
@@ -87,6 +82,11 @@ namespace godot {
 		void CreateChild(int index, quadcornerdata* cd);
 		void SetupCornerData(quadcornerdata* q, quadcornerdata* cd, int ChildIndex);
 	public:
+		typedef unsigned short uint16;
+		typedef unsigned int uint32;
+		typedef short int16;
+		typedef int int32;
+
 		static void _register_methods();
 
 		quadsquare() : quadsquare(Vector3(0, 0, 0)) {};

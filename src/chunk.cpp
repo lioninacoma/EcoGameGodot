@@ -150,7 +150,7 @@ float Chunk::isVoxel(int ix, int iy, int iz) {
 	float y = cy / (width * CHUNK_SIZE_X);
 	float z = cz / (width * CHUNK_SIZE_X);
 	float d = 0.5;
-	float r = 0.08 * (noise->get_noise_3d(cx, cy, cz) * 0.5 + 0.5);
+	float r = 0.1 * (noise->get_noise_3d(cx, cy, cz) * 0.5 + 0.5);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - r;
 	return s;
 

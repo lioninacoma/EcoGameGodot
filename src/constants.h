@@ -1,9 +1,9 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define CHUNK_SIZE_X 8    // Voxels
-#define CHUNK_SIZE_Y 128  // Voxels
-#define CHUNK_SIZE_Z 8    // Voxels
+#define CHUNK_SIZE_X 16    // Voxels
+#define CHUNK_SIZE_Y 16	   // Voxels
+#define CHUNK_SIZE_Z 16    // Voxels
 
 #define VERTEX_SIZE 8
 #define BUFFER_SIZE CHUNK_SIZE_X * CHUNK_SIZE_Y * CHUNK_SIZE_Z

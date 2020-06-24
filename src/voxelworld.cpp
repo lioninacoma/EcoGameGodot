@@ -23,8 +23,8 @@ void VoxelWorld::_register_methods() {
 }
 
 VoxelWorld::VoxelWorld() {
-	VoxelWorld::width = 16;
-	VoxelWorld::depth = 16;
+	VoxelWorld::width = 4;
+	VoxelWorld::depth = 4;
 
 	self = std::shared_ptr<VoxelWorld>(this);
 	chunkBuilder = std::make_unique<ChunkBuilder>(self);

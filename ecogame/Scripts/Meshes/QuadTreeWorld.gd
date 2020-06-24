@@ -32,7 +32,7 @@ func _process(delta):
 	if time > TIME_PERIOD && (camera_pos_before == null 
 		|| camera_pos_before != camera_pos):
 		camera_pos_before = camera_pos
-		voxel_body.buildQuadTrees(camera_pos)
+		voxel_body.buildQuadTrees(camera_pos / scale)
 		time = 0
 
 func delete_quadtree(quadtree, world) -> void:

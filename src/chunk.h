@@ -43,14 +43,14 @@ namespace godot {
 		std::atomic<bool> navigatable = false;
 		std::atomic<bool> building = false;
 		std::atomic<bool> volumeBuilt = false;
-		
+
 		Vector3 offset;
 		Ref<FuncRef> isVoxelFn;
 
 		std::shared_ptr<VoxelWorld> world;
 		std::unique_ptr<VoxelData> volume;
 		unordered_map<size_t, std::shared_ptr<GraphNode>> nodes;
-		
+
 		OpenSimplexNoise* noise;
 
 		std::shared_mutex CHUNK_NODES_MUTEX;
@@ -66,7 +66,7 @@ namespace godot {
 		~Chunk();
 
 		void _init(); // our initializer called by Godot
-		
+
 		Vector3 getOffset();
 		bool isNavigatable();
 		bool isBuilding();
