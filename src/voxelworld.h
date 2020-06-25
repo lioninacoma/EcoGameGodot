@@ -37,7 +37,7 @@ namespace godot {
 		GODOT_CLASS(VoxelWorld, Spatial)
 
 	private:
-		std::atomic<int> width, depth;
+		std::atomic<int> size;
 		std::shared_ptr<VoxelWorld> self;
 		vector<std::shared_ptr<Chunk>> chunks;
 		vector<quadsquare*> quadtrees;
@@ -62,23 +62,22 @@ namespace godot {
 
 		std::shared_ptr<Chunk> intersection(int x, int y, int z);
 		vector<std::shared_ptr<Chunk>> getChunksRay(Vector3 from, Vector3 to);
-		std::shared_ptr<Chunk> getChunk(int x, int z);
+		std::shared_ptr<Chunk> getChunk(int x, int y, int z);
 		std::shared_ptr<Chunk> getChunk(int i);
 		std::shared_ptr<Chunk> getChunk(Vector3 position);
 		std::shared_ptr<GraphNode> getNode(Vector3 position);
 		std::shared_ptr<GraphNode> findClosestNode(Vector3 position);
 		int getVoxel(Vector3 position);
-		int getWidth();
-		int getDepth();
+		int getSize();
 
 		void buildChunks();
 		void buildQuadTrees(Vector3 cameraPosition);
 		void setIsVoxelFn(Variant fnRef);
 		void setIsWalkableFn(Variant fnRef);
-		void setChunk(int x, int z, std::shared_ptr<Chunk> chunk);
+		void setChunk(int x, int y, int z, std::shared_ptr<Chunk> chunk);
 		void setChunk(int i, std::shared_ptr<Chunk> chunk);
 		void setVoxel(Vector3 position, float radius, bool set);
-		void setDimensions(Vector2 dimensions);
+		void setSize(float size);
 		void navigate(Vector3 startV, Vector3 goalV, int actorInstanceId);
 	};
 }

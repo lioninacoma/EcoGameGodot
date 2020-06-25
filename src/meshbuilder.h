@@ -332,7 +332,7 @@ namespace godot {
 		void buildCell(int x, int y, int z, std::shared_ptr<Chunk> chunk, float** vertices, int** faces, int* counts);
 		float fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z);
 
-		float worldWidth, worldDepth;
+		float worldSize;
 		std::shared_ptr<VoxelWorld> world;
 	public:
 		MeshBuilder(std::shared_ptr<VoxelWorld> world);

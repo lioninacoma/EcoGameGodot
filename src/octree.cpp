@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "octree.h"
 #include "density.h"
+#include "chunk.h"
 
 using namespace godot;
 
@@ -31,21 +32,6 @@ const int MATERIAL_SOLID = 1;
 
 const float QEF_ERROR = 1e-6f;
 const int QEF_SWEEPS = 4;
-
-// ----------------------------------------------------------------------------
-
-const Vector3 CHILD_MIN_OFFSETS[] =
-{
-	// needs to match the vertMap from Dual Contouring impl
-	Vector3(0, 0, 0),
-	Vector3(0, 0, 1),
-	Vector3(0, 1, 0),
-	Vector3(0, 1, 1),
-	Vector3(1, 0, 0),
-	Vector3(1, 0, 1),
-	Vector3(1, 1, 0),
-	Vector3(1, 1, 1),
-};
 
 // ----------------------------------------------------------------------------
 // data from the original DC impl, drives the contouring process
@@ -95,9 +81,9 @@ const int edgeProcEdgeMask[3][2][5] = {
 
 const int processEdgeMask[3][4] = { {3,2,1,0},{7,5,6,4},{11,10,9,8} };
 
-// -------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
-OctreeNode* SimplifyOctree(OctreeNode* node, float threshold)
+std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, float threshold)
 {
 	if (!node)
 	{
@@ -121,7 +107,7 @@ OctreeNode* SimplifyOctree(OctreeNode* node, float threshold)
 		node->children[i] = SimplifyOctree(node->children[i], threshold);
 		if (node->children[i])
 		{
-			OctreeNode* child = node->children[i];
+			std::shared_ptr<OctreeNode> child = node->children[i];
 			if (child->type == Node_Internal)
 			{
 				isCollapsible = false;
@@ -167,7 +153,7 @@ OctreeNode* SimplifyOctree(OctreeNode* node, float threshold)
 	}
 
 	// change the node from an internal node to a 'psuedo leaf' node
-	OctreeDrawInfo* drawInfo = new OctreeDrawInfo();
+	std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
 
 	for (int i = 0; i < 8; i++)
 	{
@@ -187,7 +173,7 @@ OctreeNode* SimplifyOctree(OctreeNode* node, float threshold)
 	{
 		if (node->children[i])
 		{
-			OctreeNode* child = node->children[i];
+			std::shared_ptr<OctreeNode> child = node->children[i];
 			if (child->type == Node_Psuedo ||
 				child->type == Node_Leaf)
 			{
@@ -214,7 +200,7 @@ OctreeNode* SimplifyOctree(OctreeNode* node, float threshold)
 
 // ----------------------------------------------------------------------------
 
-void GenerateVertexIndices(OctreeNode* node, VertexBuffer& vertexBuffer)
+void GenerateVertexIndices(std::shared_ptr<OctreeNode> node, VertexBuffer& vertexBuffer)
 {
 	if (!node)
 	{
@@ -231,7 +217,7 @@ void GenerateVertexIndices(OctreeNode* node, VertexBuffer& vertexBuffer)
 
 	if (node->type != Node_Internal)
 	{
-		OctreeDrawInfo* d = node->drawInfo;
+		std::shared_ptr<OctreeDrawInfo> d = node->drawInfo;
 		if (!d)
 		{
 			printf("Error! Could not add vertex!\n");
@@ -245,7 +231,7 @@ void GenerateVertexIndices(OctreeNode* node, VertexBuffer& vertexBuffer)
 
 // ----------------------------------------------------------------------------
 
-void ContourProcessEdge(OctreeNode* node[4], int dir, IndexBuffer& indexBuffer)
+void ContourProcessEdge(std::shared_ptr<OctreeNode> node[4], int dir, IndexBuffer& indexBuffer)
 {
 	int minSize = 1000000;		// arbitrary big number
 	int minIndex = 0;
@@ -303,7 +289,7 @@ void ContourProcessEdge(OctreeNode* node[4], int dir, IndexBuffer& indexBuffer)
 
 // ----------------------------------------------------------------------------
 
-void ContourEdgeProc(OctreeNode* node[4], int dir, IndexBuffer& indexBuffer)
+void ContourEdgeProc(std::shared_ptr<OctreeNode> node[4], int dir, IndexBuffer& indexBuffer)
 {
 	if (!node[0] || !node[1] || !node[2] || !node[3])
 	{
@@ -321,7 +307,7 @@ void ContourEdgeProc(OctreeNode* node[4], int dir, IndexBuffer& indexBuffer)
 	{
 		for (int i = 0; i < 2; i++)
 		{
-			OctreeNode* edgeNodes[4];
+			std::shared_ptr<OctreeNode> edgeNodes[4];
 			const int c[4] =
 			{
 				edgeProcEdgeMask[dir][i][0],
@@ -349,7 +335,7 @@ void ContourEdgeProc(OctreeNode* node[4], int dir, IndexBuffer& indexBuffer)
 
 // ----------------------------------------------------------------------------
 
-void ContourFaceProc(OctreeNode* node[2], int dir, IndexBuffer& indexBuffer)
+void ContourFaceProc(std::shared_ptr<OctreeNode> node[2], int dir, IndexBuffer& indexBuffer)
 {
 	if (!node[0] || !node[1])
 	{
@@ -361,7 +347,7 @@ void ContourFaceProc(OctreeNode* node[2], int dir, IndexBuffer& indexBuffer)
 	{
 		for (int i = 0; i < 4; i++)
 		{
-			OctreeNode* faceNodes[2];
+			std::shared_ptr<OctreeNode> faceNodes[2];
 			const int c[2] =
 			{
 				faceProcFaceMask[dir][i][0],
@@ -390,7 +376,7 @@ void ContourFaceProc(OctreeNode* node[2], int dir, IndexBuffer& indexBuffer)
 		};
 		for (int i = 0; i < 4; i++)
 		{
-			OctreeNode* edgeNodes[4];
+			std::shared_ptr<OctreeNode> edgeNodes[4];
 			const int c[4] =
 			{
 				faceProcEdgeMask[dir][i][1],
@@ -420,7 +406,7 @@ void ContourFaceProc(OctreeNode* node[2], int dir, IndexBuffer& indexBuffer)
 
 // ----------------------------------------------------------------------------
 
-void ContourCellProc(OctreeNode* node, IndexBuffer& indexBuffer)
+void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer)
 {
 	if (node == NULL)
 	{
@@ -436,7 +422,7 @@ void ContourCellProc(OctreeNode* node, IndexBuffer& indexBuffer)
 
 		for (int i = 0; i < 12; i++)
 		{
-			OctreeNode* faceNodes[2];
+			std::shared_ptr<OctreeNode> faceNodes[2];
 			const int c[2] = { cellProcFaceMask[i][0], cellProcFaceMask[i][1] };
 
 			faceNodes[0] = node->children[c[0]];
@@ -447,7 +433,7 @@ void ContourCellProc(OctreeNode* node, IndexBuffer& indexBuffer)
 
 		for (int i = 0; i < 6; i++)
 		{
-			OctreeNode* edgeNodes[4];
+			std::shared_ptr<OctreeNode> edgeNodes[4];
 			const int c[4] =
 			{
 				cellProcEdgeMask[i][0],
@@ -466,31 +452,35 @@ void ContourCellProc(OctreeNode* node, IndexBuffer& indexBuffer)
 	}
 }
 
-float Density_Func(Chunk* chunk, Vector3 v) {
+float Density_Func(std::shared_ptr<godot::Chunk> chunk, Vector3 v) {
 	double s = 1.0;
 	//Vector3 offset = chunk->getOffset();
 	int x = v.x;
 	int y = v.y;
 	int z = v.z;
 
-	/*if (x < 0 || x >= CHUNK_SIZE_X || z < 0 || z >= CHUNK_SIZE_Z) {
+	/*if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
 		s = chunk->isVoxel(x, y, z);
 	}
 	else {
 		s = chunk->getVoxel(
-			x % CHUNK_SIZE_X,
-			y % CHUNK_SIZE_Y,
-			z % CHUNK_SIZE_Z);
+			x % CHUNK_SIZE,
+			y % CHUNK_SIZE,
+			z % CHUNK_SIZE);
 	}
 	s = chunk->isVoxel(x, y, z);
 	return s;*/
 
 	return Sphere(v, Vector3(32, 32, 32), 32);
+	//return Sphere(v, Vector3(8, 8, 8) + chunk->getOffset(), 8);
+	//return Cuboid(v, Vector3(32, 32, 32), Vector3(32, 32, 32));
+	//return Cuboid(v, Vector3(8, 8, 8) + chunk->getOffset(), Vector3(8, 8, 8));
+	//return v.y - 32.f;
 }
 
 // ----------------------------------------------------------------------------
 
-Vector3 ApproximateZeroCrossingPosition(Chunk* chunk, const Vector3& p0, const Vector3& p1)
+Vector3 ApproximateZeroCrossingPosition(std::shared_ptr<godot::Chunk> chunk, const Vector3& p0, const Vector3& p1)
 {
 	// approximate the zero crossing by finding the min value along the edge
 	float minValue = 100000.f;
@@ -516,7 +506,7 @@ Vector3 ApproximateZeroCrossingPosition(Chunk* chunk, const Vector3& p0, const V
 
 // ----------------------------------------------------------------------------
 
-Vector3 CalculateSurfaceNormal(Chunk* chunk, const Vector3& p)
+Vector3 CalculateSurfaceNormal(std::shared_ptr<godot::Chunk> chunk, const Vector3& p)
 {
 	const float H = 0.001f;
 	const float dx = Density_Func(chunk, p + Vector3(H, 0.f, 0.f)) - Density_Func(chunk, p - Vector3(H, 0.f, 0.f));
@@ -528,7 +518,7 @@ Vector3 CalculateSurfaceNormal(Chunk* chunk, const Vector3& p)
 
 // ----------------------------------------------------------------------------
 
-OctreeNode* ConstructLeaf(OctreeNode* leaf)
+std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
 {
 	if (!leaf || leaf->size != 1)
 	{
@@ -547,7 +537,7 @@ OctreeNode* ConstructLeaf(OctreeNode* leaf)
 	if (corners == 0 || corners == 255)
 	{
 		// voxel is full inside or outside the volume
-		delete leaf;
+		leaf.reset();
 		return nullptr;
 	}
 
@@ -586,7 +576,7 @@ OctreeNode* ConstructLeaf(OctreeNode* leaf)
 	svd::Vec3 qefPosition;
 	qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
 
-	OctreeDrawInfo* drawInfo = new OctreeDrawInfo();
+	std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
 	drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
 	drawInfo->qef = qef.getData();
 
@@ -611,7 +601,7 @@ OctreeNode* ConstructLeaf(OctreeNode* leaf)
 
 // -------------------------------------------------------------------------------
 
-OctreeNode* ConstructOctreeNodes(OctreeNode* node)
+std::shared_ptr<OctreeNode> ConstructOctreeNodes(std::shared_ptr<OctreeNode> node)
 {
 	if (!node)
 	{
@@ -628,7 +618,7 @@ OctreeNode* ConstructOctreeNodes(OctreeNode* node)
 
 	for (int i = 0; i < 8; i++)
 	{
-		OctreeNode* child = new OctreeNode;
+		std::shared_ptr<OctreeNode> child = make_shared<OctreeNode>();
 		child->size = childSize;
 		child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
 		child->type = Node_Internal;
@@ -640,7 +630,7 @@ OctreeNode* ConstructOctreeNodes(OctreeNode* node)
 
 	if (!hasChildren)
 	{
-		delete node;
+		node.reset();
 		return nullptr;
 	}
 
@@ -649,13 +639,14 @@ OctreeNode* ConstructOctreeNodes(OctreeNode* node)
 
 // -------------------------------------------------------------------------------
 
-OctreeNode* BuildOctree(const Vector3& min, const int size, const float threshold, Chunk* chunk)
+std::shared_ptr<OctreeNode> BuildOctree(const Vector3& min, const int size, const float threshold, std::shared_ptr<godot::Chunk> chunk)
 {
-	OctreeNode* root = new OctreeNode;
+	std::shared_ptr<OctreeNode> root = make_shared<OctreeNode>();
 	root->min = min;
 	root->size = size;
 	root->type = Node_Internal;
 	root->chunk = chunk;
+	chunk->setRoot(root);
 
 	ConstructOctreeNodes(root);
 	root = SimplifyOctree(root, threshold);
@@ -665,15 +656,15 @@ OctreeNode* BuildOctree(const Vector3& min, const int size, const float threshol
 
 // ----------------------------------------------------------------------------
 
-void GenerateMeshFromOctree(OctreeNode* node, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer)
+void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer)
 {
 	if (!node)
 	{
 		return;
 	}
 
-	vertexBuffer.clear();
-	indexBuffer.clear();
+	//vertexBuffer.clear();
+	//indexBuffer.clear();
 
 	GenerateVertexIndices(node, vertexBuffer);
 	ContourCellProc(node, indexBuffer);
@@ -681,7 +672,7 @@ void GenerateMeshFromOctree(OctreeNode* node, VertexBuffer& vertexBuffer, IndexB
 
 // -------------------------------------------------------------------------------
 
-void DestroyOctree(OctreeNode* node)
+void DestroyOctree(std::shared_ptr<OctreeNode> node)
 {
 	if (!node)
 	{
@@ -695,10 +686,160 @@ void DestroyOctree(OctreeNode* node)
 
 	if (node->drawInfo)
 	{
-		delete node->drawInfo;
+		node->drawInfo.reset();
 	}
 
-	delete node;
+	node.reset();
+}
+
+// -------------------------------------------------------------------------------
+
+vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::Chunk> chunk)
+{
+	auto world = chunk->getWorld();
+	const Vector3 baseChunkMin = chunk->getOffset();
+	const Vector3 seamValues = baseChunkMin + Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
+
+	const Vector3 OFFSETS[8] =
+	{
+		Vector3(0,0,0), Vector3(1,0,0), Vector3(0,0,1), Vector3(1,0,1),
+		Vector3(0,1,0), Vector3(1,1,0), Vector3(0,1,1), Vector3(1,1,1)
+	};
+
+	FilterNodesFunc selectionFuncs[8] =
+	{
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return max.x == seamValues.x || max.y == seamValues.y || max.z == seamValues.z;
+		},
+
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return min.x == seamValues.x;
+		},
+
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return min.z == seamValues.z;
+		},
+
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return min.x == seamValues.x && min.z == seamValues.z;
+		},
+
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return min.y == seamValues.y;
+		},
+
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return min.x == seamValues.x && min.y == seamValues.y;
+		},
+
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return min.y == seamValues.y && min.z == seamValues.z;
+		},
+
+		[&](const Vector3& min, const Vector3& max)
+		{
+			return min.x == seamValues.x && min.y == seamValues.y && min.z == seamValues.z;
+		}
+	};
+
+	vector<std::shared_ptr<OctreeNode>> seamNodes;
+	for (int i = 0; i < 8; i++)
+	{
+		const Vector3 offsetMin = OFFSETS[i] * CHUNK_SIZE;
+		const Vector3 chunkMin = baseChunkMin + offsetMin;
+		auto c = world->getChunk(chunkMin);
+		if (c)
+		{
+			auto chunkNodes = c->findNodes(selectionFuncs[i]);
+			seamNodes.insert(end(seamNodes), begin(chunkNodes), end(chunkNodes));
+		}
+	}
+
+	return seamNodes;
+}
+
+// -------------------------------------------------------------------------------
+
+void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes)
+{
+	if (!node)
+	{
+		return;
+	}
+
+	const Vector3 max = node->min + Vector3(node->size, node->size, node->size);
+	if (!func(node->min, max))
+	{
+		return;
+	}
+
+	if (node->type == Node_Leaf)
+	{
+		nodes.push_back(node->cpy());
+	}
+	else
+	{
+		for (int i = 0; i < 8; i++)
+			Octree_FindNodes(node->children[i], func, nodes);
+	}
+}
+
+// -------------------------------------------------------------------------------
+
+vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, std::shared_ptr<godot::Chunk> chunk)
+{
+	vector<std::shared_ptr<OctreeNode>> parents;
+
+	for (int i = 0; i < seams.size(); i++) {
+		std::shared_ptr<OctreeNode> node = seams[i];
+
+		int parentSize = node->size * 2;
+		Vector3 chunkMin = chunk->getOffset();
+		Vector3 parentMin = node->min - Vector3(
+			int(node->min.x - chunkMin.x) % parentSize,
+			int(node->min.y - chunkMin.y) % parentSize,
+			int(node->min.z - chunkMin.z) % parentSize);
+		bool hasElement = false;
+		int index = -1;
+
+		for (int i = 0; i < 8; i++) {
+			Vector3 childMin = parentMin + (node->size * CHILD_MIN_OFFSETS[i]);
+			if (childMin == node->min) {
+				index = i;
+				break;
+			}
+		}
+		
+		if (index < 0) continue;
+
+		for (int j = 0; j < parents.size(); j++) {
+			if (parents[j]->min == parentMin) {
+				hasElement = true;
+				parents[j]->children[index] = node;
+				break;
+			}
+		}
+
+		if (!hasElement) {
+			std::shared_ptr<OctreeNode> parent = make_shared<OctreeNode>();
+			parent->min = parentMin;
+			parent->size = parentSize;
+			parent->type = Node_Internal;
+			parent->chunk = node->chunk;
+			parents.push_back(parent);
+			parent->children[index] = node;
+		}
+	}
+
+	if (parents.size() < 2) return parents;
+	return BuildSeamOctree(parents, chunk);
 }
 
 // -------------------------------------------------------------------------------

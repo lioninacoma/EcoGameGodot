@@ -4,6 +4,7 @@
 #include "navigator.h"
 #include "voxelworld.h"
 #include "ecogame.h"
+#include "octree.h"
 
 using namespace godot;
 
@@ -17,9 +18,8 @@ void Chunk::_register_methods() {
 }
 
 Chunk::Chunk(Vector3 offset) {
-	Chunk::gridSize = 1;
 	Chunk::offset = offset;
-	Chunk::volume = std::make_unique<VoxelData>(CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
+	Chunk::volume = std::make_unique<VoxelData>(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
 }
 
 Chunk::~Chunk() {
@@ -33,6 +33,10 @@ void Chunk::_init() {
 	Chunk::noise->set_octaves(6);
 	Chunk::noise->set_period(192.0);
 	Chunk::noise->set_persistence(0.5);
+}
+
+std::shared_ptr<VoxelWorld> Chunk::getWorld() {
+	return world;
 }
 
 Vector3 Chunk::getOffset() {
@@ -51,10 +55,6 @@ bool Chunk::isBuilding() {
 	return building;
 }
 
-int Chunk::getGridSize() {
-	return Chunk::gridSize;
-}
-
 int Chunk::getAmountNodes() {
 	boost::shared_lock<std::shared_mutex> lock(CHUNK_NODES_MUTEX);
 	return nodes.size();
@@ -68,13 +68,13 @@ Voxel* Chunk::intersection(int x, int y, int z) {
 	int chunkX = (int) offset.x;
 	int chunkY = (int) offset.y;
 	int chunkZ = (int) offset.z;
-	if (x >= chunkX && x < chunkX + CHUNK_SIZE_X
-		&& y >= chunkY && y < chunkY + CHUNK_SIZE_Y
-		&& z >= chunkZ && z < chunkZ + CHUNK_SIZE_Z) {
+	if (x >= chunkX && x < chunkX + CHUNK_SIZE
+		&& y >= chunkY && y < chunkY + CHUNK_SIZE
+		&& z >= chunkZ && z < chunkZ + CHUNK_SIZE) {
 		int v = getVoxel(
-			(int) x % CHUNK_SIZE_X,
-			(int) y % CHUNK_SIZE_Y,
-			(int) z % CHUNK_SIZE_Z);
+			(int) x % CHUNK_SIZE,
+			(int) y % CHUNK_SIZE,
+			(int) z % CHUNK_SIZE);
 
 		if (v) {
 			auto voxel = Voxel::_new();
@@ -142,13 +142,13 @@ void Chunk::setVoxel(int x, int y, int z, float v) {
 }
 
 float Chunk::isVoxel(int ix, int iy, int iz) {
-	int width = world->getWidth();
+	int size = world->getSize();
 	float cx = ix + offset.x;
 	float cy = iy + offset.y;
 	float cz = iz + offset.z;
-	float x = cx / (width * CHUNK_SIZE_X);
-	float y = cy / (width * CHUNK_SIZE_X);
-	float z = cz / (width * CHUNK_SIZE_X);
+	float x = cx / (size * CHUNK_SIZE);
+	float y = cy / (size * CHUNK_SIZE);
+	float z = cz / (size * CHUNK_SIZE);
 	float d = 0.5;
 	float r = 0.1 * (noise->get_noise_3d(cx, cy, cz) * 0.5 + 0.5);
 	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - r;
@@ -183,7 +183,7 @@ std::shared_ptr<GraphNode> Chunk::getNode(size_t hash) {
 //	float cx = ix + offset.x;
 //	float cy = iy + offset.y;
 //	float cz = iz + offset.z;
-//	float y = cy / CHUNK_SIZE_Y;
+//	float y = cy / CHUNK_SIZE;
 //	float s = y + noise->get_noise_3d(cx / 2, cy / 2, cz / 2);
 //	return s;
 //}
@@ -191,9 +191,9 @@ std::shared_ptr<GraphNode> Chunk::getNode(size_t hash) {
 void Chunk::buildVolume() {
 	int x, y, z;
 
-	for (z = 0; z < CHUNK_SIZE_Z; z++)
-		for (y = 0; y < CHUNK_SIZE_Y; y++)
-			for (x = 0; x < CHUNK_SIZE_X; x++)
+	for (z = 0; z < CHUNK_SIZE; z++)
+		for (y = 0; y < CHUNK_SIZE; y++)
+			for (x = 0; x < CHUNK_SIZE; x++)
 				setVoxel(x, y, z, isVoxel(x, y, z));
 
 	volumeBuilt = true;
@@ -299,4 +299,24 @@ void Chunk::addFaceNodes(Vector3 a, Vector3 b, Vector3 c, Vector3 normal) {
 		geo->end();
 		game->call_deferred("draw_debug", geo);
 	}
+}
+
+void Chunk::setRoot(std::shared_ptr<OctreeNode> root) {
+	Chunk::root = root;
+}
+
+void Chunk::deleteRoot() {
+	if (!root) return;
+	DestroyOctree(root);
+	root = NULL;
+}
+
+std::shared_ptr<OctreeNode> Chunk::getRoot() {
+	return root;
+}
+
+vector<std::shared_ptr<OctreeNode>> Chunk::findNodes(FilterNodesFunc filterFunc) {
+	vector<std::shared_ptr<OctreeNode>> nodes;
+	Octree_FindNodes(root, filterFunc, nodes);
+	return nodes;
 }

@@ -8,12 +8,12 @@ var size : int
 var noise : OpenSimplexNoise
 var center_of_gravity
 
-func _init(position, size, name).(position, Vector3(size, size, size), WorldVariables.stoneMaterial, name):
+func _init(position, size, name).(position, size, WorldVariables.stoneMaterial, name):
 	self.size = size
 	center_of_gravity = Vector3(
-		size * WorldVariables.CHUNK_SIZE_X / 2, 
-		size * WorldVariables.CHUNK_SIZE_X / 2, 
-		size * WorldVariables.CHUNK_SIZE_X / 2)
+		size * WorldVariables.CHUNK_SIZE / 2, 
+		size * WorldVariables.CHUNK_SIZE / 2, 
+		size * WorldVariables.CHUNK_SIZE / 2)
 	
 	noise = OpenSimplexNoise.new()
 	noise.set_seed(WorldVariables.NOISE_SEED)
@@ -36,9 +36,9 @@ func is_voxel(ix : int, iy : int, iz : int, offset : Vector3) -> float:
 	var cx = ix + offset.x
 	var cy = iy + offset.y
 	var cz = iz + offset.z
-	var x = cx / (size * WorldVariables.CHUNK_SIZE_X)
-	var y = cy / (size * WorldVariables.CHUNK_SIZE_X)
-	var z = cz / (size * WorldVariables.CHUNK_SIZE_X)
+	var x = cx / (size * WorldVariables.CHUNK_SIZE)
+	var y = cy / (size * WorldVariables.CHUNK_SIZE)
+	var z = cz / (size * WorldVariables.CHUNK_SIZE)
 	var d = 0.5
 	var r = 0.08 * (noise.get_noise_3d(cx, cy, cz) * 0.5 + 0.5)
 	var s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - r

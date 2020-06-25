@@ -14,16 +14,6 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://Scripts/Actor/Actor.gd"
 }, {
-"base": "WorldObject",
-"class": "Asteroid",
-"language": "GDScript",
-"path": "res://Scripts/World/Asteroid.gd"
-}, {
-"base": "WorldObject",
-"class": "Base",
-"language": "GDScript",
-"path": "res://Scripts/World/Base.gd"
-}, {
 "base": "Node",
 "class": "Behaviour",
 "language": "GDScript",
@@ -63,26 +53,6 @@ _global_script_classes=[ {
 "class": "FindPath",
 "language": "GDScript",
 "path": "res://Scripts/Actor/Behaviour/Impl/FindPath.gd"
-}, {
-"base": "Node",
-"class": "GameWorld",
-"language": "GDScript",
-"path": "res://Scripts/World/GameWorld.gd"
-}, {
-"base": "WorldObject",
-"class": "IronFactory",
-"language": "GDScript",
-"path": "res://Scripts/World/IronFactory.gd"
-}, {
-"base": "WorldObject",
-"class": "IronMine",
-"language": "GDScript",
-"path": "res://Scripts/World/IronMine.gd"
-}, {
-"base": "VoxelWorld",
-"class": "IronVein",
-"language": "GDScript",
-"path": "res://Scripts/World/IronVein.gd"
 }, {
 "base": "Behaviour",
 "class": "MoveToWaypoint",
@@ -125,19 +95,9 @@ _global_script_classes=[ {
 "path": "res://Scripts/ThreadPool.gd"
 }, {
 "base": "WorldObject",
-"class": "Transporter",
-"language": "GDScript",
-"path": "res://Scripts/World/Transporter.gd"
-}, {
-"base": "WorldObject",
 "class": "VoxelWorld",
 "language": "GDScript",
 "path": "res://Scripts/World/VoxelWorld.gd"
-}, {
-"base": "WorldObject",
-"class": "Worker",
-"language": "GDScript",
-"path": "res://Scripts/World/Worker.gd"
 }, {
 "base": "Spatial",
 "class": "WorldObject",
@@ -146,8 +106,6 @@ _global_script_classes=[ {
 } ]
 _global_script_class_icons={
 "Actor": "",
-"Asteroid": "",
-"Base": "",
 "Behaviour": "",
 "BehaviourContext": "",
 "BehaviourTree": "",
@@ -156,10 +114,6 @@ _global_script_class_icons={
 "CubeSphere": "",
 "EcoGame": "",
 "FindPath": "",
-"GameWorld": "",
-"IronFactory": "",
-"IronMine": "",
-"IronVein": "",
 "MoveToWaypoint": "",
 "ObjectPool": "",
 "Point2": "",
@@ -168,9 +122,7 @@ _global_script_class_icons={
 "QuadTreeWorld": "",
 "Sequence": "",
 "ThreadPool": "",
-"Transporter": "",
 "VoxelWorld": "",
-"Worker": "",
 "WorldObject": ""
 }
 

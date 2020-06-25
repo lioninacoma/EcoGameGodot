@@ -25,6 +25,8 @@
 #include "voxel.h"
 #include "voxeldata.h"
 
+class OctreeNode;
+
 using namespace std;
 
 namespace godot {
@@ -37,16 +39,18 @@ namespace godot {
 	class Chunk : public Node {
 		GODOT_CLASS(Chunk, Node)
 	private:
-		std::atomic<int> gridSize;
+		typedef std::function<bool(const Vector3&, const Vector3&)> FilterNodesFunc;
+
 		std::atomic<int> amountNodes = 0;
 		std::atomic<int> meshInstanceId = 0;
 		std::atomic<bool> navigatable = false;
 		std::atomic<bool> building = false;
 		std::atomic<bool> volumeBuilt = false;
 
-		Vector3 offset;
+		Vector3 offset, min;
 		Ref<FuncRef> isVoxelFn;
 
+		std::shared_ptr<OctreeNode> root;
 		std::shared_ptr<VoxelWorld> world;
 		std::unique_ptr<VoxelData> volume;
 		unordered_map<size_t, std::shared_ptr<GraphNode>> nodes;
@@ -67,11 +71,11 @@ namespace godot {
 
 		void _init(); // our initializer called by Godot
 
+		std::shared_ptr<VoxelWorld> getWorld();
 		Vector3 getOffset();
 		bool isNavigatable();
 		bool isBuilding();
 		int getMeshInstanceId();
-		int getGridSize();
 		int getAmountNodes();
 		float isVoxel(int x, int y, int z);
 		float getVoxel(int x, int y, int z);
@@ -79,6 +83,7 @@ namespace godot {
 		std::shared_ptr<GraphNode> getNode(size_t hash);
 		std::shared_ptr<GraphNode> fetchNode(Vector3 position);
 		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func);
+		std::shared_ptr<OctreeNode> getRoot();
 
 		void setWorld(std::shared_ptr<VoxelWorld> world);
 		void setOffset(Vector3 offset);
@@ -93,6 +98,9 @@ namespace godot {
 		void addFaceNodes(Vector3 a, Vector3 b, Vector3 c, Vector3 normal);
 		void addEdge(std::shared_ptr<GraphNode> a, std::shared_ptr<GraphNode> b, float cost);
 		std::shared_ptr<GraphNode> fetchOrCreateNode(Vector3 position, Vector3 normal);
+		void setRoot(std::shared_ptr<OctreeNode> root);
+		void deleteRoot();
+		vector<std::shared_ptr<OctreeNode>> findNodes(FilterNodesFunc filterFunc);
 	};
 
 }

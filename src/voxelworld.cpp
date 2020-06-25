@@ -2,6 +2,7 @@
 #include "navigator.h"
 #include "threadpool.h"
 #include "graphnode.h"
+#include "octree.h"
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/exception_ptr.hpp>
@@ -9,9 +10,8 @@
 using namespace godot;
 
 void VoxelWorld::_register_methods() {
-	register_method("setDimensions", &VoxelWorld::setDimensions);
-	register_method("getWidth", &VoxelWorld::getWidth);
-	register_method("getDepth", &VoxelWorld::getDepth);
+	register_method("setSize", &VoxelWorld::setSize);
+	register_method("getSize", &VoxelWorld::getSize);
 	register_method("setVoxel", &VoxelWorld::setVoxel);
 	register_method("getVoxel", &VoxelWorld::getVoxel);
 	register_method("buildChunks", &VoxelWorld::buildChunks);
@@ -23,14 +23,13 @@ void VoxelWorld::_register_methods() {
 }
 
 VoxelWorld::VoxelWorld() {
-	VoxelWorld::width = 4;
-	VoxelWorld::depth = 4;
+	VoxelWorld::size = 4;
 
 	self = std::shared_ptr<VoxelWorld>(this);
 	chunkBuilder = std::make_unique<ChunkBuilder>(self);
 	quadtreeBuilder = std::make_unique<QuadTreeBuilder>(self);
 	navigator = std::make_unique<Navigator>(self);
-	chunks = vector<std::shared_ptr<Chunk>>(size_t(width * depth));
+	chunks = vector<std::shared_ptr<Chunk>>(size_t(size * size * size));
 	quadtrees = vector<quadsquare*>(size_t(1));
 	quadtrees[0] = quadsquare::_new();
 }
@@ -44,7 +43,7 @@ void VoxelWorld::_init() {
 }
 
 std::shared_ptr<Chunk> VoxelWorld::intersection(int x, int y, int z) {
-	std::shared_ptr<Chunk> chunk = getChunk(x, z);
+	std::shared_ptr<Chunk> chunk = getChunk(x, y, z);
 	if (!chunk) return NULL;
 
 	return chunk;
@@ -59,53 +58,48 @@ vector<std::shared_ptr<Chunk>> VoxelWorld::getChunksRay(Vector3 from, Vector3 to
 	return Intersection::get<std::shared_ptr<Chunk>>(from, to, false, intersection, list);
 }
 
-std::shared_ptr<Chunk> VoxelWorld::getChunk(int x, int z) {
-	if (x < 0 || x >= width || z < 0 || z >= depth) return NULL;
-	int i = fn::fi2(x, z, width);
+std::shared_ptr<Chunk> VoxelWorld::getChunk(int x, int y, int z) {
+	if (x < 0 || x >= size || y < 0 || y >= size || z < 0 || z >= size) return NULL;
+	int i = fn::fi3(x, y, z, size, size);
 	return getChunk(i);
 }
 
 std::shared_ptr<Chunk> VoxelWorld::getChunk(int i) {
 	boost::shared_lock<boost::shared_mutex> lock(CHUNKS_MUTEX);
-	if (i < 0 || i >= width * depth) return NULL;
+	if (i < 0 || i >= size * size * size) return NULL;
 	return chunks.at(i);
 }
 
 std::shared_ptr<Chunk> VoxelWorld::getChunk(Vector3 position) {
 	//Godot::print(String("get chunk at: {0}").format(Array::make(position)));
-	if (position.x < 0 || position.x >= width * CHUNK_SIZE_X
-		|| position.z < 0 || position.z >= depth * CHUNK_SIZE_Z)
+	if (position.x < 0 || position.x >= size * CHUNK_SIZE
+		|| position.y < 0 || position.y >= size * CHUNK_SIZE
+		|| position.z < 0 || position.z >= size * CHUNK_SIZE)
 		return NULL;
 
-	int cx, cz;
+	int cx, cy, cz;
 	Vector3 chunkOffset = position;
 	chunkOffset = fn::toChunkCoords(chunkOffset);
 	cx = (int)chunkOffset.x;
+	cy = (int)chunkOffset.y;
 	cz = (int)chunkOffset.z;
-	auto chunk = getChunk(cx, cz);
+	auto chunk = getChunk(cx, cy, cz);
 
 	if (!chunk) return NULL;
 	return chunk;
 }
 
-int VoxelWorld::getWidth() {
-	return width;
-}
-
-int VoxelWorld::getDepth() {
-	return depth;
+int VoxelWorld::getSize() {
+	return size;
 }
 
 void VoxelWorld::_notification(const int64_t what) {
 	if (what == Node::NOTIFICATION_READY) {}
 }
 
-void VoxelWorld::setDimensions(Vector2 dimensions) {
-	VoxelWorld::width = dimensions.x;
-	VoxelWorld::depth = dimensions.y;
-	// TODO: NOT WORKING? INITIAL WIDTH AND DEPTH ARE SET
-	//chunks.resize(width * depth);
-	//chunks = vector<std::shared_ptr<Chunk>>(size_t(dimensions.x * dimensions.y));
+void VoxelWorld::setSize(float size) {
+	VoxelWorld::size = size;
+	chunks = vector<std::shared_ptr<Chunk>>(size_t(size * size * size));
 }
 
 void VoxelWorld::navigate(Vector3 startV, Vector3 goalV, int actorInstanceId) {
@@ -148,28 +142,42 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 
 					updatingChunks.emplace(fn::hash(chunk->getOffset()), chunk);
 
-					if ((x + 1) % CHUNK_SIZE_X == 0) {
+					if ((x + 1) % CHUNK_SIZE == 0) {
 						neighbourPosition = currentPosition;
 						neighbourPosition.x = x + 1;
 						neighbour = getChunk(neighbourPosition);
 						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
 					}
 
-					if (((x - 1) + CHUNK_SIZE_X) % CHUNK_SIZE_X == 0) {
+					if (((x - 1) + CHUNK_SIZE) % CHUNK_SIZE == 0) {
 						neighbourPosition = currentPosition;
 						neighbourPosition.x = x - 1;
 						neighbour = getChunk(neighbourPosition);
 						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
 					}
 
-					if ((z + 1) % CHUNK_SIZE_Z == 0) {
+					if ((y + 1) % CHUNK_SIZE == 0) {
+						neighbourPosition = currentPosition;
+						neighbourPosition.y = y + 1;
+						neighbour = getChunk(neighbourPosition);
+						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
+					}
+
+					if (((y - 1) + CHUNK_SIZE) % CHUNK_SIZE == 0) {
+						neighbourPosition = currentPosition;
+						neighbourPosition.y = y - 1;
+						neighbour = getChunk(neighbourPosition);
+						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
+					}
+
+					if ((z + 1) % CHUNK_SIZE == 0) {
 						neighbourPosition = currentPosition;
 						neighbourPosition.z = z + 1;
 						neighbour = getChunk(neighbourPosition);
 						if (neighbour) updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
 					}
 
-					if (((z - 1) + CHUNK_SIZE_Z) % CHUNK_SIZE_Z == 0) {
+					if (((z - 1) + CHUNK_SIZE) % CHUNK_SIZE == 0) {
 						neighbourPosition = currentPosition;
 						neighbourPosition.z = z - 1;
 						neighbour = getChunk(neighbourPosition);
@@ -179,10 +187,16 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 					s = 1.0 - (currentPosition.distance_to(position) / radius);
 					s /= 20.0;
 					chunk->setVoxel(
-						x % CHUNK_SIZE_X,
-						y % CHUNK_SIZE_Y,
-						z % CHUNK_SIZE_Z, s * m);
+						x % CHUNK_SIZE,
+						y % CHUNK_SIZE,
+						z % CHUNK_SIZE, s * m);
 				}
+
+		// First build octree then update mesh. Otherwise there would be cracks.
+		for (auto chunk : updatingChunks) {
+			chunk.second->deleteRoot();
+			BuildOctree(chunk.second->getOffset(), CHUNK_SIZE, -1.f, chunk.second);
+		}
 
 		for (auto chunk : updatingChunks) {
 			chunkBuilder->build(chunk.second);
@@ -204,9 +218,9 @@ int VoxelWorld::getVoxel(Vector3 position) {
 	z = position.z;
 
 	return chunk->getVoxel(
-		x % CHUNK_SIZE_X,
-		y % CHUNK_SIZE_Y,
-		z % CHUNK_SIZE_Z);
+		x % CHUNK_SIZE,
+		y % CHUNK_SIZE,
+		z % CHUNK_SIZE);
 }
 
 std::shared_ptr<GraphNode> VoxelWorld::findClosestNode(Vector3 position) {
@@ -236,35 +250,45 @@ std::shared_ptr<GraphNode> VoxelWorld::getNode(Vector3 position) {
 	return chunk->getNode(fn::hash(position));
 }
 
-void VoxelWorld::setChunk(int x, int z, std::shared_ptr<Chunk> chunk) {
-	int i = fn::fi2(x, z, width);
+void VoxelWorld::setChunk(int x, int y, int z, std::shared_ptr<Chunk> chunk) {
+	int i = fn::fi3(x, y, z, size, size);
 	return setChunk(i, chunk);
 }
 
 void VoxelWorld::setChunk(int i, std::shared_ptr<Chunk> chunk) {
 	boost::unique_lock<boost::shared_mutex> lock(CHUNKS_MUTEX);
-	if (i < 0 || i >= width * depth) return;
+	if (i < 0 || i >= size * size * size) return;
 	chunks.insert(chunks.begin() + i, chunk);
 }
 
 void VoxelWorld::buildChunksTask(std::shared_ptr<VoxelWorld> world) {
 	if (isVoxelFn == NULL) return;
 
-	int x, y, i;
+	int x, y, z, i;
 	std::shared_ptr<Chunk> chunk;
 
-	for (y = 0; y < depth; y++) {
-		for (x = 0; x < width; x++) {
-			chunk = std::shared_ptr<Chunk>(Chunk::_new());
-			chunk->setOffset(Vector3(x * CHUNK_SIZE_X, 0, y * CHUNK_SIZE_Z));
-			chunk->setWorld(world);
-			chunk->setIsVoxelFn(isVoxelFn);
-			setChunk(x, y, chunk);
-			chunk->buildVolume();
+	for (z = 0; z < size; z++) {
+		for (y = 0; y < size; y++) {
+			for (x = 0; x < size; x++) {
+				const Vector3 baseChunkMin = Vector3(x * CHUNK_SIZE, y * CHUNK_SIZE, z * CHUNK_SIZE);
+				chunk = std::shared_ptr<Chunk>(Chunk::_new());
+				chunk->setOffset(baseChunkMin);
+				chunk->setWorld(world);
+				chunk->setIsVoxelFn(isVoxelFn);
+				setChunk(x, y, z, chunk);
+				chunk->buildVolume();
+				try {
+					BuildOctree(baseChunkMin, CHUNK_SIZE, -1.f, chunk);
+				}
+				catch (const std::exception & e) {
+					Godot::print(String("chunk at chunk {0} is empty").format(Array::make(baseChunkMin)));
+				}
+				
+			}
 		}
 	}
 
-	for (i = 0; i < width * depth; i++) {
+	for (i = 0; i < size * size * size; i++) {
 		chunk = getChunk(i);
 		if (!chunk) continue;
 		chunkBuilder->build(chunk);

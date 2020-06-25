@@ -167,7 +167,6 @@
   <ItemGroup>
     <ClCompile Include="src\chunk.cpp" />
     <ClCompile Include="src\chunkbuilder.cpp" />
-    <ClCompile Include="src\cubesphere.cpp" />
     <ClCompile Include="src\density.cpp" />
     <ClCompile Include="src\graphnode.cpp" />
     <ClCompile Include="src\ecogame.cpp" />
@@ -183,7 +182,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\chunkbuilder.h" />
-    <ClInclude Include="src\cubesphere.h" />
     <ClInclude Include="src\density.h" />
     <ClInclude Include="src\graphedge.h" />
     <ClInclude Include="src\graphnode.h" />

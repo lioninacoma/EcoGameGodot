@@ -21,49 +21,38 @@ namespace godot {
 		}
 
 		static int fi3(int x, int y, int z) {
-			return fi3(x, y, z, CHUNK_SIZE_X, CHUNK_SIZE_Y);
+			return fi3(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
 		}
 
-		static int fi2(int x, int z, int w) {
+		/*static int fi2(int x, int z, int w) {
 			return x + z * w;
 		}
 
 		static int fi2(int x, int z) {
-			return fi2(x, z, CHUNK_SIZE_X);
-		}
+			return fi2(x, z, CHUNK_SIZE);
+		}*/
 
 		static Vector3 unreference(std::shared_ptr<Vector3> point) {
 			return Vector3(point->x, point->y, point->z);
-		}
-
-		static void handle_eptr(std::exception_ptr eptr) {
-			try {
-				if (eptr) {
-					std::rethrow_exception(eptr);
-				}
-			}
-			catch (const std::exception & e) {
-				std::cout << "Caught exception \"" << e.what() << "\"\n";
-			}
 		}
 
 		static Vector3 toChunkCoords(Vector3 position) {
 			int ix = (int)position.x;
 			int iy = (int)position.y;
 			int iz = (int)position.z;
-			int chunkX = ix / CHUNK_SIZE_X;
-			int chunkY = iy / CHUNK_SIZE_Y;
-			int chunkZ = iz / CHUNK_SIZE_Z;
+			int chunkX = ix / CHUNK_SIZE;
+			int chunkY = iy / CHUNK_SIZE;
+			int chunkZ = iz / CHUNK_SIZE;
 			position.x = chunkX;
 			position.y = chunkY;
 			position.z = chunkZ;
 			return position;
 		}
 
-		static Vector2 toChunkCoords(Vector2 position) {
+		/*static Vector2 toChunkCoords(Vector2 position) {
 			Vector3 chunkCoords = toChunkCoords(Vector3(position.x, 0, position.y));
 			return Vector2(chunkCoords.x, chunkCoords.z);
-		}
+		}*/
 
 		static std::size_t hash(Vector3 v) {
 			std::size_t seed = 0;
