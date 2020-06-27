@@ -28,11 +28,13 @@ Chunk::~Chunk() {
 }
 
 void Chunk::_init() {
-	Chunk::noise = OpenSimplexNoise::_new();
-	Chunk::noise->set_seed(NOISE_SEED);
-	Chunk::noise->set_octaves(6);
-	Chunk::noise->set_period(192.0);
-	Chunk::noise->set_persistence(0.5);
+	noise = OpenSimplexNoise::_new();
+	noise->set_seed(NOISE_SEED);
+	noise->set_octaves(6);
+	noise->set_period(192.0);
+	noise->set_persistence(0.5);
+
+	fastNoise.SetNoiseType(FastNoise::PerlinFractal);
 }
 
 std::shared_ptr<VoxelWorld> Chunk::getWorld() {
@@ -131,34 +133,23 @@ void Chunk::setIsVoxelFn(Ref<FuncRef> fnRef) {
 	Chunk::isVoxelFn = fnRef;
 }
 
-//#define USE_VOXEL_RESOLUTION
-#define VOXEL_RESOLUTION 2000.0
-
 void Chunk::setVoxel(int x, int y, int z, float v) {
-#ifdef USE_VOXEL_RESOLUTION
-	v = floorf(v * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
-#endif // USE_VOXEL_RESOLUTION
 	volume->set(x, y, z, v);
 }
 
-float Chunk::isVoxel(int ix, int iy, int iz) {
-	int size = world->getSize();
-	float cx = ix + offset.x;
-	float cy = iy + offset.y;
-	float cz = iz + offset.z;
-	float x = cx / (size * CHUNK_SIZE);
-	float y = cy / (size * CHUNK_SIZE);
-	float z = cz / (size * CHUNK_SIZE);
-	float d = 0.5;
-	float r = 0.1 * (noise->get_noise_3d(cx, cy, cz) * 0.5 + 0.5);
-	float s = pow(x - d, 2) + pow(y - d, 2) + pow(z - d, 2) - r;
-	return s;
+float Chunk::isVoxel(Vector3 v) {
+	float sizeh = world->getSize() * CHUNK_SIZE / 2.f;
+	float noise = fastNoise.GetNoise(v.x, v.y, v.z) * 0.4 + 0.6;
+	float cube = Cuboid(v, Vector3(sizeh, sizeh, sizeh), Vector3(sizeh * 0.75, sizeh * 0.1, sizeh * 0.75));
+	float sphere = Sphere(v, Vector3(sizeh, sizeh, sizeh), noise * sizeh);
+	//return min(sphere, cube);
+	return sphere;
+	//float noise2D = fastNoise.GetNoise(v.x, v.z) * 0.5 + 0.5;
+	//return v.y - 8.f * noise2D * 4;
+}
 
-//	float s = isVoxelFn->call_funcv(Array::make(ix, iy, iz, offset));
-//#ifdef USE_VOXEL_RESOLUTION
-//	s = floorf(s * VOXEL_RESOLUTION) / VOXEL_RESOLUTION;
-//#endif // USE_VOXEL_RESOLUTION
-//	return s;
+float Chunk::isVoxel(int x, int y, int z) {
+	return isVoxel(Vector3(x, y, z));
 }
 
 std::shared_ptr<GraphNode> Chunk::fetchNode(Vector3 position) {
@@ -179,22 +170,13 @@ std::shared_ptr<GraphNode> Chunk::getNode(size_t hash) {
 	return it->second;
 }
 
-//float Chunk::isVoxel(int ix, int iy, int iz) {
-//	float cx = ix + offset.x;
-//	float cy = iy + offset.y;
-//	float cz = iz + offset.z;
-//	float y = cy / CHUNK_SIZE;
-//	float s = y + noise->get_noise_3d(cx / 2, cy / 2, cz / 2);
-//	return s;
-//}
-
 void Chunk::buildVolume() {
 	int x, y, z;
 
 	for (z = 0; z < CHUNK_SIZE; z++)
 		for (y = 0; y < CHUNK_SIZE; y++)
 			for (x = 0; x < CHUNK_SIZE; x++)
-				setVoxel(x, y, z, isVoxel(x, y, z));
+				setVoxel(x, y, z, isVoxel(offset + Vector3(x, y, z)));
 
 	volumeBuilt = true;
 }

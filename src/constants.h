@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 
 #define CHUNK_SIZE 16    // Voxels
+#define OCTREE_LOD -1.f  // -1.f max detail, 50.f min detail
 
 #define VERTEX_SIZE 8
 #define BUFFER_SIZE CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE

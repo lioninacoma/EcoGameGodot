@@ -24,6 +24,8 @@
 #include "intersection.h"
 #include "voxel.h"
 #include "voxeldata.h"
+#include "fastnoise.h"
+#include "density.h"
 
 class OctreeNode;
 
@@ -47,7 +49,7 @@ namespace godot {
 		std::atomic<bool> building = false;
 		std::atomic<bool> volumeBuilt = false;
 
-		Vector3 offset, min;
+		Vector3 offset;
 		Ref<FuncRef> isVoxelFn;
 
 		std::shared_ptr<OctreeNode> root;
@@ -55,6 +57,7 @@ namespace godot {
 		std::unique_ptr<VoxelData> volume;
 		unordered_map<size_t, std::shared_ptr<GraphNode>> nodes;
 
+		FastNoise fastNoise;
 		OpenSimplexNoise* noise;
 
 		std::shared_mutex CHUNK_NODES_MUTEX;
@@ -78,6 +81,7 @@ namespace godot {
 		int getMeshInstanceId();
 		int getAmountNodes();
 		float isVoxel(int x, int y, int z);
+		float isVoxel(Vector3 v);
 		float getVoxel(int x, int y, int z);
 		Voxel* getVoxelRay(Vector3 from, Vector3 to);
 		std::shared_ptr<GraphNode> getNode(size_t hash);

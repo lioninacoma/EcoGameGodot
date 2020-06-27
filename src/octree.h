@@ -55,13 +55,9 @@ const godot::Vector3 CHILD_MIN_OFFSETS[] =
 
 struct MeshVertex
 {
-	MeshVertex(const godot::Vector3& _xyz, const godot::Vector3& _normal)
-		: xyz(_xyz)
-		, normal(_normal)
-	{
-	}
-
-	godot::Vector3		xyz, normal;
+	MeshVertex() : MeshVertex(godot::Vector3(), godot::Vector3()) {}
+	MeshVertex(const godot::Vector3& _xyz, const godot::Vector3& _normal) : xyz(_xyz), normal(_normal) {}
+	godot::Vector3 xyz, normal;
 };
 
 typedef std::vector<MeshVertex> VertexBuffer;
@@ -162,11 +158,12 @@ public:
 // ----------------------------------------------------------------------------
 
 std::shared_ptr<OctreeNode> BuildOctree(const godot::Vector3& min, const int size, const float threshold, std::shared_ptr<godot::Chunk> chunk);
+std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, float threshold);
 void DestroyOctree(std::shared_ptr<OctreeNode> node);
-void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer);
+void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts);
 vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::Chunk> chunk);
 void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes);
-vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, std::shared_ptr<godot::Chunk> chunk);
+vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, std::shared_ptr<godot::Chunk> chunk, int parentSize);
 float Density_Func(std::shared_ptr<godot::Chunk> chunk, godot::Vector3 v);
 
 // ----------------------------------------------------------------------------

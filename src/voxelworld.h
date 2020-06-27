@@ -17,7 +17,10 @@
 #include <iterator>
 #include <exception>
 #include <stdexcept>
+
+#include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
 
 #include "constants.h"
 #include "fn.h"
@@ -51,6 +54,7 @@ namespace godot {
 		void navigateTask(Vector3 startV, Vector3 goalV, int actorInstanceId);
 		void buildChunksTask(std::shared_ptr<VoxelWorld> world);
 		void buildQuadTreesTask(std::shared_ptr<VoxelWorld> world, Vector3 cameraPosition);
+		void prepareChunkTask(std::shared_ptr<Chunk> chunk);
 	public:
 		static void _register_methods();
 

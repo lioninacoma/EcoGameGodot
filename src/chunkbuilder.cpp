@@ -14,21 +14,27 @@ ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
 	ChunkBuilder::threadStarted = false;
 }
 
-void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> seam) {
+void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<OctreeNode> seam) {
 	Node* parent = world->get_parent();
 	int i, j, n, amountVertices, amountIndices, amountFaces;
 
 	VertexBuffer vertices;
 	IndexBuffer indices;
+	auto root = chunk->getRoot();
+	int* counts = new int[2] {0, 0};
 
-	GenerateMeshFromOctree(root, vertices, indices);
+	vertices.resize(CHUNKBUILDER_MAX_VERTICES);
+	indices.resize(CHUNKBUILDER_MAX_VERTICES);
+
+	GenerateMeshFromOctree(chunk->getRoot(), vertices, indices, counts);
+
 	if (seam) {
-		GenerateMeshFromOctree(seam, vertices, indices); 
+		GenerateMeshFromOctree(seam, vertices, indices, counts);
 		DestroyOctree(seam);
 	}
 
-	amountVertices = vertices.size();
-	amountIndices = indices.size();
+	amountVertices = counts[0];
+	amountIndices = counts[1];
 	amountFaces = amountIndices / 3;
 
 	//Godot::print(String("amountVertices: {0}, amountFaces: {1}").format(Array::make(amountVertices, amountFaces)));
@@ -36,8 +42,9 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<Octre
 	if (amountVertices <= 0 || amountIndices <= 0) {
 		parent->call_deferred("delete_chunk", chunk.get(), world.get());
 
-		if (chunk->isNavigatable())
-			Godot::print(String("chunk at {0} deleted").format(Array::make(chunk->getOffset())));
+		//if (chunk->isNavigatable())
+		//	Godot::print(String("chunk at {0} deleted").format(Array::make(chunk->getOffset())));
+		
 		chunk->setNavigatable(false);
 		chunk->setBuilding(false);
 		BUILD_QUEUE_CV.notify_one();
@@ -103,26 +110,23 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	start = bpt::microsec_clock::local_time();
 
 	vector<std::shared_ptr<OctreeNode>> seamNodes;
-	std::shared_ptr<OctreeNode> root = NULL, seam = NULL;
+	std::shared_ptr<OctreeNode> seam = NULL;
 	const Vector3 baseChunkMin = chunk->getOffset();
-	const Vector3 OFFSETS[8] =
-	{
-		Vector3(0,0,0), Vector3(1,0,0), Vector3(0,0,1), Vector3(1,0,1),
-		Vector3(0,1,0), Vector3(1,1,0), Vector3(0,1,1), Vector3(1,1,1)
-	};
 
 	//Godot::print(String("vertices at chunk {0} building ...").format(Array::make(chunk->getOffset())));
 
 	try {
-		root = chunk->getRoot();
 		seamNodes = FindSeamNodes(chunk);
-		seamNodes = BuildSeamOctree(seamNodes, chunk);
+
+		//Godot::print(String("amount seam nodes {0}").format(Array::make(seamNodes.size())));
+
+		seamNodes = BuildSeamOctree(seamNodes, chunk, 1);
 
 		if (seamNodes.size() == 1) {
 			seam = seamNodes.front();
 		}
 
-		buildMesh(chunk, root, seam);
+		buildMesh(chunk, seam);
 	}
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
@@ -132,7 +136,7 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	dur = stop - start;
 	ms = dur.total_milliseconds();
 
-	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(baseChunkMin, ms)));
+	//Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(baseChunkMin, ms)));
 	chunk->setNavigatable(true);
 	chunk->setBuilding(false);
 
