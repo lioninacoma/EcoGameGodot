@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "octree.h"
 #include "density.h"
 #include "chunk.h"
+#define QEF_INCLUDE_IMPL
+#include "qef_simd.h"
 
 using namespace godot;
 
@@ -566,6 +568,11 @@ std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
 	Vector3 averageNormal(0, 0, 0);
 	svd::QefSolver qef;
 
+	float* vertex = new float[12 * 3];
+	float* normal = new float[12 * 3];
+	memset(vertex, 0, 12 * 3 * sizeof(float));
+	memset(normal, 0, 12 * 3 * sizeof(float));
+
 	for (int i = 0; i < 12 && edgeCount < MAX_CROSSINGS; i++)
 	{
 		const int c1 = edgevmap[i][0];
@@ -586,6 +593,11 @@ std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
 		const Vector3 p = ApproximateZeroCrossingPosition(leaf->chunk, p1, p2);
 		const Vector3 n = CalculateSurfaceNormal(leaf->chunk, p);
 		qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
+		
+		float* pos = &vertex[i * 3];
+		float* nrm = &normal[i * 3];
+		pos[0] = p.x; pos[1] = p.y; pos[2] = p.z;
+		nrm[0] = n.x; nrm[1] = n.y; nrm[2] = n.z;
 
 		averageNormal += n;
 

@@ -49,6 +49,10 @@ int Chunk::getMeshInstanceId() {
 	return meshInstanceId;
 }
 
+float Chunk::getLOD() {
+	return lod;
+}
+
 bool Chunk::isNavigatable() {
 	return navigatable;
 }
@@ -129,6 +133,10 @@ void Chunk::setMeshInstanceId(int meshInstanceId) {
 	Chunk::meshInstanceId = meshInstanceId;
 }
 
+void Chunk::setLOD(float lod) {
+	Chunk::lod = lod;
+}
+
 void Chunk::setIsVoxelFn(Ref<FuncRef> fnRef) {
 	Chunk::isVoxelFn = fnRef;
 }
@@ -139,13 +147,14 @@ void Chunk::setVoxel(int x, int y, int z, float v) {
 
 float Chunk::isVoxel(Vector3 v) {
 	float sizeh = world->getSize() * CHUNK_SIZE / 2.f;
-	float noise = fastNoise.GetNoise(v.x, v.y, v.z) * 0.4 + 0.6;
-	float cube = Cuboid(v, Vector3(sizeh, sizeh, sizeh), Vector3(sizeh * 0.75, sizeh * 0.1, sizeh * 0.75));
+	float noise = /*fastNoise.GetNoise(v.x, v.y, v.z) * 0.4 + 0.6*/1;
+	float cube = Cuboid(v, Vector3(sizeh, sizeh, sizeh), Vector3(sizeh * 0.75, sizeh * 0.75, sizeh * 0.75));
 	float sphere = Sphere(v, Vector3(sizeh, sizeh, sizeh), noise * sizeh);
 	//return min(sphere, cube);
-	return sphere;
+	return max(-sphere, cube);
 	//float noise2D = fastNoise.GetNoise(v.x, v.z) * 0.5 + 0.5;
-	//return v.y - 8.f * noise2D * 4;
+	//return v.y - 8.f * noise2D;
+	//return -1.f;
 }
 
 float Chunk::isVoxel(int x, int y, int z) {

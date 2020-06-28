@@ -15,6 +15,7 @@ namespace godot {
 
 	class ThreadPool {
 	private:
+		bool finished;
 		boost::asio::io_service ioService;
 		boost::asio::io_service::work work;
 		boost::thread_group threadpool;
@@ -28,20 +29,27 @@ namespace godot {
 			return poolNav;
 		};
 		ThreadPool() : ThreadPool(POOL_SIZE) {};
-		explicit ThreadPool(size_t size) : work(ioService) {
+		explicit ThreadPool(size_t size) : work(ioService), finished(false) {
 			for (size_t i = 0; i < size; ++i) {
 				threadpool.create_thread(
 					boost::bind(&boost::asio::io_service::run, &ioService));
 			}
 		};
 		~ThreadPool() {
-			ioService.stop();
-			threadpool.join_all();
+			if (!finished) {
+				ioService.stop();
+				threadpool.join_all();
+			}
 		};
 		template <typename LegacyCompletionHandler>
 		void submitTask(BOOST_ASIO_MOVE_ARG(LegacyCompletionHandler) handler) {
 			ioService.post(handler);
 		};
+		void waitUntilFinished() {
+			finished = true;
+			ioService.stop();
+			threadpool.join_all();
+		}
 	};
 }
 

@@ -20,8 +20,8 @@ func _init(position : Vector3, chunk_size : float, material : SpatialMaterial, n
 #	voxel_body.global_translate(-0.5 * WorldVariables.CHUNK_SIZE * chunk_dims)
 #	global_translate(position)
 
-func _ready():
-	voxel_body.buildChunks()
+#func _ready():
+#	voxel_body.buildChunks()
 
 func is_voxel(ix : int, iy : int, iz : int, offset : Vector3) -> float:
 	return 1.0

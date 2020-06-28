@@ -176,6 +176,7 @@
     <ClCompile Include="src\navigator.cpp" />
     <ClCompile Include="src\octree.cpp" />
     <ClCompile Include="src\qef.cpp" />
+    <ClCompile Include="src\qef_simd.h" />
     <ClCompile Include="src\quadtree.cpp" />
     <ClCompile Include="src\quadtreebuilder.cpp" />
     <ClCompile Include="src\svd.cpp" />

@@ -8,6 +8,9 @@ var size : int
 var noise : OpenSimplexNoise
 var center_of_gravity
 
+onready var eco_game = get_tree().get_root().get_node("EcoGame")
+var player
+
 func _init(position, size, name).(position, size, WorldVariables.stoneMaterial, name):
 	self.size = size
 	center_of_gravity = Vector3(
@@ -23,6 +26,8 @@ func _init(position, size, name).(position, size, WorldVariables.stoneMaterial, 
 
 func _ready():
 	BehaviourGlobals.global_context.set("waypoint", center_of_gravity)
+	player = eco_game.get_node("Player")
+	voxel_body.buildChunks(to_local(player.global_transform.origin), 64.0)
 
 func is_walkable(from : Vector3, to : Vector3, normal : Vector3):
 #	var gravity = (center_of_gravity - to).normalized() * 8
@@ -48,11 +53,15 @@ func is_voxel(ix : int, iy : int, iz : int, offset : Vector3) -> float:
 func get_center_of_gravity():
 	return center_of_gravity
 
-#func _process(delta : float) -> void:
-#	time += delta
-#	if time > TIME_PERIOD:
-#		time = 0
-#
+func _process(delta : float) -> void:
+	time += delta
+	if time > TIME_PERIOD:
+		if voxel_body && player:
+			pass
+#			print (player.global_transform.origin)
+#			voxel_body.buildChunks(to_local(player.global_transform.origin), 64.0)
+		time = 0
+
 #	var r = (PI / 128) * delta
 #	var origin = global_transform.origin
 #	origin = origin.rotated(Vector3(0, 1, 0), -r)

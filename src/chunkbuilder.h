@@ -5,6 +5,7 @@
 #include <String.hpp>
 #include <Array.hpp>
 #include <MeshInstance.hpp>
+#include <StaticBody.hpp>
 #include <ArrayMesh.hpp>
 
 #include <deque>
@@ -28,7 +29,7 @@ namespace bpt = boost::posix_time;
 
 #define CHUNKBUILDER_VERTEX_SIZE 3
 #define CHUNKBUILDER_FACE_SIZE 4
-#define CHUNKBUILDER_MAX_VERTICES 16000
+#define CHUNKBUILDER_MAX_VERTICES 64000
 #define CHUNKBUILDER_MAX_FACES CHUNKBUILDER_MAX_VERTICES / 3
 
 namespace godot {

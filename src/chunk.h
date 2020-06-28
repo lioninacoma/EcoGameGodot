@@ -45,6 +45,7 @@ namespace godot {
 
 		std::atomic<int> amountNodes = 0;
 		std::atomic<int> meshInstanceId = 0;
+		std::atomic<float> lod = -1.f;
 		std::atomic<bool> navigatable = false;
 		std::atomic<bool> building = false;
 		std::atomic<bool> volumeBuilt = false;
@@ -80,6 +81,7 @@ namespace godot {
 		bool isBuilding();
 		int getMeshInstanceId();
 		int getAmountNodes();
+		float getLOD();
 		float isVoxel(int x, int y, int z);
 		float isVoxel(Vector3 v);
 		float getVoxel(int x, int y, int z);
@@ -94,6 +96,7 @@ namespace godot {
 		void setNavigatable(bool navigatable);
 		void setBuilding(bool building);
 		void setMeshInstanceId(int meshInstanceId);
+		void setLOD(float lod);
 		void setIsVoxelFn(Ref<FuncRef> fnRef);
 		void setVoxel(int x, int y, int z, float v);
 		void buildVolume();

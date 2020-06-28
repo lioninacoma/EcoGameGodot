@@ -15,7 +15,6 @@ ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
 }
 
 void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<OctreeNode> seam) {
-	Node* parent = world->get_parent();
 	int i, j, n, amountVertices, amountIndices, amountFaces;
 
 	VertexBuffer vertices;
@@ -40,7 +39,9 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<Octre
 	//Godot::print(String("amountVertices: {0}, amountFaces: {1}").format(Array::make(amountVertices, amountFaces)));
 
 	if (amountVertices <= 0 || amountIndices <= 0) {
-		parent->call_deferred("delete_chunk", chunk.get(), world.get());
+		Node* parent = world->get_parent();
+		if (chunk->getMeshInstanceId() > 0)
+			parent->call_deferred("delete_chunk", chunk.get(), world.get());
 
 		//if (chunk->isNavigatable())
 		//	Godot::print(String("chunk at {0} deleted").format(Array::make(chunk->getOffset())));
@@ -97,7 +98,23 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<Octre
 	meshData[0] = meshArrays;
 	meshData[1] = collisionArray;
 
-	parent->call_deferred("build_chunk", meshData, chunk.get(), world.get());
+	MeshInstance* meshInstance = MeshInstance::_new();
+	ArrayMesh* mesh = ArrayMesh::_new();
+	//StaticBody staticBody;
+
+	mesh->add_surface_from_arrays(ArrayMesh::PRIMITIVE_TRIANGLES, meshData[0]);
+	//mesh.surface_set_material(0, material);
+
+	/*var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
+	polygon_shape.set_faces(mesh_data[1])
+	var owner_id = staticBody.create_shape_owner(owner)
+	staticBody.shape_owner_add_shape(owner_id, polygon_shape)*/
+
+	//meshInstance.add_child(staticBody)
+	meshInstance->set_mesh(mesh);
+	world->call_deferred("add_child", meshInstance);
+	
+	//parent->call_deferred("build_chunk", meshData, chunk.get(), world.get());
 }
 
 void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
@@ -209,4 +226,5 @@ void ChunkBuilder::build(std::shared_ptr<Chunk> chunk) {
 
 	chunk->setBuilding(true);
 	ThreadPool::get()->submitTask(boost::bind(&ChunkBuilder::buildChunk, this, chunk));
+	//buildChunk(chunk);
 }
