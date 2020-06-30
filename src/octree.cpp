@@ -454,54 +454,14 @@ void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer,
 	}
 }
 
-float Density_Func(std::shared_ptr<godot::Chunk> chunk, Vector3 v) {
-	/*double s = 1.0;
-
-	const int worldSize = chunk->getWorld()->getSize() * CHUNK_SIZE;
-	const Vector3 chunkMin = chunk->getOffset();
-	const Vector3 n = v - chunkMin;
-	int x = n.x;
-	int y = n.y;
-	int z = n.z;*/
-
-	/*if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
-		const Vector3 neighbourMin = chunk->getOffset() + Vector3(x, y, z);
-
-		if (neighbourMin.x < 0 || neighbourMin.x >= worldSize
-			|| neighbourMin.z < 0 || neighbourMin.z >= worldSize)
-			return s;
-
-		auto neighbour = chunk->getWorld()->getChunk(neighbourMin);
-		if (neighbour) {
-			s = neighbour->getVoxel(
-				(x + CHUNK_SIZE) % CHUNK_SIZE,
-				(y + CHUNK_SIZE) % CHUNK_SIZE,
-				(z + CHUNK_SIZE) % CHUNK_SIZE);
-		}
-		else {
-			s = chunk->isVoxel(x, y, z);
-		}
-	}
-	else {
-		s = chunk->getVoxel(
-			x % CHUNK_SIZE,
-			y % CHUNK_SIZE,
-			z % CHUNK_SIZE);
-	}
-
-	return s;*/
-	return chunk->isVoxel(v);
-	//double noise = FastNoise::GetPerlin(x, y, z) * 0.5 + 0.5;
-	//return Sphere(v, Vector3(worldSize / 2, worldSize / 2, worldSize / 2), worldSize / 2);
-	//return s = c->getVoxel(
-	//	x % CHUNK_SIZE,
-	//	y % CHUNK_SIZE,
-	//	z % CHUNK_SIZE);
+float Density_Func(Vector3 v) {
+	const float worldSize = 4 * CHUNK_SIZE;
+	return Sphere(v, Vector3(worldSize / 2, worldSize / 2, worldSize / 2), worldSize / 2);
 }
 
 // ----------------------------------------------------------------------------
 
-Vector3 ApproximateZeroCrossingPosition(std::shared_ptr<godot::Chunk> chunk, const Vector3& p0, const Vector3& p1)
+Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1)
 {
 	// approximate the zero crossing by finding the min value along the edge
 	float minValue = 100000.f;
@@ -512,7 +472,7 @@ Vector3 ApproximateZeroCrossingPosition(std::shared_ptr<godot::Chunk> chunk, con
 	while (currentT <= 1.f)
 	{
 		const Vector3 p = p0 + ((p1 - p0) * currentT);
-		const float density = abs(Density_Func(chunk, p));
+		const float density = abs(Density_Func(p));
 		if (density < minValue)
 		{
 			minValue = density;
@@ -527,12 +487,12 @@ Vector3 ApproximateZeroCrossingPosition(std::shared_ptr<godot::Chunk> chunk, con
 
 // ----------------------------------------------------------------------------
 
-Vector3 CalculateSurfaceNormal(std::shared_ptr<godot::Chunk> chunk, const Vector3& p)
+Vector3 CalculateSurfaceNormal(const Vector3& p)
 {
 	const float H = 0.001f;
-	const float dx = Density_Func(chunk, p + Vector3(H, 0.f, 0.f)) - Density_Func(chunk, p - Vector3(H, 0.f, 0.f));
-	const float dy = Density_Func(chunk, p + Vector3(0.f, H, 0.f)) - Density_Func(chunk, p - Vector3(0.f, H, 0.f));
-	const float dz = Density_Func(chunk, p + Vector3(0.f, 0.f, H)) - Density_Func(chunk, p - Vector3(0.f, 0.f, H));
+	const float dx = Density_Func(p + Vector3(H, 0.f, 0.f)) - Density_Func(p - Vector3(H, 0.f, 0.f));
+	const float dy = Density_Func(p + Vector3(0.f, H, 0.f)) - Density_Func(p - Vector3(0.f, H, 0.f));
+	const float dz = Density_Func(p + Vector3(0.f, 0.f, H)) - Density_Func(p - Vector3(0.f, 0.f, H));
 
 	return Vector3(dx, dy, dz).normalized();
 }
@@ -550,7 +510,7 @@ std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
 	for (int i = 0; i < 8; i++)
 	{
 		const Vector3 cornerPos = leaf->min + CHILD_MIN_OFFSETS[i];
-		const float density = Density_Func(leaf->chunk, Vector3(cornerPos));
+		const float density = Density_Func(Vector3(cornerPos));
 		const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
 		corners |= (material << i);
 	}
@@ -590,8 +550,8 @@ std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
 
 		const Vector3 p1 = Vector3(leaf->min + CHILD_MIN_OFFSETS[c1]);
 		const Vector3 p2 = Vector3(leaf->min + CHILD_MIN_OFFSETS[c2]);
-		const Vector3 p = ApproximateZeroCrossingPosition(leaf->chunk, p1, p2);
-		const Vector3 n = CalculateSurfaceNormal(leaf->chunk, p);
+		const Vector3 p = ApproximateZeroCrossingPosition(p1, p2);
+		const Vector3 n = CalculateSurfaceNormal(p);
 		qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
 		
 		float* pos = &vertex[i * 3];
@@ -653,7 +613,6 @@ std::shared_ptr<OctreeNode> ConstructOctreeNodes(std::shared_ptr<OctreeNode> nod
 		child->size = childSize;
 		child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
 		child->type = Node_Internal;
-		child->chunk = node->chunk;
 
 		node->children[i] = ConstructOctreeNodes(child);
 		hasChildren |= (node->children[i] != nullptr);
@@ -670,16 +629,14 @@ std::shared_ptr<OctreeNode> ConstructOctreeNodes(std::shared_ptr<OctreeNode> nod
 
 // -------------------------------------------------------------------------------
 
-std::shared_ptr<OctreeNode> BuildOctree(const Vector3& min, const int size, const float threshold, std::shared_ptr<godot::Chunk> chunk)
+std::shared_ptr<OctreeNode> BuildOctree(const Vector3& min, const int size, const float threshold)
 {
 	std::shared_ptr<OctreeNode> root = make_shared<OctreeNode>();
 	root->min = min;
 	root->size = size;
 	root->type = Node_Internal;
-	root->chunk = chunk;
-	chunk->setRoot(root);
 
-	ConstructOctreeNodes(root);
+	root = ConstructOctreeNodes(root);
 	root = SimplifyOctree(root, threshold);
 
 	return root;
@@ -693,9 +650,6 @@ void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vert
 	{
 		return;
 	}
-
-	//vertexBuffer.clear();
-	//indexBuffer.clear();
 
 	GenerateVertexIndices(node, vertexBuffer, counts);
 	ContourCellProc(node, indexBuffer, counts);
@@ -725,12 +679,9 @@ void DestroyOctree(std::shared_ptr<OctreeNode> node)
 
 // -------------------------------------------------------------------------------
 
-vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::Chunk> chunk)
+vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<VoxelWorld> world, Vector3 baseChunkMin)
 {
-	auto world = chunk->getWorld();
-	const Vector3 baseChunkMin = chunk->getOffset();
 	const Vector3 seamValues = baseChunkMin + Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
-
 	const Vector3 OFFSETS[8] =
 	{
 		Vector3(0,0,0), Vector3(1,0,0), Vector3(0,0,1), Vector3(1,0,1),
@@ -824,7 +775,7 @@ void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, v
 
 // -------------------------------------------------------------------------------
 
-vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, std::shared_ptr<godot::Chunk> chunk, int parentSize)
+vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize)
 {
 	vector<std::shared_ptr<OctreeNode>> parents;
 
@@ -835,8 +786,7 @@ vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<Octre
 			parents.push_back(node);
 			continue;
 		}
-
-		Vector3 chunkMin = chunk->getOffset();
+		
 		Vector3 parentMin = node->min - Vector3(
 			int(node->min.x - chunkMin.x) % parentSize,
 			int(node->min.y - chunkMin.y) % parentSize,
@@ -867,14 +817,13 @@ vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<Octre
 			parent->min = parentMin;
 			parent->size = parentSize;
 			parent->type = Node_Internal;
-			parent->chunk = node->chunk;
 			parents.push_back(parent);
 			parent->children[index] = node;
 		}
 	}
 
 	if (parents.size() < 2) return parents;
-	return BuildSeamOctree(parents, chunk, parentSize * 2);
+	return BuildSeamOctree(parents, chunkMin, parentSize * 2);
 }
 
 // -------------------------------------------------------------------------------

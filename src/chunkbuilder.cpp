@@ -15,6 +15,7 @@ ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
 }
 
 void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<OctreeNode> seam) {
+	Node* parent = world->get_parent();
 	int i, j, n, amountVertices, amountIndices, amountFaces;
 
 	VertexBuffer vertices;
@@ -39,7 +40,6 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<Octre
 	//Godot::print(String("amountVertices: {0}, amountFaces: {1}").format(Array::make(amountVertices, amountFaces)));
 
 	if (amountVertices <= 0 || amountIndices <= 0) {
-		Node* parent = world->get_parent();
 		if (chunk->getMeshInstanceId() > 0)
 			parent->call_deferred("delete_chunk", chunk.get(), world.get());
 
@@ -98,11 +98,11 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<Octre
 	meshData[0] = meshArrays;
 	meshData[1] = collisionArray;
 
-	MeshInstance* meshInstance = MeshInstance::_new();
-	ArrayMesh* mesh = ArrayMesh::_new();
+	//MeshInstance* meshInstance = MeshInstance::_new();
+	//ArrayMesh* mesh = ArrayMesh::_new();
 	//StaticBody staticBody;
 
-	mesh->add_surface_from_arrays(ArrayMesh::PRIMITIVE_TRIANGLES, meshData[0]);
+	//mesh->add_surface_from_arrays(ArrayMesh::PRIMITIVE_TRIANGLES, meshData[0]);
 	//mesh.surface_set_material(0, material);
 
 	/*var polygon_shape : ConcavePolygonShape = ConcavePolygonShape.new()
@@ -111,10 +111,10 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<Octre
 	staticBody.shape_owner_add_shape(owner_id, polygon_shape)*/
 
 	//meshInstance.add_child(staticBody)
-	meshInstance->set_mesh(mesh);
-	world->call_deferred("add_child", meshInstance);
+	//meshInstance->set_mesh(mesh);
+	//world->call_deferred("add_child", meshInstance);
 	
-	//parent->call_deferred("build_chunk", meshData, chunk.get(), world.get());
+	parent->call_deferred("build_chunk", meshData, chunk.get(), world.get());
 }
 
 void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
@@ -133,11 +133,11 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	//Godot::print(String("vertices at chunk {0} building ...").format(Array::make(chunk->getOffset())));
 
 	try {
-		seamNodes = FindSeamNodes(chunk);
+		seamNodes = FindSeamNodes(world, baseChunkMin);
 
 		//Godot::print(String("amount seam nodes {0}").format(Array::make(seamNodes.size())));
 
-		seamNodes = BuildSeamOctree(seamNodes, chunk, 1);
+		seamNodes = BuildSeamOctree(seamNodes, baseChunkMin, 1);
 
 		if (seamNodes.size() == 1) {
 			seam = seamNodes.front();

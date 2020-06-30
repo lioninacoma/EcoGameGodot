@@ -112,7 +112,6 @@ public:
 		, min(0, 0, 0)
 		, size(0)
 		, drawInfo(nullptr)
-		, chunk(nullptr)
 	{
 		for (int i = 0; i < 8; i++)
 		{
@@ -125,7 +124,6 @@ public:
 		, min(0, 0, 0)
 		, size(0)
 		, drawInfo(nullptr)
-		, chunk(nullptr)
 	{
 		for (int i = 0; i < 8; i++)
 		{
@@ -143,7 +141,6 @@ public:
 		c->min = min;
 		c->size = size;
 		c->drawInfo = (drawInfo) ? drawInfo->cpy() : nullptr;
-		c->chunk = chunk;
 		return c;
 	}
 
@@ -152,19 +149,17 @@ public:
 	godot::Vector3					min;
 	std::shared_ptr<OctreeNode>		children[8];
 	std::shared_ptr<OctreeDrawInfo> drawInfo;
-	std::shared_ptr<godot::Chunk>	chunk;
 };
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<OctreeNode> BuildOctree(const godot::Vector3& min, const int size, const float threshold, std::shared_ptr<godot::Chunk> chunk);
+std::shared_ptr<OctreeNode> BuildOctree(const godot::Vector3& min, const int size, const float threshold);
 std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, float threshold);
 void DestroyOctree(std::shared_ptr<OctreeNode> node);
 void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts);
-vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::Chunk> chunk);
+vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
 void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes);
-vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, std::shared_ptr<godot::Chunk> chunk, int parentSize);
-float Density_Func(std::shared_ptr<godot::Chunk> chunk, godot::Vector3 v);
+vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
 
 // ----------------------------------------------------------------------------
 

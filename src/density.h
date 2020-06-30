@@ -10,6 +10,5 @@ using namespace std;
 
 float Sphere(const godot::Vector3& worldPosition, const godot::Vector3& origin, float radius);
 float Cuboid(const godot::Vector3& worldPosition, const godot::Vector3& origin, const godot::Vector3& halfDimensions);
-float Density_Func(const godot::Vector3& worldPosition);
 
 #endif	//	HAS_DENSITY_H_BEEN_INCLUDED

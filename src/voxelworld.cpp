@@ -168,7 +168,8 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 			const Vector3 baseChunkMin = chunk.second->getOffset();
 			try {
 				chunk.second->deleteRoot();
-				BuildOctree(baseChunkMin, CHUNK_SIZE, OCTREE_LOD, chunk.second);
+				auto root = BuildOctree(baseChunkMin, CHUNK_SIZE, OCTREE_LOD);
+				chunk.second->setRoot(root);
 			}
 			catch (const std::exception & e) {
 				//Godot::print(String("chunk at {0} is empty").format(Array::make(baseChunkMin)));
@@ -368,7 +369,8 @@ void VoxelWorld::prepareChunkTask(std::shared_ptr<Chunk> chunk, float lod) {
 	const Vector3 baseChunkMin = chunk->getOffset();
 	try {
 		//chunk->buildVolume();
-		BuildOctree(baseChunkMin, CHUNK_SIZE, lod, chunk);
+		auto root = BuildOctree(baseChunkMin, CHUNK_SIZE, lod);
+		chunk->setRoot(root);
 	}
 	catch (const std::exception & e) {
 		//Godot::print(String("chunk at {0} is empty").format(Array::make(baseChunkMin)));

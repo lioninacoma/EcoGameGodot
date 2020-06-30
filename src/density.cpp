@@ -20,14 +20,3 @@ float Cuboid(const Vector3& worldPosition, const Vector3& origin, const Vector3&
 	const float m = max(d.x, max(d.y, d.z));
 	return min(m, d.length());
 }
-
-// ----------------------------------------------------------------------------
-
-float Density_Func(const Vector3& worldPosition)
-{
-	const float MAX_HEIGHT = 20.f;
-	const float terrain = worldPosition.y - MAX_HEIGHT;
-	const float sphere = Sphere(worldPosition, Vector3(15.f, 2.5f, 1.f), 16.f);
-
-	return min(sphere, terrain);
-}
