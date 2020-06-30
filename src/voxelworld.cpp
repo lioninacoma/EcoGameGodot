@@ -164,17 +164,15 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 				}
 
 		// First build octree then update mesh. Otherwise there would be cracks.
-		for (auto chunk : updatingChunks) {
-			const Vector3 baseChunkMin = chunk.second->getOffset();
-			try {
-				chunk.second->deleteRoot();
-				auto root = BuildOctree(baseChunkMin, CHUNK_SIZE, OCTREE_LOD);
-				chunk.second->setRoot(root);
-			}
-			catch (const std::exception & e) {
-				//Godot::print(String("chunk at {0} is empty").format(Array::make(baseChunkMin)));
-			}
-		}
+		//for (auto chunk : updatingChunks) {
+		//	const Vector3 baseChunkMin = chunk.second->getOffset();
+		//	try {
+		//		chunk.second->deleteRoot();
+		//		auto root = BuildOctree(baseChunkMin, CHUNK_SIZE, OCTREE_LOD);
+		//		chunk.second->setRoot(root);
+		//	}
+		//	catch (const std::exception & e) {}
+		//}
 
 		for (auto chunk : updatingChunks) {
 			chunkBuilder->build(chunk.second);
@@ -238,14 +236,13 @@ void VoxelWorld::setChunk(int x, int y, int z, std::shared_ptr<Chunk> chunk) {
 void VoxelWorld::buildChunksTask() {
 	int x, y, z, i;
 	std::shared_ptr<Chunk> chunk;
-	auto threadpool = new ThreadPool(8);
-	cout << "preparing chunks ..." << endl;
 
-	bpt::ptime start, stop;
-	bpt::time_duration dur;
-	long ms = 0;
-
-	start = bpt::microsec_clock::local_time();
+	//auto threadpool = new ThreadPool(8);
+	//cout << "preparing chunks ..." << endl;
+	//bpt::ptime start, stop;
+	//bpt::time_duration dur;
+	//long ms = 0;
+	//start = bpt::microsec_clock::local_time();
 
 	for (z = 0; z < size; z++) {
 		for (y = 0; y < size; y++) {
@@ -255,18 +252,16 @@ void VoxelWorld::buildChunksTask() {
 				chunk->setOffset(baseChunkMin);
 				chunk->setWorld(self);
 				setChunk(x, y, z, chunk);
-				threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
+				//threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
 			}
 		}
 	}
 
-	threadpool->waitUntilFinished();
-
-	stop = bpt::microsec_clock::local_time();
-	dur = stop - start;
-	ms = dur.total_milliseconds();
-
-	Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
+	//threadpool->waitUntilFinished();
+	//stop = bpt::microsec_clock::local_time();
+	//dur = stop - start;
+	//ms = dur.total_milliseconds();
+	//Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
 
 	for (i = 0; i < size * size * size; i++) {
 		chunk = getChunk(i);
@@ -274,7 +269,7 @@ void VoxelWorld::buildChunksTask() {
 		chunkBuilder->build(chunk);
 	}
 
-	delete threadpool;
+	//delete threadpool;
 }
 
 void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
@@ -295,12 +290,12 @@ void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
 	std::shared_ptr<Chunk> chunk, neighbour;
 	vector<std::shared_ptr<Chunk>> buildList;
 	unordered_set<size_t> buildingChunks;
-	auto threadpool = new ThreadPool(8);
-	cout << "preparing chunks ..." << endl;
 
-	bpt::ptime start, stop;
-	bpt::time_duration dur;
-	long ms = 0;
+	//auto threadpool = new ThreadPool(8);
+	//cout << "preparing chunks ..." << endl;
+	//bpt::ptime start, stop;
+	//bpt::time_duration dur;
+	//long ms = 0;
 
 	for (z = std::max(int(min.z), 0); z < std::min(int(max.z), int(size)); z++)
 		for (y = std::max(int(min.y), 0); y < std::min(int(max.y), int(size)); y++)
@@ -339,30 +334,28 @@ void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
 							neighbourMin = neighbourPos * Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
 							if (buildingChunks.find(fn::hash(neighbourMin)) != buildingChunks.end()) continue;
 
-							threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
+							//threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
 							buildList.push_back(neighbour);
 							buildingChunks.emplace(fn::hash(neighbourMin));
 						}
 
-				threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
+				//threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
 				buildList.push_back(chunk);
 				buildingChunks.emplace(fn::hash(chunkMin));
 			}
 
-	threadpool->waitUntilFinished();
-
-	stop = bpt::microsec_clock::local_time();
-	dur = stop - start;
-	ms = dur.total_milliseconds();
-
-	Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
+	//threadpool->waitUntilFinished();
+	//stop = bpt::microsec_clock::local_time();
+	//dur = stop - start;
+	//ms = dur.total_milliseconds();
+	//Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
 
 	for (auto chunk : buildList) {
 		//Godot::print(String("chunk at {0} building ...").format(Array::make(chunk->getOffset())));
 		chunkBuilder->build(chunk);
 	}
 
-	delete threadpool;
+	//delete threadpool;
 }
 
 void VoxelWorld::prepareChunkTask(std::shared_ptr<Chunk> chunk, float lod) {

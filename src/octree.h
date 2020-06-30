@@ -160,6 +160,7 @@ void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vert
 vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
 void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes);
 vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
+void BuildMesh(const godot::Vector3& min, const int size, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts);
 
 // ----------------------------------------------------------------------------
 

@@ -42,7 +42,7 @@ namespace godot {
 		void processQueue();
 		void queueChunk(std::shared_ptr<Chunk> chunk);
 		void buildChunk(std::shared_ptr<Chunk> chunk);
-		void buildMesh(std::shared_ptr<Chunk> chunk, std::shared_ptr<OctreeNode> seam);
+		void buildMesh(std::shared_ptr<Chunk> chunk/*, std::shared_ptr<OctreeNode> seam*/);
 		void addWaiting(size_t notifying, std::shared_ptr<Chunk> chunk);
 		void queueWaiting(size_t notifying);
 
