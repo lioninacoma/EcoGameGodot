@@ -510,8 +510,8 @@ void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer,
 }
 
 float Density_Func(Vector3 v) {
-	const float worldSize = 4 * CHUNK_SIZE;
-	return Sphere(v, Vector3(worldSize / 2, worldSize / 2, worldSize / 2), worldSize / 2);
+	const float size = WORLD_SIZE * CHUNK_SIZE;
+	return Sphere(v, Vector3(size / 2, size / 2, size / 2), size / 2);
 }
 
 // ----------------------------------------------------------------------------
@@ -622,18 +622,21 @@ void FindActiveVoxels(
 			}
 }
 
-void GenerateVertexData(
+vector<std::shared_ptr<OctreeNode>> GenerateVertexData(
 	const VoxelIDSet& voxels,
 	const EdgeInfoMap& edges,
 	VoxelIndexMap& vertexIndices,
 	VertexBuffer& vertexBuffer,
+	Vector3 chunkMin,
 	int* counts)
 {
+	vector<std::shared_ptr<OctreeNode>> leafs;
+	
 	for (const auto& voxelID : voxels)
 	{
 		Vector3 averageNormal(0, 0, 0);
-		Vector3 averagePosition(0, 0, 0);
-		//svd::QefSolver qef;
+		//Vector3 averagePosition(0, 0, 0);
+		svd::QefSolver qef;
 
 		int idx = 0;
 		for (int i = 0; i < 12; i++)
@@ -646,9 +649,9 @@ void GenerateVertexData(
 				const auto& info = iter->second;
 				const Vector3 p = info.pos;
 				const Vector3 n = info.normal;
-				//qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
+				qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
 
-				averagePosition += p;
+				//averagePosition += p;
 				averageNormal += n;
 				
 				idx++;
@@ -657,22 +660,53 @@ void GenerateVertexData(
 
 		if (idx == 0) continue;
 
-		//svd::Vec3 qefPosition;
-		//qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
+		svd::Vec3 qefPosition;
+		qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
+
+		//Vector3 position = averagePosition / (float)idx;
+		Vector3 cellMin = chunkMin + DecodeVoxelUniqueID(voxelID);
+
+		int corners = 0;
+		for (int i = 0; i < 8; i++)
+		{
+			const Vector3 cornerPos = cellMin + CHILD_MIN_OFFSETS[i];
+			const float density = Density_Func(cornerPos);
+			const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
+			corners |= (material << i);
+		}
 
 		std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
-		//drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
-		//drawInfo->qef = qef.getData();
-		drawInfo->position = averagePosition / (float)idx;
+		drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
+		drawInfo->qef = qef.getData();
+
+		const int cellSize = 1; // lod?
+		const Vector3 min = cellMin;
+		const Vector3 max = cellMin + Vector3(cellSize, cellSize, cellSize);
+		if (drawInfo->position.x < min.x || drawInfo->position.x > max.x ||
+			drawInfo->position.y < min.y || drawInfo->position.y > max.y ||
+			drawInfo->position.z < min.z || drawInfo->position.z > max.z)
+		{
+			const auto& mp = qef.getMassPoint();
+			drawInfo->position = Vector3(mp.x, mp.y, mp.z);
+		}
+
+		//drawInfo->position = position;
 		drawInfo->averageNormal = (averageNormal / (float)idx).normalized();
-		//drawInfo->corners = corners;
+		drawInfo->corners = corners;
+		drawInfo->index = counts[0];
 
 		vertexIndices[voxelID] = counts[0];
-
-		drawInfo->index = counts[0];
 		vertexBuffer[counts[0]++] = MeshVertex(drawInfo->position, drawInfo->averageNormal);
+
+		std::shared_ptr<OctreeNode> node = make_shared<OctreeNode>();
+		node->min = cellMin;
+		node->size = cellSize;
+		node->type = Node_Leaf;
+		node->drawInfo = drawInfo;
+		leafs.push_back(node);
 	}
 
+	return leafs;
 }
 
 void GenerateTriangles(
@@ -739,7 +773,7 @@ void GenerateTriangles(
 	}
 }
 
-void BuildMesh(const godot::Vector3& min, const int size, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts)
+vector<std::shared_ptr<OctreeNode>> BuildMesh(const godot::Vector3& min, const int size, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts)
 {
 	VoxelIDSet activeVoxels;
 	EdgeInfoMap activeEdges;
@@ -747,17 +781,25 @@ void BuildMesh(const godot::Vector3& min, const int size, VertexBuffer& vertexBu
 	FindActiveVoxels(activeVoxels, activeEdges, min, size);
 
 	VoxelIndexMap vertexIndices;
-	GenerateVertexData(activeVoxels, activeEdges, vertexIndices, vertexBuffer, counts);
+	auto leafs = GenerateVertexData(activeVoxels, activeEdges, vertexIndices, vertexBuffer, min, counts);
 	GenerateTriangles(activeEdges, vertexIndices, indexBuffer, counts);
+
+	return leafs;
 }
 
 // -------------------------------------------------------------------------------
 
-std::shared_ptr<OctreeDrawInfo> BuildCell(Vector3 cellMin) {
+std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
+{
+	if (!leaf || leaf->size != 1)
+	{
+		return nullptr;
+	}
+
 	int corners = 0;
 	for (int i = 0; i < 8; i++)
 	{
-		const Vector3 cornerPos = cellMin + CHILD_MIN_OFFSETS[i];
+		const Vector3 cornerPos = leaf->min + CHILD_MIN_OFFSETS[i];
 		const float density = Density_Func(Vector3(cornerPos));
 		const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
 		corners |= (material << i);
@@ -789,8 +831,8 @@ std::shared_ptr<OctreeDrawInfo> BuildCell(Vector3 cellMin) {
 			continue;
 		}
 
-		const Vector3 p1 = Vector3(cellMin + CHILD_MIN_OFFSETS[c1]);
-		const Vector3 p2 = Vector3(cellMin + CHILD_MIN_OFFSETS[c2]);
+		const Vector3 p1 = Vector3(leaf->min + CHILD_MIN_OFFSETS[c1]);
+		const Vector3 p2 = Vector3(leaf->min + CHILD_MIN_OFFSETS[c2]);
 		const Vector3 p = ApproximateZeroCrossingPosition(p1, p2);
 		const Vector3 n = CalculateSurfaceNormal(p);
 		qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
@@ -808,8 +850,8 @@ std::shared_ptr<OctreeDrawInfo> BuildCell(Vector3 cellMin) {
 	drawInfo->qef = qef.getData();
 
 	const int cellSize = 1; // lod?
-	const Vector3 min = cellMin;
-	const Vector3 max = cellMin + Vector3(cellSize, cellSize, cellSize);
+	const Vector3 min = leaf->min;
+	const Vector3 max = leaf->min + Vector3(cellSize, cellSize, cellSize);
 	if (drawInfo->position.x < min.x || drawInfo->position.x > max.x ||
 		drawInfo->position.y < min.y || drawInfo->position.y > max.y ||
 		drawInfo->position.z < min.z || drawInfo->position.z > max.z)
@@ -820,18 +862,6 @@ std::shared_ptr<OctreeDrawInfo> BuildCell(Vector3 cellMin) {
 
 	drawInfo->averageNormal = (averageNormal / (float)edgeCount).normalized();
 	drawInfo->corners = corners;
-
-	return drawInfo;
-}
-
-std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
-{
-	if (!leaf || leaf->size != 1)
-	{
-		return nullptr;
-	}
-
-	auto drawInfo = BuildCell(leaf->min);
 
 	if (!drawInfo) {
 		// voxel is full inside or outside the volume
@@ -1030,7 +1060,7 @@ void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, v
 
 // -------------------------------------------------------------------------------
 
-vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize)
+vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize)
 {
 	vector<std::shared_ptr<OctreeNode>> parents;
 
@@ -1078,7 +1108,7 @@ vector<std::shared_ptr<OctreeNode>> BuildSeamOctree(vector<std::shared_ptr<Octre
 	}
 
 	if (parents.size() < 2) return parents;
-	return BuildSeamOctree(parents, chunkMin, parentSize * 2);
+	return BuildOctree(parents, chunkMin, parentSize * 2);
 }
 
 // -------------------------------------------------------------------------------

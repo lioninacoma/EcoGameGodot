@@ -14,26 +14,95 @@ ChunkBuilder::ChunkBuilder(std::shared_ptr<VoxelWorld> world) {
 	ChunkBuilder::threadStarted = false;
 }
 
-void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk/*, std::shared_ptr<OctreeNode> seam*/) {
+void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk) {
 	Node* parent = world->get_parent();
 	int i, j, n, amountVertices, amountIndices, amountFaces;
 
 	const Vector3 chunkMin = chunk->getOffset();
+	const Vector3 OFFSETS[7] =
+	{
+						Vector3(1,0,0), Vector3(0,0,1), Vector3(1,0,1),
+		Vector3(0,1,0), Vector3(1,1,0), Vector3(0,1,1), Vector3(1,1,1)
+	};
+	
 	VertexBuffer vertices;
 	IndexBuffer indices;
-	auto root = chunk->getRoot();
 	int* counts = new int[2] {0, 0};
-
 	vertices.resize(CHUNKBUILDER_MAX_VERTICES);
 	indices.resize(CHUNKBUILDER_MAX_VERTICES);
+
+	//auto leafs = BuildMesh(chunkMin, CHUNK_SIZE, vertices, indices, counts);
+
+	//if (!leafs.empty()) {
+	//	leafs = BuildOctree(leafs, chunkMin, 1);
+	//	
+	//	if (leafs.size() == 1) {
+	//		auto root = leafs.front();
+	//		chunk->setRoot(root);
+
+	//		auto seams = FindSeamNodes(world, chunkMin);
+	//		seams = BuildOctree(seams, chunkMin, 1);
+	//		if (seams.size() == 1) {
+	//			auto seamRoot = seams.front();
+	//			GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
+	//		}
+	//	}
+	//}
+
+	auto leafs = BuildMesh(chunkMin, CHUNK_SIZE, vertices, indices, counts);
+
+	if (leafs.empty()) {
+		chunk->empty = true;
+		return;
+	}
+
+	leafs = BuildOctree(leafs, chunkMin, 1);
+	auto root = leafs.front();
+
+	//vertices.clear();
+	//indices.clear();
+	//counts[0] = 0; counts[1] = 0;
+	//GenerateMeshFromOctree(root, vertices, indices, counts);
+
+	root = SimplifyOctree(root, 1.f);
+	chunk->setRoot(root);
+
+	for (int i = 0; i < 7; i++) {
+		const Vector3 offsetMin = OFFSETS[i] * CHUNK_SIZE;
+		const Vector3 neighbourChunkMin = chunkMin + offsetMin;
+		auto neighbour = world->getChunk(neighbourChunkMin);
+		if (!neighbour || neighbour->empty) continue;
+		if (!neighbour->getRoot()) {
+			addWaiting(fn::hash(neighbourChunkMin), chunk);
+			return;
+		}
+	}
+
+	auto seams = FindSeamNodes(world, chunkMin);
+	seams = BuildOctree(seams, chunkMin, 1);
+	if (seams.size() == 1) {
+		auto seamRoot = seams.front();
+		GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
+		DestroyOctree(seamRoot);
+	}
+
+	//auto root = chunk->getRoot();
+	//GenerateMeshFromOctree(root, vertices, indices, counts);
+
+	//auto seams = FindSeamNodes(world, chunkMin);
+	//seams = BuildOctree(seams, chunkMin, 1);
+
+	//if (seams.size() == 1) {
+	//	auto seamRoot = seams.front();
+	//	GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
+	//	DestroyOctree(seamRoot);
+	//}
 
 	//GenerateMeshFromOctree(chunk->getRoot(), vertices, indices, counts);
 	//if (seam) {
 	//	GenerateMeshFromOctree(seam, vertices, indices, counts);
 	//	DestroyOctree(seam);
 	//}
-
-	BuildMesh(chunkMin, CHUNK_SIZE, vertices, indices, counts);
 
 	amountVertices = counts[0];
 	amountIndices = counts[1];
@@ -44,13 +113,6 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk/*, std::shared_ptr<Oct
 	if (amountVertices <= 0 || amountIndices <= 0) {
 		if (chunk->getMeshInstanceId() > 0)
 			parent->call_deferred("delete_chunk", chunk.get(), world.get());
-
-		//if (chunk->isNavigatable())
-		//	Godot::print(String("chunk at {0} deleted").format(Array::make(chunk->getOffset())));
-		
-		chunk->setNavigatable(false);
-		chunk->setBuilding(false);
-		BUILD_QUEUE_CV.notify_one();
 		return;
 	}
 
@@ -76,7 +138,7 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk/*, std::shared_ptr<Oct
 	PoolVector3Array::Write collisionArrayWrite = collisionArray.write();
 
 	for (i = 0; i < amountVertices; i++) {
-		vertexArrayWrite[i] = Vector3(vertices[i].xyz);
+		vertexArrayWrite[i] = vertices[i].xyz;
 	}
 
 	for (i = 0, n = 0; i < amountFaces; i++, n += 3) {
@@ -84,9 +146,9 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk/*, std::shared_ptr<Oct
 		indexArrayWrite[n + 1] = indices[n + 2];
 		indexArrayWrite[n + 2] = indices[n + 1];
 
-		normalArrayWrite[indices[n]] = Vector3(vertices[indices[n]].normal);
-		normalArrayWrite[indices[n + 1]] = Vector3(vertices[indices[n + 1]].normal);
-		normalArrayWrite[indices[n + 2]] = Vector3(vertices[indices[n + 2]].normal);
+		normalArrayWrite[indices[n]] = vertices[indices[n]].normal;
+		normalArrayWrite[indices[n + 1]] = vertices[indices[n + 1]].normal;
+		normalArrayWrite[indices[n + 2]] = vertices[indices[n + 2]].normal;
 
 		collisionArrayWrite[n] = vertexArray[indices[n]];
 		collisionArrayWrite[n + 1] = vertexArray[indices[n + 1]];
@@ -129,17 +191,10 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	start = bpt::microsec_clock::local_time();
 
 	const Vector3 chunkMin = chunk->getOffset();
-	//vector<std::shared_ptr<OctreeNode>> seamNodes;
-	//std::shared_ptr<OctreeNode> seam = NULL;
-	
-	try {
-		//seamNodes = FindSeamNodes(world, chunkMin);
-		//seamNodes = BuildSeamOctree(seamNodes, chunkMin, 1);
-		//if (seamNodes.size() == 1) {
-		//	seam = seamNodes.front();
-		//}
-		//buildMesh(chunk, seam);
 
+	//Godot::print(String("building chunk at {0}").format(Array::make(chunkMin)));
+
+	try {
 		buildMesh(chunk);
 	}
 	catch (const std::exception & e) {
@@ -153,6 +208,8 @@ void ChunkBuilder::buildChunk(std::shared_ptr<Chunk> chunk) {
 	Godot::print(String("chunk at {0} built in {1} ms").format(Array::make(chunkMin, ms)));
 	chunk->setNavigatable(true);
 	chunk->setBuilding(false);
+
+	queueWaiting(fn::hash(chunkMin));
 
 	BUILD_QUEUE_CV.notify_one();
 }
@@ -178,6 +235,7 @@ void ChunkBuilder::queueWaiting(size_t notifying) {
 
 	auto waitingList = it->second;
 	for (auto waiting : *waitingList) {
+		//Godot::print(String("queue chunk {0}").format(Array::make(waiting->getOffset())));
 		queueChunk(waiting);
 	}
 
@@ -222,6 +280,6 @@ void ChunkBuilder::build(std::shared_ptr<Chunk> chunk) {
 	}
 
 	chunk->setBuilding(true);
-	ThreadPool::get()->submitTask(boost::bind(&ChunkBuilder::buildChunk, this, chunk));
-	//buildChunk(chunk);
+	//ThreadPool::get()->submitTask(boost::bind(&ChunkBuilder::buildChunk, this, chunk));
+	buildChunk(chunk);
 }

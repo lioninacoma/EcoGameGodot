@@ -23,7 +23,7 @@ void VoxelWorld::_register_methods() {
 }
 
 VoxelWorld::VoxelWorld() {
-	VoxelWorld::size = 16;
+	VoxelWorld::size = WORLD_SIZE;
 
 	chunks = vector<std::shared_ptr<Chunk>>(size * size * size);
 	self = std::shared_ptr<VoxelWorld>(this);
@@ -237,12 +237,12 @@ void VoxelWorld::buildChunksTask() {
 	int x, y, z, i;
 	std::shared_ptr<Chunk> chunk;
 
-	//auto threadpool = new ThreadPool(8);
-	//cout << "preparing chunks ..." << endl;
-	//bpt::ptime start, stop;
-	//bpt::time_duration dur;
-	//long ms = 0;
-	//start = bpt::microsec_clock::local_time();
+	auto threadpool = new ThreadPool(8);
+	cout << "preparing chunks ..." << endl;
+	bpt::ptime start, stop;
+	bpt::time_duration dur;
+	long ms = 0;
+	start = bpt::microsec_clock::local_time();
 
 	for (z = 0; z < size; z++) {
 		for (y = 0; y < size; y++) {
@@ -258,10 +258,10 @@ void VoxelWorld::buildChunksTask() {
 	}
 
 	//threadpool->waitUntilFinished();
-	//stop = bpt::microsec_clock::local_time();
-	//dur = stop - start;
-	//ms = dur.total_milliseconds();
-	//Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
+	stop = bpt::microsec_clock::local_time();
+	dur = stop - start;
+	ms = dur.total_milliseconds();
+	Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
 
 	for (i = 0; i < size * size * size; i++) {
 		chunk = getChunk(i);
@@ -269,7 +269,7 @@ void VoxelWorld::buildChunksTask() {
 		chunkBuilder->build(chunk);
 	}
 
-	//delete threadpool;
+	delete threadpool;
 }
 
 void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
@@ -359,11 +359,26 @@ void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
 }
 
 void VoxelWorld::prepareChunkTask(std::shared_ptr<Chunk> chunk, float lod) {
-	const Vector3 baseChunkMin = chunk->getOffset();
 	try {
+		const Vector3 chunkMin = chunk->getOffset();
+
 		//chunk->buildVolume();
-		auto root = BuildOctree(baseChunkMin, CHUNK_SIZE, lod);
-		chunk->setRoot(root);
+		//auto root = BuildOctree(chunkMin, CHUNK_SIZE, lod);
+		//chunk->setRoot(root);
+
+		//VertexBuffer vertices;
+		//IndexBuffer indices;
+		//int* counts = new int[2]{ 0, 0 };
+		//vertices.resize(CHUNKBUILDER_MAX_VERTICES);
+		//indices.resize(CHUNKBUILDER_MAX_VERTICES);
+		//auto leafs = BuildMesh(chunkMin, CHUNK_SIZE, vertices, indices, counts);
+		//if (!leafs.empty()) {
+		//	leafs = BuildOctree(leafs, chunkMin, 1);
+		//	if (leafs.size() == 1) {
+		//		auto root = leafs.front();
+		//		chunk->setRoot(root);
+		//	}
+		//}
 	}
 	catch (const std::exception & e) {
 		//Godot::print(String("chunk at {0} is empty").format(Array::make(baseChunkMin)));

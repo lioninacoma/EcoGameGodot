@@ -1,6 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#define WORLD_SIZE 16
 #define CHUNK_SIZE 32    // Voxels
 #define OCTREE_LOD -1.f  // -1.f max detail, 50.f min detail
 

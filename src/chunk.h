@@ -67,6 +67,7 @@ namespace godot {
 
 		Voxel* intersection(int x, int y, int z);
 	public:
+		std::atomic<bool> empty = false;
 		static void _register_methods();
 
 		Chunk() : Chunk(Vector3(0, 0, 0)) {};
