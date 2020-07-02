@@ -96,7 +96,7 @@ struct OctreeDrawInfo
 		c->corners = corners;
 		c->position = position;
 		c->averageNormal = averageNormal;
-		c->qef = qef;
+		c->qef = svd::QefData(qef);
 		return c;
 	}
 };
@@ -147,6 +147,7 @@ public:
 	int								size;
 	OctreeNodeType					type;
 	godot::Vector3					min;
+	godot::Vector3					offset;
 	std::shared_ptr<OctreeNode>		children[8];
 	std::shared_ptr<OctreeDrawInfo> drawInfo;
 };
@@ -160,7 +161,7 @@ void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vert
 vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
 void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes);
 vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
-vector<std::shared_ptr<OctreeNode>> BuildMesh(const godot::Vector3& min, const int size, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts);
+vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(const godot::Vector3& min, const int size);
 
 // ----------------------------------------------------------------------------
 

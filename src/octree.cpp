@@ -25,17 +25,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace godot;
 
-struct EdgeInfo
-{
-	Vector3 pos;
-	Vector3 normal;
-	bool winding = false;
-};
-
-using EdgeInfoMap = std::unordered_map<uint32_t, EdgeInfo>;
-using VoxelIDSet = std::unordered_set<uint32_t>;
-using VoxelIndexMap = std::unordered_map<uint32_t, int>;
-
 // ----------------------------------------------------------------------------
 
 const int MATERIAL_AIR = 0;
@@ -91,52 +80,6 @@ const int edgeProcEdgeMask[3][2][5] = {
 };
 
 const int processEdgeMask[3][4] = { {3,2,1,0},{7,5,6,4},{11,10,9,8} };
-
-static const Vector3 AXIS_OFFSET[3] =
-{
-	Vector3(1.f, 0.f, 0.f),
-	Vector3(0.f, 1.f, 0.f),
-	Vector3(0.f, 0.f, 1.f)
-};
-
-static const Vector3 EDGE_NODE_OFFSETS[3][4] =
-{
-	{ Vector3(0, 0, 0), Vector3(0, 0, 1), Vector3(0, 1, 0), Vector3(0, 1, 1) },
-	{ Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector3(1, 0, 1) },
-	{ Vector3(0, 0, 0), Vector3(0, 1, 0), Vector3(1, 0, 0), Vector3(1, 1, 0) },
-};
-
-const uint32_t ENCODED_EDGE_OFFSETS[12] =
-{
-	0x00000000,
-	0x00100000,
-	0x00000400,
-	0x00100400,
-	0x40000000,
-	0x40100000,
-	0x40000001,
-	0x40100001,
-	0x80000000,
-	0x80000400,
-	0x80000001,
-	0x80000401,
-};
-
-const uint32_t ENCODED_EDGE_NODE_OFFSETS[12] =
-{
-	0x00000000,
-	0x00100000,
-	0x00000400,
-	0x00100400,
-	0x00000000,
-	0x00000001,
-	0x00100000,
-	0x00100001,
-	0x00000000,
-	0x00000400,
-	0x00000001,
-	0x00000401,
-};
 
 // ----------------------------------------------------------------------------
 
@@ -554,236 +497,94 @@ Vector3 CalculateSurfaceNormal(const Vector3& p)
 
 // ----------------------------------------------------------------------------
 
-uint32_t EncodeVoxelUniqueID(const Vector3& idxPos)
+vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(const godot::Vector3& min, const int size)
 {
-	return int(idxPos.x) | (int(idxPos.y) << 10) | (int(idxPos.z) << 20);
-}
-
-Vector3 DecodeVoxelUniqueID(const uint32_t id)
-{
-	return Vector3(
-		id & 0x3ff,
-		(id >> 10) & 0x3ff,
-		(id >> 20) & 0x3ff);
-}
-
-uint32_t EncodeAxisUniqueID(const int axis, const int x, const int y, const int z)
-{
-	return (x << 0) | (y << 10) | (z << 20) | (axis << 30);
-}
-
-void FindActiveVoxels(
-	VoxelIDSet& activeVoxels,
-	EdgeInfoMap& activeEdges,
-	Vector3 chunkMin,
-	int size)
-{
+	vector<std::shared_ptr<OctreeNode>> leafs;
+	
 	for (int x = 0; x < size; x++)
 		for (int y = 0; y < size; y++)
 			for (int z = 0; z < size; z++)
 			{
 				const Vector3 idxPos(x, y, z);
-				const Vector3 p = idxPos + chunkMin;
+				const Vector3 pos = idxPos + min;
 
-				for (int axis = 0; axis < 3; axis++)
+				int corners = 0;
+				for (int i = 0; i < 8; i++)
 				{
-					const Vector3 q = p + AXIS_OFFSET[axis];
+					const Vector3 cornerPos = pos + CHILD_MIN_OFFSETS[i];
+					const float density = Density_Func(Vector3(cornerPos));
+					const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
+					corners |= (material << i);
+				}
 
-					const float pDensity = Density_Func(p);
-					const float qDensity = Density_Func(q);
+				if (corners == 0 || corners == 255)
+				{
+					continue;
+				}
 
-					const bool zeroCrossing =
-						pDensity >= 0.f && qDensity < 0.f ||
-						pDensity < 0.f && qDensity >= 0.f;
-					if (!zeroCrossing)
+				// otherwise the voxel contains the surface, so find the edge intersections
+				const int MAX_CROSSINGS = 6;
+				Vector3 averageNormal(0, 0, 0);
+				svd::QefSolver qef;
+
+				int idx = 0;
+
+				for (int i = 0; i < 12 && idx < MAX_CROSSINGS; i++)
+				{
+					const int c1 = edgevmap[i][0];
+					const int c2 = edgevmap[i][1];
+
+					const int m1 = (corners >> c1) & 1;
+					const int m2 = (corners >> c2) & 1;
+
+					if ((m1 == MATERIAL_AIR && m2 == MATERIAL_AIR) ||
+						(m1 == MATERIAL_SOLID && m2 == MATERIAL_SOLID))
 					{
+						// no zero crossing on this edge
 						continue;
 					}
 
-					const Vector3 pos = ApproximateZeroCrossingPosition(p, q);
-					const Vector3 normal = CalculateSurfaceNormal(pos);
+					const Vector3 p1 = Vector3(pos + CHILD_MIN_OFFSETS[c1]);
+					const Vector3 p2 = Vector3(pos + CHILD_MIN_OFFSETS[c2]);
+					const Vector3 p = ApproximateZeroCrossingPosition(p1, p2);
+					const Vector3 n = CalculateSurfaceNormal(p);
+					qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
 
-					EdgeInfo info;
-					info.pos = pos;
-					info.normal = normal;
-					info.winding = pDensity >= 0.f;
+					averageNormal += n;
 
-					const auto code = EncodeAxisUniqueID(axis, x, y, z);
-					activeEdges[code] = info;
-
-					const auto edgeNodes = EDGE_NODE_OFFSETS[axis];
-					for (int i = 0; i < 4; i++)
-					{
-						const auto nodeIdxPos = idxPos - edgeNodes[i];
-						const auto nodeID = EncodeVoxelUniqueID(nodeIdxPos);
-						activeVoxels.insert(nodeID);
-					}
+					idx++;
 				}
-			}
-}
-
-vector<std::shared_ptr<OctreeNode>> GenerateVertexData(
-	const VoxelIDSet& voxels,
-	const EdgeInfoMap& edges,
-	VoxelIndexMap& vertexIndices,
-	VertexBuffer& vertexBuffer,
-	Vector3 chunkMin,
-	int* counts)
-{
-	vector<std::shared_ptr<OctreeNode>> leafs;
-	
-	for (const auto& voxelID : voxels)
-	{
-		Vector3 averageNormal(0, 0, 0);
-		//Vector3 averagePosition(0, 0, 0);
-		svd::QefSolver qef;
-
-		int idx = 0;
-		for (int i = 0; i < 12; i++)
-		{
-			const auto edgeID = voxelID + ENCODED_EDGE_OFFSETS[i];
-			const auto iter = edges.find(edgeID);
-
-			if (iter != end(edges))
-			{
-				const auto& info = iter->second;
-				const Vector3 p = info.pos;
-				const Vector3 n = info.normal;
-				qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
-
-				//averagePosition += p;
-				averageNormal += n;
 				
-				idx++;
+				svd::Vec3 qefPosition;
+				qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
+
+				std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
+				drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
+				drawInfo->qef = qef.getData();
+
+				const int cellSize = 1;
+				const Vector3 min = pos;
+				const Vector3 max = pos + Vector3(cellSize, cellSize, cellSize);
+				if (drawInfo->position.x < min.x || drawInfo->position.x > max.x ||
+					drawInfo->position.y < min.y || drawInfo->position.y > max.y ||
+					drawInfo->position.z < min.z || drawInfo->position.z > max.z)
+				{
+					const auto& mp = qef.getMassPoint();
+					drawInfo->position = Vector3(mp.x, mp.y, mp.z);
+				}
+
+				drawInfo->averageNormal = (averageNormal / (float)idx).normalized();
+				drawInfo->corners = corners;
+
+				std::shared_ptr<OctreeNode> node = make_shared<OctreeNode>();
+				node->min = pos;
+				node->size = cellSize;
+				node->type = Node_Leaf;
+				node->drawInfo = drawInfo;
+				node->offset = min;
+				leafs.push_back(node);
 			}
-		}
-
-		if (idx == 0) continue;
-
-		svd::Vec3 qefPosition;
-		qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
-
-		//Vector3 position = averagePosition / (float)idx;
-		Vector3 cellMin = chunkMin + DecodeVoxelUniqueID(voxelID);
-
-		int corners = 0;
-		for (int i = 0; i < 8; i++)
-		{
-			const Vector3 cornerPos = cellMin + CHILD_MIN_OFFSETS[i];
-			const float density = Density_Func(cornerPos);
-			const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
-			corners |= (material << i);
-		}
-
-		std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
-		drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
-		drawInfo->qef = qef.getData();
-
-		const int cellSize = 1; // lod?
-		const Vector3 min = cellMin;
-		const Vector3 max = cellMin + Vector3(cellSize, cellSize, cellSize);
-		if (drawInfo->position.x < min.x || drawInfo->position.x > max.x ||
-			drawInfo->position.y < min.y || drawInfo->position.y > max.y ||
-			drawInfo->position.z < min.z || drawInfo->position.z > max.z)
-		{
-			const auto& mp = qef.getMassPoint();
-			drawInfo->position = Vector3(mp.x, mp.y, mp.z);
-		}
-
-		//drawInfo->position = position;
-		drawInfo->averageNormal = (averageNormal / (float)idx).normalized();
-		drawInfo->corners = corners;
-		drawInfo->index = counts[0];
-
-		vertexIndices[voxelID] = counts[0];
-		vertexBuffer[counts[0]++] = MeshVertex(drawInfo->position, drawInfo->averageNormal);
-
-		std::shared_ptr<OctreeNode> node = make_shared<OctreeNode>();
-		node->min = cellMin;
-		node->size = cellSize;
-		node->type = Node_Leaf;
-		node->drawInfo = drawInfo;
-		leafs.push_back(node);
-	}
-
-	return leafs;
-}
-
-void GenerateTriangles(
-	const EdgeInfoMap& edges,
-	const VoxelIndexMap& vertexIndices,
-	IndexBuffer& indexBuffer,
-	int* counts)
-{
-	for (const auto& pair : edges)
-	{
-		const auto& edge = pair.first;
-		const auto& info = pair.second;
-
-		const Vector3 basePos = DecodeVoxelUniqueID(edge);
-		const int axis = (edge >> 30) & 0xff;
-
-		const int nodeID = edge & ~0xc0000000;
-		const uint32_t voxelIDs[4] =
-		{
-			nodeID - ENCODED_EDGE_NODE_OFFSETS[axis * 4 + 0],
-			nodeID - ENCODED_EDGE_NODE_OFFSETS[axis * 4 + 1],
-			nodeID - ENCODED_EDGE_NODE_OFFSETS[axis * 4 + 2],
-			nodeID - ENCODED_EDGE_NODE_OFFSETS[axis * 4 + 3],
-		};
-
-		// attempt to find the 4 voxels which share this edge
-		int edgeVoxels[4];
-		int numFoundVoxels = 0;
-		for (int i = 0; i < 4; i++)
-		{
-			const auto iter = vertexIndices.find(voxelIDs[i]);
-			if (iter != end(vertexIndices))
-			{
-				edgeVoxels[numFoundVoxels++] = iter->second;
-			}
-		}
-
-		// we can only generate a quad (or two triangles) if all 4 are found
-		if (numFoundVoxels < 4)
-		{
-			continue;
-		}
-
-		if (info.winding)
-		{
-			indexBuffer[counts[1]++] = edgeVoxels[0];
-			indexBuffer[counts[1]++] = edgeVoxels[1];
-			indexBuffer[counts[1]++] = edgeVoxels[3];
-
-			indexBuffer[counts[1]++] = edgeVoxels[0];
-			indexBuffer[counts[1]++] = edgeVoxels[3];
-			indexBuffer[counts[1]++] = edgeVoxels[2];
-		}
-		else
-		{
-			indexBuffer[counts[1]++] = edgeVoxels[0];
-			indexBuffer[counts[1]++] = edgeVoxels[3];
-			indexBuffer[counts[1]++] = edgeVoxels[1];
-
-			indexBuffer[counts[1]++] = edgeVoxels[0];
-			indexBuffer[counts[1]++] = edgeVoxels[2];
-			indexBuffer[counts[1]++] = edgeVoxels[3];
-		}
-	}
-}
-
-vector<std::shared_ptr<OctreeNode>> BuildMesh(const godot::Vector3& min, const int size, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts)
-{
-	VoxelIDSet activeVoxels;
-	EdgeInfoMap activeEdges;
-
-	FindActiveVoxels(activeVoxels, activeEdges, min, size);
-
-	VoxelIndexMap vertexIndices;
-	auto leafs = GenerateVertexData(activeVoxels, activeEdges, vertexIndices, vertexBuffer, min, counts);
-	GenerateTriangles(activeEdges, vertexIndices, indexBuffer, counts);
-
+	
 	return leafs;
 }
 
@@ -810,11 +611,13 @@ std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
 		return nullptr;
 	}
 
+
 	// otherwise the voxel contains the surface, so find the edge intersections
 	const int MAX_CROSSINGS = 6;
 	int edgeCount = 0;
 	Vector3 averageNormal(0, 0, 0);
 	svd::QefSolver qef;
+
 
 	for (int i = 0; i < 12 && edgeCount < MAX_CROSSINGS; i++)
 	{
@@ -898,6 +701,7 @@ std::shared_ptr<OctreeNode> ConstructOctreeNodes(std::shared_ptr<OctreeNode> nod
 		child->size = childSize;
 		child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
 		child->type = Node_Internal;
+		child->offset = node->offset;
 
 		node->children[i] = ConstructOctreeNodes(child);
 		hasChildren |= (node->children[i] != nullptr);
@@ -920,6 +724,7 @@ std::shared_ptr<OctreeNode> BuildOctree(const Vector3& min, const int size, cons
 	root->min = min;
 	root->size = size;
 	root->type = Node_Internal;
+	root->offset = min;
 
 	root = ConstructOctreeNodes(root);
 	root = SimplifyOctree(root, threshold);
@@ -1102,6 +907,7 @@ vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNod
 			parent->min = parentMin;
 			parent->size = parentSize;
 			parent->type = Node_Internal;
+			parent->offset = chunkMin;
 			parents.push_back(parent);
 			parent->children[index] = node;
 		}

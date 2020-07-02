@@ -45,6 +45,7 @@ namespace godot {
 		void buildMesh(std::shared_ptr<Chunk> chunk);
 		void addWaiting(size_t notifying, std::shared_ptr<Chunk> chunk);
 		void queueWaiting(size_t notifying);
+		void buildWaiting(size_t notifying);
 
 		std::shared_ptr<VoxelWorld> world;
 		std::unique_ptr<MeshBuilder> meshBuilder;
