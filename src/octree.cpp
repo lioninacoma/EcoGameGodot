@@ -452,15 +452,11 @@ void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer,
 	}
 }
 
-float Density_Func(Vector3 v) {
-	const float size = WORLD_SIZE * CHUNK_SIZE;
-	return Sphere(v, Vector3(size / 2, size / 2, size / 2), size / 2);
-}
-
 // ----------------------------------------------------------------------------
 
-Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1)
+Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1, std::shared_ptr<Chunk> chunk)
 {
+	Vector3 min = chunk->getOffset();
 	// approximate the zero crossing by finding the min value along the edge
 	float minValue = 100000.f;
 	float t = 0.f;
@@ -470,7 +466,7 @@ Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1)
 	while (currentT <= 1.f)
 	{
 		const Vector3 p = p0 + ((p1 - p0) * currentT);
-		const float density = abs(Density_Func(p));
+		const float density = abs(chunk->getDensity(p - min));
 		if (density < minValue)
 		{
 			minValue = density;
@@ -485,25 +481,14 @@ Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1)
 
 // ----------------------------------------------------------------------------
 
-Vector3 CalculateSurfaceNormal(const Vector3& p)
+vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<Chunk> chunk)
 {
-	const float H = 0.001f;
-	const float dx = Density_Func(p + Vector3(H, 0.f, 0.f)) - Density_Func(p - Vector3(H, 0.f, 0.f));
-	const float dy = Density_Func(p + Vector3(0.f, H, 0.f)) - Density_Func(p - Vector3(0.f, H, 0.f));
-	const float dz = Density_Func(p + Vector3(0.f, 0.f, H)) - Density_Func(p - Vector3(0.f, 0.f, H));
-
-	return Vector3(dx, dy, dz).normalized();
-}
-
-// ----------------------------------------------------------------------------
-
-vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(const godot::Vector3& min, const int size)
-{
+	Vector3 min = chunk->getOffset();
 	vector<std::shared_ptr<OctreeNode>> leafs;
 	
-	for (int x = 0; x < size; x++)
-		for (int y = 0; y < size; y++)
-			for (int z = 0; z < size; z++)
+	for (int x = 0; x < CHUNK_SIZE; x++)
+		for (int y = 0; y < CHUNK_SIZE; y++)
+			for (int z = 0; z < CHUNK_SIZE; z++)
 			{
 				const Vector3 idxPos(x, y, z);
 				const Vector3 pos = idxPos + min;
@@ -511,8 +496,8 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(const godot::Vector3& min, 
 				int corners = 0;
 				for (int i = 0; i < 8; i++)
 				{
-					const Vector3 cornerPos = pos + CHILD_MIN_OFFSETS[i];
-					const float density = Density_Func(Vector3(cornerPos));
+					const Vector3 cornerPos = idxPos + CHILD_MIN_OFFSETS[i];
+					const float density = chunk->getDensity(cornerPos);
 					const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
 					corners |= (material << i);
 				}
@@ -546,8 +531,8 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(const godot::Vector3& min, 
 
 					const Vector3 p1 = Vector3(pos + CHILD_MIN_OFFSETS[c1]);
 					const Vector3 p2 = Vector3(pos + CHILD_MIN_OFFSETS[c2]);
-					const Vector3 p = ApproximateZeroCrossingPosition(p1, p2);
-					const Vector3 n = CalculateSurfaceNormal(p);
+					const Vector3 p = ApproximateZeroCrossingPosition(p1, p2, chunk);
+					const Vector3 n = chunk->getNormal(p - min);
 					qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
 
 					averageNormal += n;
@@ -586,150 +571,6 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(const godot::Vector3& min, 
 			}
 	
 	return leafs;
-}
-
-// -------------------------------------------------------------------------------
-
-std::shared_ptr<OctreeNode> ConstructLeaf(std::shared_ptr<OctreeNode> leaf)
-{
-	if (!leaf || leaf->size != 1)
-	{
-		return nullptr;
-	}
-
-	int corners = 0;
-	for (int i = 0; i < 8; i++)
-	{
-		const Vector3 cornerPos = leaf->min + CHILD_MIN_OFFSETS[i];
-		const float density = Density_Func(Vector3(cornerPos));
-		const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
-		corners |= (material << i);
-	}
-
-	if (corners == 0 || corners == 255)
-	{
-		return nullptr;
-	}
-
-
-	// otherwise the voxel contains the surface, so find the edge intersections
-	const int MAX_CROSSINGS = 6;
-	int edgeCount = 0;
-	Vector3 averageNormal(0, 0, 0);
-	svd::QefSolver qef;
-
-
-	for (int i = 0; i < 12 && edgeCount < MAX_CROSSINGS; i++)
-	{
-		const int c1 = edgevmap[i][0];
-		const int c2 = edgevmap[i][1];
-
-		const int m1 = (corners >> c1) & 1;
-		const int m2 = (corners >> c2) & 1;
-
-		if ((m1 == MATERIAL_AIR && m2 == MATERIAL_AIR) ||
-			(m1 == MATERIAL_SOLID && m2 == MATERIAL_SOLID))
-		{
-			// no zero crossing on this edge
-			continue;
-		}
-
-		const Vector3 p1 = Vector3(leaf->min + CHILD_MIN_OFFSETS[c1]);
-		const Vector3 p2 = Vector3(leaf->min + CHILD_MIN_OFFSETS[c2]);
-		const Vector3 p = ApproximateZeroCrossingPosition(p1, p2);
-		const Vector3 n = CalculateSurfaceNormal(p);
-		qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
-
-		averageNormal += n;
-
-		edgeCount++;
-	}
-
-	svd::Vec3 qefPosition;
-	qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
-
-	std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
-	drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
-	drawInfo->qef = qef.getData();
-
-	const int cellSize = 1; // lod?
-	const Vector3 min = leaf->min;
-	const Vector3 max = leaf->min + Vector3(cellSize, cellSize, cellSize);
-	if (drawInfo->position.x < min.x || drawInfo->position.x > max.x ||
-		drawInfo->position.y < min.y || drawInfo->position.y > max.y ||
-		drawInfo->position.z < min.z || drawInfo->position.z > max.z)
-	{
-		const auto& mp = qef.getMassPoint();
-		drawInfo->position = Vector3(mp.x, mp.y, mp.z);
-	}
-
-	drawInfo->averageNormal = (averageNormal / (float)edgeCount).normalized();
-	drawInfo->corners = corners;
-
-	if (!drawInfo) {
-		// voxel is full inside or outside the volume
-		leaf.reset();
-		return nullptr;
-	}
-
-	leaf->type = Node_Leaf;
-	leaf->drawInfo = drawInfo;
-
-	return leaf;
-}
-
-// -------------------------------------------------------------------------------
-
-std::shared_ptr<OctreeNode> ConstructOctreeNodes(std::shared_ptr<OctreeNode> node)
-{
-	if (!node)
-	{
-		return nullptr;
-	}
-
-	if (node->size == 1)
-	{
-		return ConstructLeaf(node);
-	}
-
-	const int childSize = node->size / 2;
-	bool hasChildren = false;
-
-	for (int i = 0; i < 8; i++)
-	{
-		std::shared_ptr<OctreeNode> child = make_shared<OctreeNode>();
-		child->size = childSize;
-		child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
-		child->type = Node_Internal;
-		child->offset = node->offset;
-
-		node->children[i] = ConstructOctreeNodes(child);
-		hasChildren |= (node->children[i] != nullptr);
-	}
-
-	if (!hasChildren)
-	{
-		node.reset();
-		return nullptr;
-	}
-
-	return node;
-}
-
-// -------------------------------------------------------------------------------
-
-std::shared_ptr<OctreeNode> BuildOctree(const Vector3& min, const int size, const float threshold)
-{
-	std::shared_ptr<OctreeNode> root = make_shared<OctreeNode>();
-	root->min = min;
-	root->size = size;
-	root->type = Node_Internal;
-	root->offset = min;
-
-	root = ConstructOctreeNodes(root);
-	root = SimplifyOctree(root, threshold);
-
-	return root;
 }
 
 // ----------------------------------------------------------------------------

@@ -27,20 +27,20 @@ float MeshBuilder::fSample(std::shared_ptr<Chunk> chunk, int x, int y, int z) {
 
 		auto neighbour = world->getChunk(position);
 		if (neighbour) {
-			s = neighbour->getVoxel(
+			/*s = neighbour->getVoxel(
 				(x + CHUNK_SIZE) % CHUNK_SIZE,
 				(y + CHUNK_SIZE) % CHUNK_SIZE,
-				(z + CHUNK_SIZE) % CHUNK_SIZE);
+				(z + CHUNK_SIZE) % CHUNK_SIZE);*/
 		}
 		else {
-			s = chunk->isVoxel(x, y, z);
+			//s = chunk->isVoxel(x, y, z);
 		}
 	}
 	else {
-		s = chunk->getVoxel(
+		/*s = chunk->getVoxel(
 			x % CHUNK_SIZE,
 			y % CHUNK_SIZE,
-			z % CHUNK_SIZE);
+			z % CHUNK_SIZE);*/
 	}
 
 	return s;

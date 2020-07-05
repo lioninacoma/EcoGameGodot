@@ -73,7 +73,6 @@ namespace godot {
 		std::shared_ptr<Chunk> getChunk(Vector3 position);
 		std::shared_ptr<GraphNode> getNode(Vector3 position);
 		std::shared_ptr<GraphNode> findClosestNode(Vector3 position);
-		int getVoxel(Vector3 position);
 		int getSize();
 
 		void buildChunks(Vector3 cameraPosition, float radius);

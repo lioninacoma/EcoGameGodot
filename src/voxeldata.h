@@ -13,43 +13,53 @@
 using namespace std;
 
 namespace godot {
+	struct VoxelPlane {
+		VoxelPlane() : VoxelPlane(100000.f, godot::Vector3()) {}
+		VoxelPlane(const float _dist, const godot::Vector3& _normal) : dist(_dist), normal(_normal) {}
+		float dist;
+		godot::Vector3 normal;
+	};
+
 	class VoxelData {
 	private:
-		float* volume;
-		std::atomic<int> width, height, depth;
+		VoxelPlane* volume;
+		int width, height, depth;
 		boost::mutex VOLUME_MUTEX;
 	public:
 		VoxelData(int width, int height, int depth) {
 			VoxelData::width = width;
 			VoxelData::height = height;
 			VoxelData::depth = depth;
-			VoxelData::volume = new float[width * height * depth];
-			memset(volume, 0, width * height * depth * sizeof(*volume));
+			VoxelData::volume = new VoxelPlane[width * height * depth];
+			//memset(volume, 0, width * height * depth * sizeof(*volume));
+			for (int i = 0; i < width * height * depth; i++)
+				volume[i] = VoxelPlane();
 		};
 		~VoxelData() {
 			delete[] volume;
 		};
-		float get(int x, int y, int z) {
-			if (x < 0 || x >= width) return 0;
-			if (y < 0 || y >= height) return 0;
-			if (z < 0 || z >= depth) return 0;
+		VoxelPlane get(int x, int y, int z) {
+			if (x < 0 || x >= width) return VoxelPlane();
+			if (y < 0 || y >= height) return VoxelPlane();
+			if (z < 0 || z >= depth) return VoxelPlane();
 
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
 			return volume[fn::fi3(x, y, z, width, height)];
 		};
-		float get(int i) {
+		VoxelPlane get(int i) {
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
 			int len = width * height * depth;
-			if (i < 0 || i >= len) return 0;
+			if (i < 0 || i >= len) return VoxelPlane();
 			return volume[i];
 		};
-		void set(int x, int y, int z, float v) {
+		void set(int x, int y, int z, VoxelPlane data) {
 			if (x < 0 || x >= width) return;
 			if (y < 0 || y >= height) return;
 			if (z < 0 || z >= depth) return;
 
 			boost::unique_lock<boost::mutex> lock(VOLUME_MUTEX);
-			volume[fn::fi3(x, y, z, width, height)] += v;
+			int i = fn::fi3(x, y, z, width, height);
+			volume[i] = data;
 		};
 		int getWidth() {
 			return width;

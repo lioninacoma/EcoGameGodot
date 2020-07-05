@@ -25,7 +25,7 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk) {
 		Vector3(0,1,0), Vector3(1,1,0), Vector3(0,1,1), Vector3(1,1,1)
 	};
 	
-	auto leafs = FindActiveVoxels(chunkMin, CHUNK_SIZE);
+	auto leafs = FindActiveVoxels(chunk);
 
 	if (leafs.empty()) {
 		chunk->empty = true;
@@ -34,7 +34,15 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk) {
 	
 	leafs = BuildOctree(leafs, chunkMin, 1);
 	auto root = leafs.front();
-	//root = SimplifyOctree(root, -1.f);
+
+	Vector3 chunkOffset = chunkMin;
+	chunkOffset = fn::toChunkCoords(chunkOffset);
+	if (fn::fi3(chunkOffset.x, chunkOffset.y, chunkOffset.z, WORLD_SIZE, WORLD_SIZE) % 2 == 0) {
+		Godot::print(String("simplify chunk at {0}").format(Array::make(chunkMin)));
+		root = SimplifyOctree(root, 50.f);
+	}
+
+	//chunk->deleteRoot();
 	chunk->setRoot(root);
 
 	for (int i = 0; i < 7; i++) {
@@ -110,9 +118,9 @@ void ChunkBuilder::buildMesh(std::shared_ptr<Chunk> chunk) {
 		normalArrayWrite[indices[n + 1]] = vertices[indices[n + 1]].normal;
 		normalArrayWrite[indices[n + 2]] = vertices[indices[n + 2]].normal;
 
-		collisionArrayWrite[n] = vertexArray[indices[n]];
-		collisionArrayWrite[n + 1] = vertexArray[indices[n + 1]];
-		collisionArrayWrite[n + 2] = vertexArray[indices[n + 2]];
+		collisionArrayWrite[n] = vertexArrayWrite[indices[n]];
+		collisionArrayWrite[n + 1] = vertexArrayWrite[indices[n + 1]];
+		collisionArrayWrite[n + 2] = vertexArrayWrite[indices[n + 2]];
 	}
 
 	meshArrays[Mesh::ARRAY_VERTEX] = vertexArray;

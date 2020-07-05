@@ -10,16 +10,14 @@ using namespace godot;
 
 void Chunk::_register_methods() {
 	register_method("getOffset", &Chunk::getOffset);
-	register_method("getVoxel", &Chunk::getVoxel);
 	register_method("getMeshInstanceId", &Chunk::getMeshInstanceId);
 	register_method("setOffset", &Chunk::setOffset);
-	register_method("setVoxel", &Chunk::setVoxel);
 	register_method("setMeshInstanceId", &Chunk::setMeshInstanceId);
 }
 
 Chunk::Chunk(Vector3 offset) {
 	Chunk::offset = offset;
-	Chunk::volume = std::make_unique<VoxelData>(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
+	Chunk::volume = std::make_unique<VoxelData>(CHUNK_VOLUME_SIZE, CHUNK_VOLUME_SIZE, CHUNK_VOLUME_SIZE);
 }
 
 Chunk::~Chunk() {
@@ -49,10 +47,6 @@ int Chunk::getMeshInstanceId() {
 	return meshInstanceId;
 }
 
-float Chunk::getLOD() {
-	return lod;
-}
-
 bool Chunk::isNavigatable() {
 	return navigatable;
 }
@@ -66,46 +60,12 @@ int Chunk::getAmountNodes() {
 	return nodes.size();
 }
 
-float Chunk::getVoxel(int x, int y, int z) {
+VoxelPlane Chunk::getVoxelPlane(Vector3 v) {
+	return getVoxelPlane(v.x, v.y, v.z);
+}
+
+VoxelPlane Chunk::getVoxelPlane(int x, int y, int z) {
 	return volume->get(x, y, z);
-}
-
-Voxel* Chunk::intersection(int x, int y, int z) {
-	int chunkX = (int) offset.x;
-	int chunkY = (int) offset.y;
-	int chunkZ = (int) offset.z;
-	if (x >= chunkX && x < chunkX + CHUNK_SIZE
-		&& y >= chunkY && y < chunkY + CHUNK_SIZE
-		&& z >= chunkZ && z < chunkZ + CHUNK_SIZE) {
-		int v = getVoxel(
-			(int) x % CHUNK_SIZE,
-			(int) y % CHUNK_SIZE,
-			(int) z % CHUNK_SIZE);
-
-		if (v) {
-			auto voxel = Voxel::_new();
-			voxel->setPosition(Vector3(x, y, z));
-			voxel->setChunkOffset(offset);
-			voxel->setType(v);
-			return voxel;
-		}
-	}
-
-	return NULL;
-}
-
-Voxel* Chunk::getVoxelRay(Vector3 from, Vector3 to) {
-	vector<Voxel*> list;
-	Voxel* voxel = NULL;
-
-	boost::function<Voxel*(int, int, int)> intersection(boost::bind(&Chunk::intersection, this, _1, _2, _3));
-	list = Intersection::get<Voxel*>(from, to, true, intersection, list);
-	
-	if (!list.empty()) {
-		voxel = list.front();
-	}
-
-	return voxel;
 }
 
 void Chunk::forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func) {
@@ -133,32 +93,46 @@ void Chunk::setMeshInstanceId(int meshInstanceId) {
 	Chunk::meshInstanceId = meshInstanceId;
 }
 
-void Chunk::setLOD(float lod) {
-	Chunk::lod = lod;
-}
-
 void Chunk::setIsVoxelFn(Ref<FuncRef> fnRef) {
 	Chunk::isVoxelFn = fnRef;
 }
 
-void Chunk::setVoxel(int x, int y, int z, float v) {
-	volume->set(x, y, z, v);
+void Chunk::setVoxelPlane(int x, int y, int z, VoxelPlane voxelData) {
+	volume->set(x, y, z, voxelData);
 }
 
-float Chunk::isVoxel(Vector3 v) {
-	float sizeh = world->getSize() * CHUNK_SIZE / 2.f;
-	float noise = /*fastNoise.GetNoise(v.x, v.y, v.z) * 0.4 + 0.6*/1;
-	float cube = Cuboid(v, Vector3(sizeh, sizeh, sizeh), Vector3(sizeh * 0.75, sizeh * 0.75, sizeh * 0.75));
-	float sphere = Sphere(v, Vector3(sizeh, sizeh, sizeh), noise * sizeh);
-	//return min(sphere, cube);
-	return max(-sphere, cube);
-	//float noise2D = fastNoise.GetNoise(v.x, v.z) * 0.5 + 0.5;
-	//return v.y - 8.f * noise2D;
-	//return -1.f;
+float Chunk::getDensity(Vector3 v) {
+	VoxelPlane plane = getVoxelPlane(v);
+	return plane.dist;
 }
 
-float Chunk::isVoxel(int x, int y, int z) {
-	return isVoxel(Vector3(x, y, z));
+Vector3 Chunk::getNormal(Vector3 v) {
+	VoxelPlane plane = getVoxelPlane(v);
+	return plane.normal;
+}
+
+float Chunk::sampleDensity(Vector3 v) {
+	float sizeh = WORLD_SIZE * CHUNK_SIZE / 2.f; 
+	float n = fastNoise.GetNoise(v.x, v.y, v.z) * 0.4 + 0.6;
+	//float n = noise->get_noise_3dv(v) * 0.4 + 0.6;
+	float sphere = Sphere(v, Vector3(sizeh, sizeh, sizeh), n * sizeh);
+	return sphere;
+}
+
+Vector3 Chunk::sampleNormal(Vector3 v) {
+	float H = 0.001f;
+	const float dx = sampleDensity(v + Vector3(H, 0.f, 0.f)) - sampleDensity(v - Vector3(H, 0.f, 0.f));
+	const float dy = sampleDensity(v + Vector3(0.f, H, 0.f)) - sampleDensity(v - Vector3(0.f, H, 0.f));
+	const float dz = sampleDensity(v + Vector3(0.f, 0.f, H)) - sampleDensity(v - Vector3(0.f, 0.f, H));
+	return Vector3(dx, dy, dz).normalized();
+}
+
+VoxelPlane Chunk::sampleVoxelPlane(Vector3 v) {
+	return VoxelPlane(sampleDensity(v), sampleNormal(v));
+}
+
+VoxelPlane Chunk::sampleVoxelPlane(int x, int y, int z) {
+	return sampleVoxelPlane(Vector3(x, y, z));
 }
 
 std::shared_ptr<GraphNode> Chunk::fetchNode(Vector3 position) {
@@ -182,10 +156,11 @@ std::shared_ptr<GraphNode> Chunk::getNode(size_t hash) {
 void Chunk::buildVolume() {
 	int x, y, z;
 
-	for (z = 0; z < CHUNK_SIZE; z++)
-		for (y = 0; y < CHUNK_SIZE; y++)
-			for (x = 0; x < CHUNK_SIZE; x++)
-				setVoxel(x, y, z, isVoxel(offset + Vector3(x, y, z)));
+	for (z = 0; z < CHUNK_VOLUME_SIZE; z++)
+		for (y = 0; y < CHUNK_VOLUME_SIZE; y++)
+			for (x = 0; x < CHUNK_VOLUME_SIZE; x++) {
+				setVoxelPlane(x, y, z, sampleVoxelPlane(offset + Vector3(x, y, z)));
+			}
 
 	volumeBuilt = true;
 }

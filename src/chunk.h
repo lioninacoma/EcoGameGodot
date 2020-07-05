@@ -45,7 +45,6 @@ namespace godot {
 
 		std::atomic<int> amountNodes = 0;
 		std::atomic<int> meshInstanceId = 0;
-		std::atomic<float> lod = -1.f;
 		std::atomic<bool> navigatable = false;
 		std::atomic<bool> building = false;
 		std::atomic<bool> volumeBuilt = false;
@@ -64,8 +63,6 @@ namespace godot {
 		std::shared_mutex CHUNK_NODES_MUTEX;
 		std::shared_mutex VERTICES_MUTEX;
 		std::shared_mutex FACES_MUTEX;
-
-		Voxel* intersection(int x, int y, int z);
 	public:
 		std::atomic<bool> empty = false;
 		static void _register_methods();
@@ -82,11 +79,14 @@ namespace godot {
 		bool isBuilding();
 		int getMeshInstanceId();
 		int getAmountNodes();
-		float getLOD();
-		float isVoxel(int x, int y, int z);
-		float isVoxel(Vector3 v);
-		float getVoxel(int x, int y, int z);
-		Voxel* getVoxelRay(Vector3 from, Vector3 to);
+		float getDensity(Vector3 v);
+		float sampleDensity(Vector3 v);
+		Vector3 getNormal(Vector3 v);
+		Vector3 sampleNormal(Vector3 v);
+		VoxelPlane sampleVoxelPlane(int x, int y, int z);
+		VoxelPlane sampleVoxelPlane(Vector3 v);
+		VoxelPlane getVoxelPlane(int x, int y, int z);
+		VoxelPlane getVoxelPlane(Vector3 v);
 		std::shared_ptr<GraphNode> getNode(size_t hash);
 		std::shared_ptr<GraphNode> fetchNode(Vector3 position);
 		void forEachNode(std::function<void(std::pair<size_t, std::shared_ptr<GraphNode>>)> func);
@@ -97,9 +97,8 @@ namespace godot {
 		void setNavigatable(bool navigatable);
 		void setBuilding(bool building);
 		void setMeshInstanceId(int meshInstanceId);
-		void setLOD(float lod);
 		void setIsVoxelFn(Ref<FuncRef> fnRef);
-		void setVoxel(int x, int y, int z, float v);
+		void setVoxelPlane(int x, int y, int z, VoxelPlane voxelPlane);
 		void buildVolume();
 		void addNode(std::shared_ptr<GraphNode> node);
 		void removeNode(std::shared_ptr<GraphNode> node);

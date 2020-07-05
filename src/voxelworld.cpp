@@ -13,7 +13,6 @@ void VoxelWorld::_register_methods() {
 	register_method("setSize", &VoxelWorld::setSize);
 	register_method("getSize", &VoxelWorld::getSize);
 	register_method("setVoxel", &VoxelWorld::setVoxel);
-	register_method("getVoxel", &VoxelWorld::getVoxel);
 	register_method("buildChunks", &VoxelWorld::buildChunks);
 	register_method("buildQuadTrees", &VoxelWorld::buildQuadTrees);
 	register_method("navigate", &VoxelWorld::navigate);
@@ -124,55 +123,62 @@ void VoxelWorld::setIsWalkableFn(Variant fnRef) {
 
 void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 	try {
-		int x, y, z;
-		float s, m = (set) ? -1 : 1;
-		Vector3 currentPosition, neighbourPosition;
+		int x, y, z, nx, ny, nz;
+		float d, m = (!set) ? 1 : -1;
+		const Vector3 OFFSETS[7] =
+		{
+							Vector3(1,0,0), Vector3(0,0,1), Vector3(1,0,1),
+			Vector3(0,1,0), Vector3(1,1,0), Vector3(0,1,1), Vector3(1,1,1)
+		};
+		Vector3 p, pl, n, v, chunkMin;
 		std::shared_ptr<Chunk> chunk, neighbour;
 		unordered_map<size_t, std::shared_ptr<Chunk>> updatingChunks;
-		position += Vector3(0.5, 0.5, 0.5);
 
 		for (z = -radius + position.z; z < radius + position.z; z++)
 			for (y = -radius + position.y; y < radius + position.y; y++)
 				for (x = -radius + position.x; x < radius + position.x; x++) {
-					currentPosition = Vector3(x, y, z);
-					if (currentPosition.distance_to(position) > radius) continue;
-
-					chunk = getChunk(currentPosition);
+					p = Vector3(x, y, z);
+					v = p - position;
+					if (v.length() > radius) continue;
+					
+					chunk = getChunk(p);
 					if (!chunk) continue;
 
-					const Vector3 baseChunkMin = chunk->getOffset();
-					updatingChunks.emplace(fn::hash(baseChunkMin), chunk);
+					chunkMin = chunk->getOffset();
+					pl = p - chunkMin;
+					//s = chunk->getVoxel(x - chunkMin.x, y - chunkMin.y, z - chunkMin.z).dist;
 
-					for (int dz = -1; dz < 1; dz++)
-						for (int dy = -1; dy < 1; dy++)
-							for (int dx = -1; dx < 1; dx++) {
+					/*for (int i = 0; i < 7; i++) {
+						const Vector3 offsetMin = OFFSETS[i] * CHUNK_SIZE;
+						const Vector3 neighbourChunkMin = chunkMin + offsetMin;
+						auto neighbour = getChunk(neighbourChunkMin);
+						if (!neighbour) continue;
+						updatingChunks.emplace(fn::hash(neighbourChunkMin), neighbour);
+					}*/
+
+					/*for (int dz = -1; dz <= 1; dz++)
+						for (int dy = -1; dy <= 1; dy++)
+							for (int dx = -1; dx <= 1; dx++) {
 								if (!dx && !dy && !dz) continue;
-								const Vector3 offset = Vector3(dx, dy, dz) + currentPosition;
+								Vector3 offset = Vector3(dx, dy, dz) + p;
 								if (int(offset.x) % CHUNK_SIZE == 0 || int(offset.y) % CHUNK_SIZE == 0 || int(offset.z) % CHUNK_SIZE == 0) {
 									neighbour = getChunk(offset);
-									if (neighbour && neighbour != chunk)
+									if (neighbour && neighbour != chunk) {
 										updatingChunks.emplace(fn::hash(neighbour->getOffset()), neighbour);
+									}
 								}
-							}
+							}*/
+					
+					d = m * v.length();
+					n = -m * v.normalized();
 
-					s = 1.0 - (currentPosition.distance_to(position) / radius);
-					s /= 20.0;
-					chunk->setVoxel(
-						x % CHUNK_SIZE,
-						y % CHUNK_SIZE,
-						z % CHUNK_SIZE, s * m);
+					chunk->setVoxelPlane(pl.x, pl.y, pl.z, VoxelPlane(d, n));
+					updatingChunks.emplace(fn::hash(chunkMin), chunk);
 				}
 
-		// First build octree then update mesh. Otherwise there would be cracks.
-		//for (auto chunk : updatingChunks) {
-		//	const Vector3 baseChunkMin = chunk.second->getOffset();
-		//	try {
-		//		chunk.second->deleteRoot();
-		//		auto root = BuildOctree(baseChunkMin, CHUNK_SIZE, OCTREE_LOD);
-		//		chunk.second->setRoot(root);
-		//	}
-		//	catch (const std::exception & e) {}
-		//}
+		/*for (auto chunk : updatingChunks) {
+			chunk.second->setRoot(NULL);
+		}*/
 
 		for (auto chunk : updatingChunks) {
 			chunkBuilder->build(chunk.second);
@@ -181,22 +187,6 @@ void VoxelWorld::setVoxel(Vector3 position, float radius, bool set) {
 	catch (const std::exception & e) {
 		std::cerr << boost::diagnostic_information(e);
 	}
-}
-
-int VoxelWorld::getVoxel(Vector3 position) {
-	int x, y, z;
-	auto chunk = getChunk(position);
-
-	if (!chunk) return 0;
-
-	x = position.x;
-	y = position.y;
-	z = position.z;
-
-	return chunk->getVoxel(
-		x % CHUNK_SIZE,
-		y % CHUNK_SIZE,
-		z % CHUNK_SIZE);
 }
 
 std::shared_ptr<GraphNode> VoxelWorld::findClosestNode(Vector3 position) {
@@ -252,12 +242,12 @@ void VoxelWorld::buildChunksTask() {
 				chunk->setOffset(baseChunkMin);
 				chunk->setWorld(self);
 				setChunk(x, y, z, chunk);
-				//threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
+				threadpool->submitTask(boost::bind(&VoxelWorld::prepareChunkTask, this, chunk, OCTREE_LOD));
 			}
 		}
 	}
 
-	//threadpool->waitUntilFinished();
+	threadpool->waitUntilFinished();
 	stop = bpt::microsec_clock::local_time();
 	dur = stop - start;
 	ms = dur.total_milliseconds();
@@ -292,10 +282,10 @@ void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
 	unordered_set<size_t> buildingChunks;
 
 	//auto threadpool = new ThreadPool(8);
-	//cout << "preparing chunks ..." << endl;
-	//bpt::ptime start, stop;
-	//bpt::time_duration dur;
-	//long ms = 0;
+	cout << "preparing chunks ..." << endl;
+	bpt::ptime start, stop;
+	bpt::time_duration dur;
+	long ms = 0;
 
 	for (z = std::max(int(min.z), 0); z < std::min(int(max.z), int(size)); z++)
 		for (y = std::max(int(min.y), 0); y < std::min(int(max.y), int(size)); y++)
@@ -345,10 +335,10 @@ void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
 			}
 
 	//threadpool->waitUntilFinished();
-	//stop = bpt::microsec_clock::local_time();
-	//dur = stop - start;
-	//ms = dur.total_milliseconds();
-	//Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
+	stop = bpt::microsec_clock::local_time();
+	dur = stop - start;
+	ms = dur.total_milliseconds();
+	Godot::print(String("chunks prepared in {0} ms").format(Array::make(ms)));
 
 	for (auto chunk : buildList) {
 		//Godot::print(String("chunk at {0} building ...").format(Array::make(chunk->getOffset())));
@@ -360,9 +350,9 @@ void VoxelWorld::buildChunksTaskSphere(Vector3 cameraPosition, float radius) {
 
 void VoxelWorld::prepareChunkTask(std::shared_ptr<Chunk> chunk, float lod) {
 	try {
-		const Vector3 chunkMin = chunk->getOffset();
+		//const Vector3 chunkMin = chunk->getOffset();
 
-		//chunk->buildVolume();
+		chunk->buildVolume();
 		//auto root = BuildOctree(chunkMin, CHUNK_SIZE, lod);
 		//chunk->setRoot(root);
 
