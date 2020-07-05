@@ -165,44 +165,28 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\chunk.cpp" />
-    <ClCompile Include="src\chunkbuilder.cpp" />
     <ClCompile Include="src\density.cpp" />
     <ClCompile Include="src\fastnoise.cpp" />
-    <ClCompile Include="src\graphnode.cpp" />
     <ClCompile Include="src\ecogame.cpp" />
     <ClCompile Include="src\gdlibrary.cpp" />
-    <ClCompile Include="src\meshbuilder.cpp" />
-    <ClCompile Include="src\navigator.cpp" />
     <ClCompile Include="src\octree.cpp" />
     <ClCompile Include="src\qef.cpp" />
-    <ClCompile Include="src\quadtree.cpp" />
-    <ClCompile Include="src\quadtreebuilder.cpp" />
     <ClCompile Include="src\svd.cpp" />
     <ClCompile Include="src\voxelworld.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\chunkbuilder.h" />
     <ClInclude Include="src\density.h" />
     <ClInclude Include="src\fastnoise.h" />
-    <ClInclude Include="src\graphedge.h" />
-    <ClInclude Include="src\graphnode.h" />
-    <ClInclude Include="src\meshbuilder.h" />
-    <ClInclude Include="src\navigator.h" />
     <ClInclude Include="src\fn.h" />
     <ClInclude Include="src\intersection.h" />
     <ClInclude Include="src\octree.h" />
     <ClInclude Include="src\qef.h" />
-    <ClInclude Include="src\quadtree.h" />
-    <ClInclude Include="src\quadtreebuilder.h" />
     <ClInclude Include="src\semaphore.h" />
     <ClInclude Include="src\objectpool.h" />
-    <ClInclude Include="src\chunk.h" />
     <ClInclude Include="src\constants.h" />
     <ClInclude Include="src\ecogame.h" />
     <ClInclude Include="src\svd.h" />
     <ClInclude Include="src\threadpool.h" />
-    <ClInclude Include="src\voxel.h" />
     <ClInclude Include="src\voxeldata.h" />
     <ClInclude Include="src\voxelworld.h" />
   </ItemGroup>

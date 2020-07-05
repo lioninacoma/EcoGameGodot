@@ -1,7 +1,5 @@
 #include "ecogame.h"
-#include "navigator.h"
 #include "threadpool.h"
-#include "graphnode.h"
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/exception_ptr.hpp>

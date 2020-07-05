@@ -21,28 +21,7 @@
     <ClCompile Include="src\gdlibrary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\chunk.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\navigator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\graphnode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\meshbuilder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\chunkbuilder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\voxelworld.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\quadtree.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\quadtreebuilder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\octree.cpp">
@@ -51,21 +30,18 @@
     <ClCompile Include="src\qef.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\svd.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\density.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\fastnoise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\svd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ecogame.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\chunk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\constants.h">
@@ -80,40 +56,16 @@
     <ClInclude Include="src\intersection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\voxel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\fn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\threadpool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\navigator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\voxeldata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\graphnode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\graphedge.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\meshbuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\chunkbuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\voxelworld.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\quadtree.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\quadtreebuilder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\octree.h">
@@ -122,13 +74,13 @@
     <ClInclude Include="src\qef.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\svd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\density.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\fastnoise.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\svd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

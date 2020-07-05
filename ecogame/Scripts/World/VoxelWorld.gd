@@ -11,23 +11,8 @@ func _init(position : Vector3, chunk_size : float, material : SpatialMaterial, n
 	self.material = material
 	
 	voxel_body = VoxelWorldNative.new()
-#	voxel_body.setSize(chunk_size)
-	voxel_body.setIsVoxelFn(funcref(self, "is_voxel"))
-	voxel_body.setIsWalkableFn(funcref(self, "is_walkable"))
 	voxel_body.set_name(name)
 	add_child(voxel_body, true)
-	
-#	voxel_body.global_translate(-0.5 * WorldVariables.CHUNK_SIZE * chunk_dims)
-#	global_translate(position)
-
-#func _ready():
-#	voxel_body.buildChunks()
-
-func is_voxel(ix : int, iy : int, iz : int, offset : Vector3) -> float:
-	return 1.0
-
-func is_walkable(from : Vector3, to : Vector3, normal : Vector3):
-	return false
 
 func delete_chunk(chunk, world) -> void:
 	var old_mesh_instance_id = chunk.getMeshInstanceId()

@@ -31,7 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <boost/function.hpp>
 
 #include "qef.h"
-#include "chunk.h"
 #include "voxelworld.h"
 
 using namespace std;
@@ -154,14 +153,13 @@ public:
 
 // ----------------------------------------------------------------------------
 
-std::shared_ptr<OctreeNode> BuildOctree(const godot::Vector3& min, const int size, const float threshold);
 std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, float threshold);
 void DestroyOctree(std::shared_ptr<OctreeNode> node);
 void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts);
 vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
 void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes);
 vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
-vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<godot::Chunk> chunk);
+//vector<std::shared_ptr<OctreeNode>> FindActiveVoxels();
 
 // ----------------------------------------------------------------------------
 
