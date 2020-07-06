@@ -27,6 +27,7 @@ func _init(position, size, name).(position, size, WorldVariables.stoneMaterial, 
 func _ready():
 	BehaviourGlobals.global_context.set("waypoint", center_of_gravity)
 	player = eco_game.get_node("Player")
+	voxel_body.build()
 #	voxel_body.buildChunks(to_local(player.global_transform.origin), 64.0)
 
 func get_center_of_gravity():

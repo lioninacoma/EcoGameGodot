@@ -1,8 +1,9 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define WORLD_SIZE 1
-#define CHUNK_SIZE 256    // Voxels
+#define WORLD_SIZE 4
+#define CHUNK_SIZE 32    // Voxels
+#define MAX_LOD 3
 #define CHUNK_VOLUME_SIZE (CHUNK_SIZE + 1)
 #define OCTREE_LOD -1.f  // -1.f max detail, 50.f min detail
 

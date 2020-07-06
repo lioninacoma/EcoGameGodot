@@ -22,13 +22,10 @@ func delete_chunk(chunk, world) -> void:
 			world.remove_child(old_mesh_instance)
 			old_mesh_instance.free()
 
-func build_chunk(mesh_data : Array, chunk, world) -> void:
-	if !mesh_data || !chunk: return
+func build_chunk(mesh_data : Array, world) -> void:
+	if !mesh_data: return
 	var mesh_instance = build_mesh_instance(mesh_data, world)
-	
-	self.delete_chunk(chunk, world)
 	world.add_child(mesh_instance)
-	chunk.setMeshInstanceId(mesh_instance.get_instance_id())
 
 func build_mesh_instance(mesh_data : Array, owner) -> MeshInstance:
 	if !mesh_data: return null

@@ -30,15 +30,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <functional>
 #include <boost/function.hpp>
 
+#include "constants.h"
 #include "qef.h"
-#include "voxelworld.h"
+#include "voxeldata.h"
 
 using namespace std;
 
 // ----------------------------------------------------------------------------
 
-const godot::Vector3 CHILD_MIN_OFFSETS[] =
-{
+const godot::Vector3 CHILD_MIN_OFFSETS[] = {
 	// needs to match the vertMap from Dual Contouring impl
 	godot::Vector3(0, 0, 0),
 	godot::Vector3(0, 0, 1),
@@ -52,8 +52,7 @@ const godot::Vector3 CHILD_MIN_OFFSETS[] =
 
 // ----------------------------------------------------------------------------
 
-struct MeshVertex
-{
+struct MeshVertex {
 	MeshVertex() : MeshVertex(godot::Vector3(), godot::Vector3()) {}
 	MeshVertex(const godot::Vector3& _xyz, const godot::Vector3& _normal) : xyz(_xyz), normal(_normal) {}
 	godot::Vector3 xyz, normal;
@@ -65,24 +64,32 @@ typedef std::function<bool(const godot::Vector3&, const godot::Vector3&)> Filter
 
 // ----------------------------------------------------------------------------
 
-enum OctreeNodeType
-{
+enum OctreeNodeType {
 	Node_None,
 	Node_Internal,
-	Node_Psuedo,
-	Node_Leaf,
+	Node_Pseudo,
+	Node_Leaf
 };
 
 // ----------------------------------------------------------------------------
 
-struct OctreeDrawInfo
-{
-	OctreeDrawInfo()
-		: index(-1)
-		, corners(0)
-	{
-	}
+struct OctreeChunkInfo {
+	OctreeChunkInfo() : OctreeChunkInfo(CHUNK_SIZE) {}
+	OctreeChunkInfo(int chunkSize) : chunkSize(chunkSize), volume(make_unique<godot::VoxelData>(chunkSize, chunkSize, chunkSize)) {}
+	int chunkSize;
+	unique_ptr<godot::VoxelData> volume;
 
+	std::shared_ptr<OctreeChunkInfo> cpy() {
+		auto c = make_shared<OctreeChunkInfo>(chunkSize);
+		c->chunkSize = chunkSize;
+		return c;
+	}
+};
+
+// ----------------------------------------------------------------------------
+
+struct OctreeDrawInfo {
+	OctreeDrawInfo(): index(-1), corners(0) {}
 	int				index;
 	int				corners;
 	godot::Vector3	position;
@@ -90,7 +97,7 @@ struct OctreeDrawInfo
 	svd::QefData	qef;
 
 	std::shared_ptr<OctreeDrawInfo> cpy() {
-		std::shared_ptr<OctreeDrawInfo> c = make_shared<OctreeDrawInfo>();
+		auto c = make_shared<OctreeDrawInfo>();
 		c->index = index;
 		c->corners = corners;
 		c->position = position;
@@ -102,30 +109,14 @@ struct OctreeDrawInfo
 
 // ----------------------------------------------------------------------------
 
-class OctreeNode
-{
+class OctreeNode {
 public:
-
-	OctreeNode()
-		: type(Node_None)
-		, min(0, 0, 0)
-		, size(0)
-		, drawInfo(nullptr)
+	OctreeNode(): OctreeNode(Node_None) {}
+	OctreeNode(const OctreeNodeType _type): type(_type), min(0, 0, 0), size(0), drawInfo(nullptr), lod(-1)
+		//, chunkInfo(nullptr) 
 	{
-		for (int i = 0; i < 8; i++)
-		{
-			children[i] = nullptr;
-		}
-	}
-
-	OctreeNode(const OctreeNodeType _type)
-		: type(_type)
-		, min(0, 0, 0)
-		, size(0)
-		, drawInfo(nullptr)
-	{
-		for (int i = 0; i < 8; i++)
-		{
+		
+		for (int i = 0; i < 8; i++) {
 			children[i] = nullptr;
 		}
 	}
@@ -135,23 +126,29 @@ public:
 	}
 
 	std::shared_ptr<OctreeNode> cpy() {
-		std::shared_ptr<OctreeNode> c = make_shared<OctreeNode>();
+		auto c = make_shared<OctreeNode>();
 		c->type = type;
 		c->min = min;
 		c->size = size;
 		c->drawInfo = (drawInfo) ? drawInfo->cpy() : nullptr;
+		//c->chunkInfo = (chunkInfo) ? chunkInfo->cpy() : nullptr;
 		return c;
 	}
 
-	int								size;
-	OctreeNodeType					type;
-	godot::Vector3					min;
-	godot::Vector3					offset;
-	std::shared_ptr<OctreeNode>		children[8];
-	std::shared_ptr<OctreeDrawInfo> drawInfo;
+	int									size;
+	int									lod;
+	OctreeNodeType						type;
+	godot::Vector3						min;
+	std::shared_ptr<OctreeNode>			children[8];
+	std::shared_ptr<OctreeDrawInfo>		drawInfo;
+	//std::shared_ptr<OctreeChunkInfo>	chunkInfo;
 };
 
 // ----------------------------------------------------------------------------
+
+namespace godot {
+	class VoxelWorld;
+}
 
 std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, float threshold);
 void DestroyOctree(std::shared_ptr<OctreeNode> node);
@@ -159,7 +156,11 @@ void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vert
 vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
 void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes);
 vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
-//vector<std::shared_ptr<OctreeNode>> FindActiveVoxels();
+std::shared_ptr<OctreeNode> BuildOctree(const godot::Vector3 min, const int size, int chunkSize);
+void FindLOD(std::shared_ptr<OctreeNode> node, int lod, vector<std::shared_ptr<OctreeNode>>& nodes);
+vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode> reference);
+void ExpandNodes(int targetLod, int currentLod, vector<std::shared_ptr<OctreeNode>>& nodes);
+void GetNodes(std::shared_ptr<OctreeNode> node, vector<std::shared_ptr<OctreeNode>>& nodes);
 
 // ----------------------------------------------------------------------------
 

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "octree.h"
 #include "density.h"
+#include "voxelworld.h"
 
 using namespace godot;
 
@@ -173,7 +174,7 @@ std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, flo
 		if (node->children[i])
 		{
 			std::shared_ptr<OctreeNode> child = node->children[i];
-			if (child->type == Node_Psuedo ||
+			if (child->type == Node_Pseudo ||
 				child->type == Node_Leaf)
 			{
 				drawInfo->averageNormal += child->drawInfo->averageNormal;
@@ -191,7 +192,7 @@ std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, flo
 		node->children[i] = nullptr;
 	}
 
-	node->type = Node_Psuedo;
+	node->type = Node_Pseudo;
 	node->drawInfo = drawInfo;
 
 	return node;
@@ -317,7 +318,7 @@ void ContourEdgeProc(std::shared_ptr<OctreeNode> node[4], int dir, IndexBuffer& 
 
 			for (int j = 0; j < 4; j++)
 			{
-				if (node[j]->type == Node_Leaf || node[j]->type == Node_Psuedo)
+				if (node[j]->type == Node_Leaf || node[j]->type == Node_Pseudo)
 				{
 					edgeNodes[j] = node[j];
 				}
@@ -388,7 +389,7 @@ void ContourFaceProc(std::shared_ptr<OctreeNode> node[2], int dir, IndexBuffer& 
 			for (int j = 0; j < 4; j++)
 			{
 				if (node[order[j]]->type == Node_Leaf ||
-					node[order[j]]->type == Node_Psuedo)
+					node[order[j]]->type == Node_Pseudo)
 				{
 					edgeNodes[j] = node[order[j]];
 				}
@@ -453,21 +454,25 @@ void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer,
 
 // ----------------------------------------------------------------------------
 
-Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1)
-{
-	//Vector3 min = chunk->getOffset();
+float Density_Func(Vector3 v) {
+	float size2 = (pow(2, MAX_LOD) * CHUNK_SIZE * WORLD_SIZE) / 2;
+	Vector3 origin(size2, size2, size2);
+	return Sphere(v, origin, size2);
+}
+
+// ----------------------------------------------------------------------------
+
+Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1) {
 	// approximate the zero crossing by finding the min value along the edge
 	float minValue = 100000.f;
 	float t = 0.f;
 	float currentT = 0.f;
 	const int steps = 8;
 	const float increment = 1.f / (float)steps;
-	while (currentT <= 1.f)
-	{
+	while (currentT <= 1.f) {
 		const Vector3 p = p0 + ((p1 - p0) * currentT);
-		const float density = /*abs(chunk->getDensity(p - min))*/1.f;
-		if (density < minValue)
-		{
+		const float density = abs(Density_Func(p));
+		if (density < minValue) {
 			minValue = density;
 			t = currentT;
 		}
@@ -480,97 +485,222 @@ Vector3 ApproximateZeroCrossingPosition(const Vector3& p0, const Vector3& p1)
 
 // ----------------------------------------------------------------------------
 
-//vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<Chunk> chunk)
-//{
-//	Vector3 min = chunk->getOffset();
-//	vector<std::shared_ptr<OctreeNode>> leafs;
-//	
-//	for (int x = 0; x < CHUNK_SIZE; x++)
-//		for (int y = 0; y < CHUNK_SIZE; y++)
-//			for (int z = 0; z < CHUNK_SIZE; z++)
-//			{
-//				const Vector3 idxPos(x, y, z);
-//				const Vector3 pos = idxPos + min;
-//
-//				int corners = 0;
-//				for (int i = 0; i < 8; i++)
-//				{
-//					const Vector3 cornerPos = idxPos + CHILD_MIN_OFFSETS[i];
-//					const float density = chunk->getDensity(cornerPos);
-//					const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
-//					corners |= (material << i);
-//				}
-//
-//				if (corners == 0 || corners == 255)
-//				{
-//					continue;
-//				}
-//
-//				// otherwise the voxel contains the surface, so find the edge intersections
-//				const int MAX_CROSSINGS = 6;
-//				Vector3 averageNormal(0, 0, 0);
-//				svd::QefSolver qef;
-//
-//				int idx = 0;
-//
-//				for (int i = 0; i < 12 && idx < MAX_CROSSINGS; i++)
-//				{
-//					const int c1 = edgevmap[i][0];
-//					const int c2 = edgevmap[i][1];
-//
-//					const int m1 = (corners >> c1) & 1;
-//					const int m2 = (corners >> c2) & 1;
-//
-//					if ((m1 == MATERIAL_AIR && m2 == MATERIAL_AIR) ||
-//						(m1 == MATERIAL_SOLID && m2 == MATERIAL_SOLID))
-//					{
-//						// no zero crossing on this edge
-//						continue;
-//					}
-//
-//					const Vector3 p1 = Vector3(pos + CHILD_MIN_OFFSETS[c1]);
-//					const Vector3 p2 = Vector3(pos + CHILD_MIN_OFFSETS[c2]);
-//					const Vector3 p = ApproximateZeroCrossingPosition(p1, p2, chunk);
-//					const Vector3 n = chunk->getNormal(p - min);
-//					qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
-//
-//					averageNormal += n;
-//
-//					idx++;
-//				}
-//				
-//				svd::Vec3 qefPosition;
-//				qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
-//
-//				std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
-//				drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
-//				drawInfo->qef = qef.getData();
-//
-//				const int cellSize = 1;
-//				const Vector3 min = pos;
-//				const Vector3 max = pos + Vector3(cellSize, cellSize, cellSize);
-//				if (drawInfo->position.x < min.x || drawInfo->position.x > max.x ||
-//					drawInfo->position.y < min.y || drawInfo->position.y > max.y ||
-//					drawInfo->position.z < min.z || drawInfo->position.z > max.z)
-//				{
-//					const auto& mp = qef.getMassPoint();
-//					drawInfo->position = Vector3(mp.x, mp.y, mp.z);
-//				}
-//
-//				drawInfo->averageNormal = (averageNormal / (float)idx).normalized();
-//				drawInfo->corners = corners;
-//
-//				std::shared_ptr<OctreeNode> node = make_shared<OctreeNode>();
-//				node->min = pos;
-//				node->size = cellSize;
-//				node->type = Node_Leaf;
-//				node->drawInfo = drawInfo;
-//				node->offset = min;
-//				leafs.push_back(node);
-//			}
-//	
-//	return leafs;
-//}
+Vector3 CalculateSurfaceNormal(const Vector3 p) {
+	const float H = 0.001f;
+	const float dx = Density_Func(p + Vector3(H, 0.f, 0.f)) - Density_Func(p - Vector3(H, 0.f, 0.f));
+	const float dy = Density_Func(p + Vector3(0.f, H, 0.f)) - Density_Func(p - Vector3(0.f, H, 0.f));
+	const float dz = Density_Func(p + Vector3(0.f, 0.f, H)) - Density_Func(p - Vector3(0.f, 0.f, H));
+
+	return Vector3(dx, dy, dz).normalized();
+}
+
+// ----------------------------------------------------------------------------
+
+vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode> reference) {
+	vector<std::shared_ptr<OctreeNode>> leafs;
+	const Vector3 min = reference->min;
+	const int cellSize = pow(2, reference->lod);
+
+	bool hasLowerLod = false;
+	for (int i = 0; i < 8; i++) {
+		auto child = reference->children[i];
+		if (!child || child->lod < 0) continue;
+		hasLowerLod = true;
+		auto nodes = FindActiveVoxels(child);
+		leafs.insert(end(leafs), begin(nodes), end(nodes));
+	}
+	if (hasLowerLod) return leafs;
+
+	for (int x = 0; x < reference->size; x += cellSize)
+		for (int y = 0; y < reference->size; y += cellSize)
+			for (int z = 0; z < reference->size; z += cellSize)
+			{
+				const Vector3 idxPos(x, y, z);
+				const Vector3 pos = idxPos + min;
+
+				int corners = 0;
+				for (int i = 0; i < 8; i++)
+				{
+					const Vector3 cornerPos = pos + (CHILD_MIN_OFFSETS[i] * cellSize);
+					const float density = Density_Func(cornerPos);
+					const int material = density < 0.f ? MATERIAL_SOLID : MATERIAL_AIR;
+					corners |= (material << i);
+				}
+
+				if (corners == 0 || corners == 255)
+				{
+					continue;
+				}
+
+				// otherwise the voxel contains the surface, so find the edge intersections
+				const int MAX_CROSSINGS = 6;
+				Vector3 averageNormal(0, 0, 0);
+				svd::QefSolver qef;
+
+				int idx = 0;
+
+				for (int i = 0; i < 12 && idx < MAX_CROSSINGS; i++)
+				{
+					const int c1 = edgevmap[i][0];
+					const int c2 = edgevmap[i][1];
+
+					const int m1 = (corners >> c1) & 1;
+					const int m2 = (corners >> c2) & 1;
+
+					if ((m1 == MATERIAL_AIR && m2 == MATERIAL_AIR) ||
+						(m1 == MATERIAL_SOLID && m2 == MATERIAL_SOLID))
+					{
+						// no zero crossing on this edge
+						continue;
+					}
+
+					const Vector3 p1 = Vector3(pos + (CHILD_MIN_OFFSETS[c1] * cellSize));
+					const Vector3 p2 = Vector3(pos + (CHILD_MIN_OFFSETS[c2] * cellSize));
+					const Vector3 p = ApproximateZeroCrossingPosition(p1, p2);
+					const Vector3 n = CalculateSurfaceNormal(p);
+					qef.add(p.x, p.y, p.z, n.x, n.y, n.z);
+
+					averageNormal += n;
+
+					idx++;
+				}
+				
+				svd::Vec3 qefPosition;
+				qef.solve(qefPosition, QEF_ERROR, QEF_SWEEPS, QEF_ERROR);
+
+				std::shared_ptr<OctreeDrawInfo> drawInfo = make_shared<OctreeDrawInfo>();
+				drawInfo->position = Vector3(qefPosition.x, qefPosition.y, qefPosition.z);
+				drawInfo->qef = qef.getData();
+
+				const Vector3 min = pos;
+				const Vector3 max = pos + Vector3(cellSize, cellSize, cellSize);
+				if (drawInfo->position.x < min.x || drawInfo->position.x > max.x ||
+					drawInfo->position.y < min.y || drawInfo->position.y > max.y ||
+					drawInfo->position.z < min.z || drawInfo->position.z > max.z)
+				{
+					const auto& mp = qef.getMassPoint();
+					drawInfo->position = Vector3(mp.x, mp.y, mp.z);
+				}
+
+				drawInfo->averageNormal = (averageNormal / (float)idx).normalized();
+				drawInfo->corners = corners;
+
+				std::shared_ptr<OctreeNode> node = make_shared<OctreeNode>();
+				node->min = pos;
+				node->size = cellSize;
+				node->type = Node_Leaf;
+				node->drawInfo = drawInfo;
+				leafs.push_back(node);
+			}
+	
+	return leafs;
+}
+
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<OctreeNode> ConstructLOD(std::shared_ptr<OctreeNode> node, int lod) {
+	if (!node) {
+		return nullptr;
+	}
+
+	//auto chunkInfo = make_shared<OctreeChunkInfo>(chunk->size);
+
+	node->lod = lod;
+	//chunk->chunkInfo = chunkInfo;
+
+	//cout << node->size << endl;
+
+	return node;
+}
+
+// ----------------------------------------------------------------------------
+
+std::shared_ptr<OctreeNode> ConstructOctreeNodes(std::shared_ptr<OctreeNode> node, int lod) {
+	if (!node) {
+		return nullptr;
+	}
+
+	int size = pow(2, lod) * CHUNK_SIZE;
+	if (node->size == size) {
+		return ConstructLOD(node, lod);
+	}
+
+	const int childSize = node->size / 2;
+	bool hasChildren = false;
+
+	for (int i = 0; i < 8; i++) {
+		auto child = make_shared<OctreeNode>();
+		child->size = childSize;
+		child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
+		child->type = Node_Internal;
+
+		node->children[i] = ConstructOctreeNodes(child, lod);
+		hasChildren |= (node->children[i] != nullptr);
+	}
+
+	if (!hasChildren) {
+		node.reset();
+		return nullptr;
+	}
+
+	return node;
+}
+
+// -------------------------------------------------------------------------------
+
+std::shared_ptr<OctreeNode> BuildOctree(const Vector3 min, const int size, int lod) {
+	int lodSize = pow(2, lod) * CHUNK_SIZE;
+
+	auto root = make_shared<OctreeNode>();
+	root->min = min;
+	root->size = size * lodSize;
+	root->type = Node_Internal;
+
+	ConstructOctreeNodes(root, lod);
+
+	return root;
+}
+
+// -------------------------------------------------------------------------------
+
+void FindLOD(std::shared_ptr<OctreeNode> node, int lod, vector<std::shared_ptr<OctreeNode>>& nodes) {
+	if (!node) {
+		return;
+	}
+
+	if (node->lod == lod) {
+		nodes.push_back(node);
+	}
+	else {
+		for (int i = 0; i < 8; i++)
+			FindLOD(node->children[i], lod, nodes);
+	}
+}
+
+// ----------------------------------------------------------------------------
+
+void ExpandNodes(int targetLod, int currentLod, vector<std::shared_ptr<OctreeNode>>& nodes) {
+	vector<std::shared_ptr<OctreeNode>> children;
+
+	for (auto node : nodes) {
+		const int childSize = node->size / 2;
+
+		for (int i = 0; i < 8; i++) {
+			if (node->children[i]) continue;
+
+			auto child = make_shared<OctreeNode>();
+			child->size = childSize;
+			child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
+			child->type = Node_Internal;
+
+			node->children[i] = child;
+			children.push_back(ConstructLOD(child, currentLod));
+		}
+	}
+
+	if (targetLod == currentLod) return;
+	return ExpandNodes(targetLod, currentLod - 1, children);
+}
 
 // ----------------------------------------------------------------------------
 
@@ -692,7 +822,7 @@ void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, v
 		return;
 	}
 
-	if (node->type == Node_Leaf || node->type == Node_Psuedo)
+	if (node->type == Node_Leaf || node->type == Node_Pseudo)
 	{
 		nodes.push_back(node->cpy());
 	}
@@ -705,17 +835,39 @@ void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, v
 
 // -------------------------------------------------------------------------------
 
-vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize)
-{
-	vector<std::shared_ptr<OctreeNode>> parents;
+void GetNodes(std::shared_ptr<OctreeNode> node, vector<std::shared_ptr<OctreeNode>>& nodes) {
+	nodes.push_back(node);
+
+	for (int i = 0; i < 8; i++) {
+		auto child = node->children[i];
+		if (!child) continue;
+		GetNodes(child, nodes);
+	}
+}
+
+// -------------------------------------------------------------------------------
+
+vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize) {
+	vector<std::shared_ptr<OctreeNode>> parents, nodes;
 
 	for (int i = 0; i < seams.size(); i++) {
-		std::shared_ptr<OctreeNode> node = seams[i];
+		auto node = seams[i];
 
 		if (node->size * 2 != parentSize) {
 			parents.push_back(node);
-			continue;
 		}
+		else {
+			nodes.push_back(node);
+		}
+	}
+
+	for (int i = 0; i < nodes.size(); i++) {
+		auto node = nodes[i];
+
+		/*if (node->size * 2 != parentSize) {
+			parents.push_back(node);
+			continue;
+		}*/
 		
 		Vector3 parentMin = node->min - Vector3(
 			int(node->min.x - chunkMin.x) % parentSize,
@@ -743,11 +895,10 @@ vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNod
 		}
 
 		if (!hasElement) {
-			std::shared_ptr<OctreeNode> parent = make_shared<OctreeNode>();
+			auto parent = make_shared<OctreeNode>();
 			parent->min = parentMin;
 			parent->size = parentSize;
 			parent->type = Node_Internal;
-			parent->offset = chunkMin;
 			parents.push_back(parent);
 			parent->children[index] = node;
 		}
