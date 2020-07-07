@@ -16,12 +16,18 @@ void VoxelWorld::_notification(const int64_t what) {
 }
 
 void VoxelWorld::build() {
-	root = BuildOctree(Vector3(), WORLD_SIZE, MAX_LOD);
-	FindLOD(root, MAX_LOD, nodes);
-	//ExpandNodes(2, MAX_LOD, nodes);
+	root = make_shared<OctreeNode>();
+	root->min = Vector3();
+	root->size = pow(2, MAX_LOD) * CHUNK_SIZE;
+	root->type = Node_Internal;
+	root->lod = MAX_LOD;
 
-	for (auto node : nodes) {
-		//Godot::print(String("Building node {0} ...").format(Array::make(node->min)));
+	ExpandNodes(root, MAX_LOD - 3);
+	auto lodNodes = FindLodNodes(root);
+	
+	for (auto node : lodNodes) {
+		//Godot::print(String("building node: {0}").format(Array::make(node->min)));
+		//continue;
 		buildMesh(node);
 	}
 }
@@ -48,13 +54,7 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 		return;
 	}
 
-	//cout << leafs.size() << " ";
-	//GetNodes(node, leafs);
-	//cout << leafs.size() << endl;
-	
-	//leafs.push_back(node);
-	leafs = BuildOctree(leafs, min, 1);
-	auto root = leafs.front();
+	auto root = BuildOctree(leafs, min, 1);
 
 	VertexBuffer vertices;
 	IndexBuffer indices;
@@ -76,13 +76,12 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	amountIndices = counts[1];
 	amountFaces = amountIndices / 3;
 
-	Godot::print(String("amountVertices {0}, amountIndices {1}, root size: {2}, node size: {3}").format(Array::make(amountVertices, amountIndices, root->size, node->size)));
+	Godot::print(String("amountVertices: {0}, amountIndices: {1}").format(Array::make(amountVertices, amountIndices)));
 
 	if (amountVertices == 0 || amountIndices == 0) return;
 
 	Array meshData;
 	Array meshArrays;
-	unordered_map<size_t, Vector3> nodePoints;
 
 	PoolVector3Array vertexArray;
 	PoolVector3Array normalArray;

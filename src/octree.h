@@ -153,14 +153,12 @@ namespace godot {
 std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, float threshold);
 void DestroyOctree(std::shared_ptr<OctreeNode> node);
 void GenerateMeshFromOctree(std::shared_ptr<OctreeNode> node, VertexBuffer& vertexBuffer, IndexBuffer& indexBuffer, int* counts);
-vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
 void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, vector<std::shared_ptr<OctreeNode>>& nodes);
-vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
-std::shared_ptr<OctreeNode> BuildOctree(const godot::Vector3 min, const int size, int chunkSize);
-void FindLOD(std::shared_ptr<OctreeNode> node, int lod, vector<std::shared_ptr<OctreeNode>>& nodes);
-vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode> reference);
-void ExpandNodes(int targetLod, int currentLod, vector<std::shared_ptr<OctreeNode>>& nodes);
-void GetNodes(std::shared_ptr<OctreeNode> node, vector<std::shared_ptr<OctreeNode>>& nodes);
+std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
+void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod);
+vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
+vector<std::shared_ptr<OctreeNode>> FindLodNodes(std::shared_ptr<OctreeNode> node);
+vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode> node);
 
 // ----------------------------------------------------------------------------
 

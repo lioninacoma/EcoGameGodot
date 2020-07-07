@@ -455,7 +455,7 @@ void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer,
 // ----------------------------------------------------------------------------
 
 float Density_Func(Vector3 v) {
-	float size2 = (pow(2, MAX_LOD) * CHUNK_SIZE * WORLD_SIZE) / 2;
+	float size2 = pow(2, MAX_LOD) * CHUNK_SIZE / 2;
 	Vector3 origin(size2, size2, size2);
 	return Sphere(v, origin, size2);
 }
@@ -596,110 +596,52 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode>
 	return leafs;
 }
 
-// ----------------------------------------------------------------------------
+// -------------------------------------------------------------------------------
 
-std::shared_ptr<OctreeNode> ConstructLOD(std::shared_ptr<OctreeNode> node, int lod) {
-	if (!node) {
-		return nullptr;
-	}
-
-	//auto chunkInfo = make_shared<OctreeChunkInfo>(chunk->size);
-
-	node->lod = lod;
-	//chunk->chunkInfo = chunkInfo;
-
-	//cout << node->size << endl;
-
-	return node;
-}
-
-// ----------------------------------------------------------------------------
-
-std::shared_ptr<OctreeNode> ConstructOctreeNodes(std::shared_ptr<OctreeNode> node, int lod) {
-	if (!node) {
-		return nullptr;
-	}
-
-	int size = pow(2, lod) * CHUNK_SIZE;
-	if (node->size == size) {
-		return ConstructLOD(node, lod);
-	}
-
-	const int childSize = node->size / 2;
-	bool hasChildren = false;
+vector<std::shared_ptr<OctreeNode>> FindLodNodes(std::shared_ptr<OctreeNode> node) {
+	vector<std::shared_ptr<OctreeNode>> lodNodes;
+	bool childFound = false;
 
 	for (int i = 0; i < 8; i++) {
-		auto child = make_shared<OctreeNode>();
-		child->size = childSize;
-		child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
-		child->type = Node_Internal;
-
-		node->children[i] = ConstructOctreeNodes(child, lod);
-		hasChildren |= (node->children[i] != nullptr);
+		auto child = node->children[i];
+		if (!child || child->lod < 0) continue;
+		childFound = true;
+		auto nodes = FindLodNodes(child);
+		lodNodes.insert(end(lodNodes), begin(nodes), end(nodes));
 	}
 
-	if (!hasChildren) {
-		node.reset();
-		return nullptr;
+	if (!childFound) {
+		lodNodes.push_back(node);
 	}
 
-	return node;
+	return lodNodes;
 }
 
 // -------------------------------------------------------------------------------
 
-std::shared_ptr<OctreeNode> BuildOctree(const Vector3 min, const int size, int lod) {
-	int lodSize = pow(2, lod) * CHUNK_SIZE;
+void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod) {
+	int i;
+	const int childLod = node->lod - 1;
+	const int childSize = node->size / 2;
+	std::shared_ptr<OctreeNode> child;
 
-	auto root = make_shared<OctreeNode>();
-	root->min = min;
-	root->size = size * lodSize;
-	root->type = Node_Internal;
-
-	ConstructOctreeNodes(root, lod);
-
-	return root;
-}
-
-// -------------------------------------------------------------------------------
-
-void FindLOD(std::shared_ptr<OctreeNode> node, int lod, vector<std::shared_ptr<OctreeNode>>& nodes) {
-	if (!node) {
-		return;
-	}
-
-	if (node->lod == lod) {
-		nodes.push_back(node);
-	}
-	else {
-		for (int i = 0; i < 8; i++)
-			FindLOD(node->children[i], lod, nodes);
-	}
-}
-
-// ----------------------------------------------------------------------------
-
-void ExpandNodes(int targetLod, int currentLod, vector<std::shared_ptr<OctreeNode>>& nodes) {
-	vector<std::shared_ptr<OctreeNode>> children;
-
-	for (auto node : nodes) {
-		const int childSize = node->size / 2;
-
-		for (int i = 0; i < 8; i++) {
-			if (node->children[i]) continue;
-
-			auto child = make_shared<OctreeNode>();
+	for (i = 0; i < 8; i++) {
+		if (!node->children[i]) {
+			child = make_shared<OctreeNode>();
 			child->size = childSize;
 			child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
+			child->lod = childLod;
 			child->type = Node_Internal;
 
 			node->children[i] = child;
-			children.push_back(ConstructLOD(child, currentLod));
 		}
-	}
+		else {
+			child = node->children[i];
+		}
 
-	if (targetLod == currentLod) return;
-	return ExpandNodes(targetLod, currentLod - 1, children);
+		if (childLod != lod)
+			ExpandNodes(child, lod);
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -835,40 +777,19 @@ void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, v
 
 // -------------------------------------------------------------------------------
 
-void GetNodes(std::shared_ptr<OctreeNode> node, vector<std::shared_ptr<OctreeNode>>& nodes) {
-	nodes.push_back(node);
+std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize) {
+	vector<std::shared_ptr<OctreeNode>> parents;
 
-	for (int i = 0; i < 8; i++) {
-		auto child = node->children[i];
-		if (!child) continue;
-		GetNodes(child, nodes);
-	}
-}
+	sort(seams.begin(), seams.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
+		return a->size > b->size;
+	});
 
-// -------------------------------------------------------------------------------
-
-vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize) {
-	vector<std::shared_ptr<OctreeNode>> parents, nodes;
-
-	for (int i = 0; i < seams.size(); i++) {
-		auto node = seams[i];
-
+	for (auto node : seams) {
 		if (node->size * 2 != parentSize) {
 			parents.push_back(node);
-		}
-		else {
-			nodes.push_back(node);
-		}
-	}
-
-	for (int i = 0; i < nodes.size(); i++) {
-		auto node = nodes[i];
-
-		/*if (node->size * 2 != parentSize) {
-			parents.push_back(node);
 			continue;
-		}*/
-		
+		}
+
 		Vector3 parentMin = node->min - Vector3(
 			int(node->min.x - chunkMin.x) % parentSize,
 			int(node->min.y - chunkMin.y) % parentSize,
@@ -885,12 +806,14 @@ vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNod
 		}
 		
 		if (index < 0) continue;
-
-		for (int j = 0; j < parents.size(); j++) {
-			if (parents[j]->min == parentMin) {
-				hasElement = true;
-				parents[j]->children[index] = node;
-				break;
+		
+		if (!hasElement) {
+			for (auto parent : parents) {
+				if (parent->min == parentMin) {
+					hasElement = true;
+					parent->children[index] = node;
+					break;
+				}
 			}
 		}
 
@@ -904,7 +827,7 @@ vector<std::shared_ptr<OctreeNode>> BuildOctree(vector<std::shared_ptr<OctreeNod
 		}
 	}
 
-	if (parents.size() < 2) return parents;
+	if (parents.size() == 1) return parents.front();
 	return BuildOctree(parents, chunkMin, parentSize * 2);
 }
 
