@@ -4,6 +4,7 @@ using namespace godot;
 
 void VoxelWorld::_register_methods() {
 	register_method("build", &VoxelWorld::build);
+	register_method("update", &VoxelWorld::update);
 	register_method("_notification", &VoxelWorld::_notification);
 }
 
@@ -22,14 +23,7 @@ void VoxelWorld::build() {
 	root->type = Node_Internal;
 	root->lod = MAX_LOD;
 
-	ExpandNodes(root, MAX_LOD - 3);
-	auto lodNodes = FindLodNodes(root);
-	
-	for (auto node : lodNodes) {
-		//Godot::print(String("building node: {0}").format(Array::make(node->min)));
-		//continue;
-		buildMesh(node);
-	}
+	ExpandNodes(root, MAX_LOD - 1);
 }
 
 #define CHUNKBUILDER_VERTEX_SIZE 3
@@ -37,9 +31,23 @@ void VoxelWorld::build() {
 #define CHUNKBUILDER_MAX_VERTICES 64000
 #define CHUNKBUILDER_MAX_FACES CHUNKBUILDER_MAX_VERTICES / 3
 
+void VoxelWorld::update(Vector3 camera) {
+	ExpandNodes(root, camera, root->size / 8);
+	auto lodNodes = FindLodNodes(root);
+
+	for (auto node : lodNodes) {
+		if (!node->dirty) continue;
+		Godot::print(String("building node: {0}").format(Array::make(node->min)));
+		//continue;
+		buildMesh(node);
+	}
+}
+
 void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	Node* parent = get_parent();
 	int i, j, n, amountVertices, amountIndices, amountFaces;
+
+	node->dirty = false;
 
 	const Vector3 min = node->min;
 	const Vector3 OFFSETS[7] =
@@ -78,7 +86,9 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 
 	Godot::print(String("amountVertices: {0}, amountIndices: {1}").format(Array::make(amountVertices, amountIndices)));
 
-	if (amountVertices == 0 || amountIndices == 0) return;
+	if (amountVertices == 0 || amountIndices == 0) {
+		parent->call_deferred("delete_chunk", this, node.get());
+	}
 
 	Array meshData;
 	Array meshArrays;
@@ -125,5 +135,5 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	meshData[0] = meshArrays;
 	meshData[1] = collisionArray;
 
-	parent->call_deferred("build_chunk", meshData, this);
+	parent->call_deferred("build_chunk", meshData, this, node.get());
 }

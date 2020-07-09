@@ -41,6 +41,7 @@ namespace godot {
 		void _init();
 		void _notification(const int64_t what);
 		void build();
+		void update(Vector3 camera);
 	};
 }
 

@@ -2,7 +2,7 @@ extends VoxelWorld
 class_name CelestialBody
 
 # config
-const TIME_PERIOD = 0.05 # 50ms
+const TIME_PERIOD = 2.0 # 2000ms
 var time = 0
 var size : int
 var noise : OpenSimplexNoise
@@ -38,6 +38,7 @@ func _process(delta : float) -> void:
 	if time > TIME_PERIOD:
 		if voxel_body && player:
 			pass
+			voxel_body.update(to_local(player.global_transform.origin))
 #			print (player.global_transform.origin)
 #			voxel_body.buildChunks(to_local(player.global_transform.origin), 64.0)
 		time = 0

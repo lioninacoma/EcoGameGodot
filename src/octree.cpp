@@ -81,6 +81,15 @@ const int edgeProcEdgeMask[3][2][5] = {
 
 const int processEdgeMask[3][4] = { {3,2,1,0},{7,5,6,4},{11,10,9,8} };
 
+void OctreeNode::_register_methods() {
+	register_method("getMeshInstanceId", &OctreeNode::getMeshInstanceId);
+	register_method("setMeshInstanceId", &OctreeNode::setMeshInstanceId);
+}
+
+void OctreeNode::_init() {
+
+}
+
 // ----------------------------------------------------------------------------
 
 std::shared_ptr<OctreeNode> SimplifyOctree(std::shared_ptr<OctreeNode> node, float threshold)
@@ -585,7 +594,7 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode>
 				drawInfo->averageNormal = (averageNormal / (float)idx).normalized();
 				drawInfo->corners = corners;
 
-				std::shared_ptr<OctreeNode> node = make_shared<OctreeNode>();
+				std::shared_ptr<OctreeNode> node = shared_ptr<OctreeNode>(OctreeNode::_new());
 				node->min = pos;
 				node->size = cellSize;
 				node->type = Node_Leaf;
@@ -618,6 +627,56 @@ vector<std::shared_ptr<OctreeNode>> FindLodNodes(std::shared_ptr<OctreeNode> nod
 }
 
 // -------------------------------------------------------------------------------
+float Squared(float v) { return v * v; };
+
+bool BoxIntersectsSphere(Vector3 BminV, Vector3 BmaxV, Vector3 CV, float r) {
+	float r2 = r * r;
+	int i, dmin = 0;
+	float Bmin[3] = { BminV.x, BminV.y, BminV.z };
+	float Bmax[3] = { BmaxV.x, BmaxV.y, BmaxV.z };
+	float C[3]	  = { CV.x, CV.y, CV.z };
+	
+	for (i = 0; i < 3; i++) {
+		if (C[i] < Bmin[i]) dmin += Squared(C[i] - Bmin[i]);
+		else if (C[i] > Bmax[i]) dmin += Squared(C[i] - Bmax[i]);
+	}
+	return dmin <= r2;
+}
+
+void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) {
+	int i;
+	const int childLod = node->lod - 1;
+	const int size2 = node->size / 2;
+	std::shared_ptr<OctreeNode> child;
+	Vector3 nodeCenter;
+
+	nodeCenter = node->min + Vector3(size2, size2, size2);
+	if (!BoxIntersectsSphere(node->min, node->min + Vector3(node->size, node->size, node->size), center, range)) return;
+
+	for (i = 0; i < 8; i++) {
+		if (!node->children[i]) {
+			child = shared_ptr<OctreeNode>(OctreeNode::_new());
+			child->size = size2;
+			child->min = node->min + (CHILD_MIN_OFFSETS[i] * size2);
+			child->lod = childLod;
+			child->type = Node_Internal;
+			child->meshInstanceId = node->meshInstanceId;
+			child->dirty = true;
+
+			node->meshInstanceId = 0;
+			node->dirty = false;
+			node->children[i] = child;
+			continue;
+		}
+		else {
+			child = node->children[i];
+			if (childLod > 0)
+				ExpandNodes(child, center, range);
+		}
+	}
+}
+
+// -------------------------------------------------------------------------------
 
 void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod) {
 	int i;
@@ -627,7 +686,7 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod) {
 
 	for (i = 0; i < 8; i++) {
 		if (!node->children[i]) {
-			child = make_shared<OctreeNode>();
+			child = shared_ptr<OctreeNode>(OctreeNode::_new());
 			child->size = childSize;
 			child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
 			child->lod = childLod;
@@ -818,7 +877,7 @@ std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seam
 		}
 
 		if (!hasElement) {
-			auto parent = make_shared<OctreeNode>();
+			auto parent = shared_ptr<OctreeNode>(OctreeNode::_new());
 			parent->min = parentMin;
 			parent->size = parentSize;
 			parent->type = Node_Internal;

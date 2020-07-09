@@ -1,5 +1,6 @@
 #include "ecogame.h"
 #include "voxelworld.h"
+#include "octree.h"
 
 extern "C" void GDN_EXPORT godot_gdnative_init(godot_gdnative_init_options *o) {
 	godot::Godot::gdnative_init(o);
@@ -14,4 +15,5 @@ extern "C" void GDN_EXPORT godot_nativescript_init(void *handle) {
 
 	godot::register_class<godot::EcoGame>();
 	godot::register_class<godot::VoxelWorld>();
+	godot::register_class<godot::OctreeNode>();
 }

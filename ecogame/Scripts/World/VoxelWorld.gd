@@ -14,17 +14,19 @@ func _init(position : Vector3, chunk_size : float, material : SpatialMaterial, n
 	voxel_body.set_name(name)
 	add_child(voxel_body, true)
 
-func delete_chunk(chunk, world) -> void:
-	var old_mesh_instance_id = chunk.getMeshInstanceId()
+func delete_chunk(node, world) -> void:
+	var old_mesh_instance_id = node.getMeshInstanceId()
 	if old_mesh_instance_id != 0:
 		var old_mesh_instance = instance_from_id(old_mesh_instance_id)
 		if old_mesh_instance:
 			world.remove_child(old_mesh_instance)
 			old_mesh_instance.free()
 
-func build_chunk(mesh_data : Array, world) -> void:
+func build_chunk(mesh_data : Array, world, node) -> void:
 	if !mesh_data: return
 	var mesh_instance = build_mesh_instance(mesh_data, world)
+	delete_chunk(node, world)
+	node.setMeshInstanceId(mesh_instance.get_instance_id())
 	world.add_child(mesh_instance)
 
 func build_mesh_instance(mesh_data : Array, owner) -> MeshInstance:
