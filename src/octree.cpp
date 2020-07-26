@@ -634,6 +634,26 @@ vector<std::shared_ptr<OctreeNode>> FindLodNodes(std::shared_ptr<OctreeNode> nod
 	return lodNodes;
 }
 
+vector<std::shared_ptr<OctreeNode>> GetAllNodes(std::shared_ptr<OctreeNode> node) {
+	vector<std::shared_ptr<OctreeNode>> nodes;
+
+	if (node) {
+		nodes.push_back(node);
+	}
+	else {
+		return nodes;
+	}
+
+	for (int i = 0; i < 8; i++) {
+		auto child = node->children[i];
+		if (!child) continue;
+		auto n = FindLodNodes(child);
+		nodes.insert(end(nodes), begin(n), end(n));
+	}
+
+	return nodes;
+}
+
 std::shared_ptr<OctreeNode> FindLodNodeAt(std::shared_ptr<OctreeNode> node, Vector3 at, int minSize) {
 	//cout << node->size << endl;
 	//Godot::print(String("node min: {0}").format(Array::make(node->min)));
@@ -679,10 +699,7 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) 
 	if (!BoxIntersectsSphere(node->min, node->size - 1, center, range)) return;
 
 	for (i = 0; i < 8; i++) {
-		if (!node->children[i] || (node->children[i]->lod < 0 && childLod >= 0)) {
-			if (node->children[i]) {
-				DestroyOctree(node->children[i]);
-			}
+		if (!node->children[i]) {
 			child = shared_ptr<OctreeNode>(OctreeNode::_new());
 			child->size = size2;
 			child->min = node->min + (CHILD_MIN_OFFSETS[i] * size2);
@@ -693,12 +710,20 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) 
 
 			node->dirty = false;
 			node->children[i] = child;
-			continue;
 		}
 		else {
 			child = node->children[i];
-			if (childLod > 0)
-				ExpandNodes(child, center, range);
+			if (childLod >= 0) {
+				if (child->lod < 0) {
+					child->lod = childLod;
+					child->dirty = true;
+
+					node->dirty = false;
+				}
+				else if (childLod > 0) {
+					ExpandNodes(child, center, range);
+				}
+			}
 		}
 	}
 }

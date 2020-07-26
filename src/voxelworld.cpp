@@ -69,12 +69,14 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 
 	auto leafs = FindActiveVoxels(node);
 
-	cout << leafs.size() << endl;
+	//cout << leafs.size() << endl;
 
 	if (leafs.empty()) {
 		return;
 	}
 
+	//auto nodes = GetAllNodes(node);
+	//leafs.insert(end(leafs), begin(nodes), end(nodes));
 	//leafs.push_back(node);
 	auto r = BuildOctree(leafs, node->min, 1);
 
@@ -93,6 +95,8 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 
 	auto seams = FindSeamNodes(root, r);
 	//auto seamRoot = BuildOctree(seams, node->min, 1);
+	//GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
+	//DestroyOctree(seamRoot);
 
 	/*auto seams = FindSeamNodes(self, min);
 	seams = BuildOctree(seams, min, 1);

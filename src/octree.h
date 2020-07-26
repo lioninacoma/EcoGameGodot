@@ -182,6 +182,7 @@ void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, int lod);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range);
 vector<std::shared_ptr<godot::OctreeNode>> FindSeamNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> FindLodNodes(std::shared_ptr<godot::OctreeNode> node);
+vector<std::shared_ptr<godot::OctreeNode>> GetAllNodes(std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> FindActiveVoxels(std::shared_ptr<godot::OctreeNode> node);
 int DeleteMesh(std::shared_ptr<godot::OctreeNode> node);
 void InsertTree(std::shared_ptr<godot::OctreeNode> src, std::shared_ptr<godot::OctreeNode> dest);
