@@ -16,6 +16,7 @@ func _init(position : Vector3, chunk_size : float, material : SpatialMaterial, n
 
 func delete_chunk(node, world) -> void:
 	var old_mesh_instance_id = node.getMeshInstanceId()
+#	print(old_mesh_instance_id)
 	if old_mesh_instance_id != 0:
 		var old_mesh_instance = instance_from_id(old_mesh_instance_id)
 		if old_mesh_instance:

@@ -25,8 +25,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <Godot.hpp>
 #include <Spatial.hpp>
 #include <Vector3.hpp>
+#include <AABB.hpp>
 
 #include <vector>
+#include <deque>
 
 #include <functional>
 #include <boost/function.hpp>
@@ -123,11 +125,14 @@ namespace godot {
 
 		OctreeNode(): OctreeNode(Node_None) {}
 		OctreeNode(const OctreeNodeType _type)
-			: type(_type), min(0, 0, 0)
+			: type(_type)
+			, min(0, 0, 0)
 			, size(0)
 			, drawInfo(nullptr)
 			, meshInstanceId(0)
 			, dirty(true)
+			, parent(nullptr)
+			, lod(-1)
 		{
 		
 			for (int i = 0; i < 8; i++) {
@@ -141,9 +146,12 @@ namespace godot {
 
 		std::shared_ptr<godot::OctreeNode> cpy() {
 			auto c = make_shared<godot::OctreeNode>();
+			c->size = size;
+			c->lod = lod;
+			c->meshInstanceId = meshInstanceId;
+			c->dirty = dirty;
 			c->type = type;
 			c->min = min;
-			c->size = size;
 			c->drawInfo = (drawInfo) ? drawInfo->cpy() : nullptr;
 			return c;
 		}
@@ -154,6 +162,7 @@ namespace godot {
 		bool								dirty;
 		OctreeNodeType						type;
 		godot::Vector3						min;
+		std::shared_ptr<godot::OctreeNode>	parent;
 		std::shared_ptr<godot::OctreeNode>	children[8];
 		std::shared_ptr<OctreeDrawInfo>		drawInfo;
 
@@ -171,9 +180,12 @@ void Octree_FindNodes(std::shared_ptr<godot::OctreeNode> node, godot::FilterNode
 std::shared_ptr<godot::OctreeNode> BuildOctree(vector<std::shared_ptr<godot::OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, int lod);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range);
-vector<std::shared_ptr<godot::OctreeNode>> FindSeamNodes(std::shared_ptr<godot::VoxelWorld> world, godot::Vector3 chunkMin);
+vector<std::shared_ptr<godot::OctreeNode>> FindSeamNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> FindLodNodes(std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> FindActiveVoxels(std::shared_ptr<godot::OctreeNode> node);
+int DeleteMesh(std::shared_ptr<godot::OctreeNode> node);
+void InsertTree(std::shared_ptr<godot::OctreeNode> src, std::shared_ptr<godot::OctreeNode> dest);
+void PrintOctree(std::shared_ptr<godot::OctreeNode> node);
 
 // ----------------------------------------------------------------------------
 

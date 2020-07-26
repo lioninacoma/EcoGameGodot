@@ -607,6 +607,14 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode>
 
 // -------------------------------------------------------------------------------
 
+bool PointInsideCube(Vector3 min, float size, Vector3 p) {
+	//return AABB(min, Vector3(size, size, size)).has_point(p);
+	Vector3 max = min + Vector3(size, size, size);
+	return min.x <= p.x && max.x >= p.x
+		&& min.y <= p.y && max.y >= p.y
+		&& min.z <= p.z && max.z >= p.z;
+}
+
 vector<std::shared_ptr<OctreeNode>> FindLodNodes(std::shared_ptr<OctreeNode> node) {
 	vector<std::shared_ptr<OctreeNode>> lodNodes;
 	bool childFound = false;
@@ -626,10 +634,27 @@ vector<std::shared_ptr<OctreeNode>> FindLodNodes(std::shared_ptr<OctreeNode> nod
 	return lodNodes;
 }
 
+std::shared_ptr<OctreeNode> FindLodNodeAt(std::shared_ptr<OctreeNode> node, Vector3 at, int minSize) {
+	//cout << node->size << endl;
+	//Godot::print(String("node min: {0}").format(Array::make(node->min)));
+
+	for (int i = 0; i < 8; i++) {
+		auto child = node->children[i];
+		if (!child || child->lod < 0 || child->size < minSize) continue;
+		if (child->min == at || PointInsideCube(child->min, child->size - 1, at)) {
+			return FindLodNodeAt(child, at, minSize);
+		}
+	}
+
+	if (node->min == at || PointInsideCube(node->min, node->size - 1, at)) return node;
+	return NULL;
+}
+
 // -------------------------------------------------------------------------------
 float Squared(float v) { return v * v; };
 
-bool BoxIntersectsSphere(Vector3 BminV, Vector3 BmaxV, Vector3 CV, float r) {
+bool BoxIntersectsSphere(Vector3 BminV, int size, Vector3 CV, float r) {
+	Vector3 BmaxV = BminV + Vector3(size, size, size);
 	float r2 = r * r;
 	int i, dmin = 0;
 	float Bmin[3] = { BminV.x, BminV.y, BminV.z };
@@ -651,19 +676,21 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) 
 	Vector3 nodeCenter;
 
 	nodeCenter = node->min + Vector3(size2, size2, size2);
-	if (!BoxIntersectsSphere(node->min, node->min + Vector3(node->size, node->size, node->size), center, range)) return;
+	if (!BoxIntersectsSphere(node->min, node->size - 1, center, range)) return;
 
 	for (i = 0; i < 8; i++) {
-		if (!node->children[i]) {
+		if (!node->children[i] || (node->children[i]->lod < 0 && childLod >= 0)) {
+			if (node->children[i]) {
+				DestroyOctree(node->children[i]);
+			}
 			child = shared_ptr<OctreeNode>(OctreeNode::_new());
 			child->size = size2;
 			child->min = node->min + (CHILD_MIN_OFFSETS[i] * size2);
 			child->lod = childLod;
 			child->type = Node_Internal;
-			child->meshInstanceId = node->meshInstanceId;
 			child->dirty = true;
+			child->parent = node;
 
-			node->meshInstanceId = 0;
 			node->dirty = false;
 			node->children[i] = child;
 			continue;
@@ -674,6 +701,23 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) 
 				ExpandNodes(child, center, range);
 		}
 	}
+}
+
+int DeleteMesh(std::shared_ptr<OctreeNode> node) {
+	int meshInstanceId = 0;
+	std::shared_ptr<OctreeNode> current;
+	current = node;
+	
+	do {
+		if (current->meshInstanceId > 0) {
+			meshInstanceId = current->meshInstanceId;
+			current->meshInstanceId = 0;
+			return meshInstanceId;
+		}
+		current = current->parent;
+	} while (current->parent != NULL);
+
+	return meshInstanceId;
 }
 
 // -------------------------------------------------------------------------------
@@ -691,6 +735,7 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod) {
 			child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
 			child->lod = childLod;
 			child->type = Node_Internal;
+			child->parent = node;
 
 			node->children[i] = child;
 		}
@@ -740,9 +785,9 @@ void DestroyOctree(std::shared_ptr<OctreeNode> node)
 
 // -------------------------------------------------------------------------------
 
-vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<VoxelWorld> world, Vector3 baseChunkMin)
+vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node)
 {
-	const Vector3 seamValues = baseChunkMin + Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
+	const Vector3 seamValues = node->min + Vector3(node->size, node->size, node->size);
 	const Vector3 OFFSETS[8] =
 	{
 		Vector3(0,0,0), Vector3(1,0,0), Vector3(0,0,1), Vector3(1,0,1),
@@ -795,8 +840,16 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<VoxelWorld> wo
 	vector<std::shared_ptr<OctreeNode>> seamNodes;
 	for (int i = 0; i < 8; i++)
 	{
-		const Vector3 offsetMin = OFFSETS[i] * CHUNK_SIZE;
-		const Vector3 chunkMin = baseChunkMin + offsetMin;
+		const Vector3 offsetMin = OFFSETS[i] * node->size;
+		const Vector3 min = node->min + offsetMin;
+		auto n = FindLodNodeAt(root, min, node->size);
+		
+		if (n)
+		{
+			//Godot::print(String("min: {0} ---- n min: {1}, n size: {2} | node min: {3}, node size: {4}").format(Array::make(min, n->min, n->size, node->min, node->size)));
+			Octree_FindNodes(n, selectionFuncs[i], seamNodes);
+		}
+
 		/*auto c = world->getChunk(chunkMin);
 		if (c)
 		{
@@ -836,6 +889,30 @@ void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, v
 
 // -------------------------------------------------------------------------------
 
+void InsertTree(std::shared_ptr<godot::OctreeNode> src, std::shared_ptr<godot::OctreeNode> dest) {
+	/*if (node->type == Node_Leaf || node->type == Node_Pseudo) {
+		nodes.push_back(node->cpy());
+	}
+	else {
+		for (int i = 0; i < 8; i++)
+			InsertTree(src, dest->children[i]);
+	}*/
+}
+
+// -------------------------------------------------------------------------------
+
+void PrintOctree(std::shared_ptr<godot::OctreeNode> node) {
+	if (!node) return;
+
+	if (node->size <= 4)
+		Godot::print(String("min: {0}, size: {1}").format(Array::make(node->min, node->size)));
+	
+	for (int i = 0; i < 8; i++)
+		PrintOctree(node->children[i]);
+}
+
+// -------------------------------------------------------------------------------
+
 std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seams, Vector3 chunkMin, int parentSize) {
 	vector<std::shared_ptr<OctreeNode>> parents;
 
@@ -844,6 +921,7 @@ std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seam
 	});
 
 	for (auto node : seams) {
+		//cout << node->size << endl;
 		if (node->size * 2 != parentSize) {
 			parents.push_back(node);
 			continue;
@@ -871,6 +949,7 @@ std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seam
 				if (parent->min == parentMin) {
 					hasElement = true;
 					parent->children[index] = node;
+					node->parent = parent;
 					break;
 				}
 			}
@@ -883,6 +962,7 @@ std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seam
 			parent->type = Node_Internal;
 			parents.push_back(parent);
 			parent->children[index] = node;
+			node->parent = parent;
 		}
 	}
 
