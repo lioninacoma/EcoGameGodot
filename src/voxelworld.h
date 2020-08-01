@@ -27,6 +27,7 @@ namespace godot {
 		std::shared_ptr<OctreeNode> root;
 		vector<std::shared_ptr<OctreeNode>> nodes;
 
+		void buildTree(std::shared_ptr<OctreeNode> node);
 		void buildMesh(std::shared_ptr<OctreeNode> node);
 	public:
 		static void _register_methods();

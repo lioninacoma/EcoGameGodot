@@ -133,6 +133,7 @@ namespace godot {
 			, dirty(true)
 			, parent(nullptr)
 			, lod(-1)
+			, meshRoot(nullptr)
 		{
 		
 			for (int i = 0; i < 8; i++) {
@@ -162,6 +163,7 @@ namespace godot {
 		bool								dirty;
 		OctreeNodeType						type;
 		godot::Vector3						min;
+		std::shared_ptr<godot::OctreeNode>	meshRoot;
 		std::shared_ptr<godot::OctreeNode>	parent;
 		std::shared_ptr<godot::OctreeNode>	children[8];
 		std::shared_ptr<OctreeDrawInfo>		drawInfo;

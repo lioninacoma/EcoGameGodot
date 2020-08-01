@@ -737,6 +737,7 @@ int DeleteMesh(std::shared_ptr<OctreeNode> node) {
 		if (current->meshInstanceId > 0) {
 			meshInstanceId = current->meshInstanceId;
 			current->meshInstanceId = 0;
+			current->meshRoot = NULL;
 			return meshInstanceId;
 		}
 		current = current->parent;
@@ -863,24 +864,15 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> ro
 	};
 
 	vector<std::shared_ptr<OctreeNode>> seamNodes;
-	for (int i = 0; i < 8; i++)
-	{
+	for (int i = 0; i < 8; i++) {
 		const Vector3 offsetMin = OFFSETS[i] * node->size;
 		const Vector3 min = node->min + offsetMin;
 		auto n = FindLodNodeAt(root, min, node->size);
 		
-		if (n)
-		{
+		if (n && n->meshRoot) {
 			//Godot::print(String("min: {0} ---- n min: {1}, n size: {2} | node min: {3}, node size: {4}").format(Array::make(min, n->min, n->size, node->min, node->size)));
-			Octree_FindNodes(n, selectionFuncs[i], seamNodes);
+			Octree_FindNodes(n->meshRoot, selectionFuncs[i], seamNodes);
 		}
-
-		/*auto c = world->getChunk(chunkMin);
-		if (c)
-		{
-			auto chunkNodes = c->findNodes(selectionFuncs[i]);
-			seamNodes.insert(end(seamNodes), begin(chunkNodes), end(chunkNodes));
-		}*/
 	}
 
 	return seamNodes;
