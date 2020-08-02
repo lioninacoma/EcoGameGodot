@@ -23,18 +23,14 @@ void VoxelWorld::build() {
 	root->type = Node_Internal;
 	root->lod = MAX_LOD;
 
-	return;
-	ExpandNodes(root, MAX_LOD - 2);
+	vector<std::shared_ptr<godot::OctreeNode>> nodes;
+	ExpandNodes(root, MAX_LOD - 1, nodes);
 
-	auto lodNodes = FindLodNodes(root);
-
-	for (auto node : lodNodes) {
-		if (!node->dirty) continue;
+	for (auto node : nodes) {
 		buildTree(node);
 	}
 
-	for (auto node : lodNodes) {
-		if (!node->dirty) continue;
+	for (auto node : nodes) {
 		buildMesh(node);
 	}
 }
@@ -46,16 +42,15 @@ void VoxelWorld::build() {
 
 void VoxelWorld::update(Vector3 camera) {
 	//return;
-	ExpandNodes(root, camera, root->size / 3);
-	auto lodNodes = FindLodNodes(root);
+	vector<std::shared_ptr<godot::OctreeNode>> nodes;
+	ExpandNodes(root, camera, 2 * CHUNK_SIZE, nodes);
 
-	for (auto node : lodNodes) {
-		if (!node->dirty) continue;
+	for (auto node : nodes) {
 		buildTree(node);
 	}
 
-	for (auto node : lodNodes) {
-		if (!node->dirty) continue;
+	for (auto node : nodes) {
+		if (!node->meshRoot) continue;
 		buildMesh(node);
 	}
 }
@@ -101,6 +96,7 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	node->meshInstanceId = DeleteMesh(node);
 
 	if (counts[0] == 0 || counts[1] == 0) {
+		cout << "delete" << endl;
 		parent->call_deferred("delete_chunk", this, node.get());
 		return;
 	}

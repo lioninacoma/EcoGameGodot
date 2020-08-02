@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <deque>
 
 #include <functional>
+#include <shared_mutex>
+#include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
 
 #include "constants.h"
@@ -167,9 +169,20 @@ namespace godot {
 		std::shared_ptr<godot::OctreeNode>	parent;
 		std::shared_ptr<godot::OctreeNode>	children[8];
 		std::shared_ptr<OctreeDrawInfo>		drawInfo;
+		std::shared_mutex TREE_MUTEX;
 
 		int getMeshInstanceId() { return meshInstanceId; }
 		void setMeshInstanceId(int meshInstanceId) { OctreeNode::meshInstanceId = meshInstanceId; }
+
+		void setParent(std::shared_ptr<godot::OctreeNode> parent) {
+			boost::unique_lock<std::shared_mutex> lock(TREE_MUTEX);
+			OctreeNode::parent = parent;
+		}
+
+		std::shared_ptr<godot::OctreeNode> getParent() {
+			boost::shared_lock<std::shared_mutex> lock(TREE_MUTEX);
+			return parent;
+		}
 	};
 }
 
@@ -180,8 +193,8 @@ void DestroyOctree(std::shared_ptr<godot::OctreeNode> node);
 void GenerateMeshFromOctree(std::shared_ptr<godot::OctreeNode> node, godot::VertexBuffer& vertexBuffer, godot::IndexBuffer& indexBuffer, int* counts);
 void Octree_FindNodes(std::shared_ptr<godot::OctreeNode> node, godot::FilterNodesFunc& func, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 std::shared_ptr<godot::OctreeNode> BuildOctree(vector<std::shared_ptr<godot::OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
-void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, int lod);
-void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range);
+void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, int lod, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
+void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 vector<std::shared_ptr<godot::OctreeNode>> FindSeamNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> FindLodNodes(std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> GetAllNodes(std::shared_ptr<godot::OctreeNode> node);

@@ -77,7 +77,7 @@ script = ExtResource( 5 )
 environment = SubResource( 3 )
 
 [node name="Ball" parent="." instance=ExtResource( 2 )]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 64, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 )
 mode = 1
 
 [node name="FPSLabel" type="Label" parent="."]
@@ -111,7 +111,7 @@ texture = ExtResource( 4 )
 stretch_mode = 1
 
 [node name="Player" type="KinematicBody" parent="."]
-transform = Transform( -0.707107, 0.499999, -0.5, 0, 0.707106, 0.707107, 0.707107, 0.499999, -0.5, 192, 640, 192 )
+transform = Transform( 1, 0, 0, 0, 0.999998, 0, 0, 0, 1, 64, 192, 64 )
 script = ExtResource( 3 )
 
 [node name="Capsule" type="CollisionShape" parent="Player"]
@@ -120,6 +120,7 @@ shape = SubResource( 4 )
 
 [node name="MeshInstance" type="MeshInstance" parent="Player/Capsule"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, -1.42109e-14, 1, 0, 0, 0 )
+visible = false
 mesh = SubResource( 5 )
 material/0 = null
 

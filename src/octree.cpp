@@ -466,7 +466,8 @@ void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer,
 float Density_Func(Vector3 v) {
 	float size2 = pow(2, MAX_LOD) * CHUNK_SIZE / 2;
 	Vector3 origin(size2, size2, size2);
-	return Sphere(v, origin, size2);
+	//return Sphere(v, origin, size2);
+	return Cuboid(v, origin, Vector3(size2, size2, size2));
 }
 
 // ----------------------------------------------------------------------------
@@ -510,7 +511,7 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode>
 	const Vector3 min = reference->min;
 	const int cellSize = pow(2, reference->lod);
 
-	bool hasLowerLod = false;
+	/*bool hasLowerLod = false;
 	for (int i = 0; i < 8; i++) {
 		auto child = reference->children[i];
 		if (!child || child->lod < 0) continue;
@@ -518,7 +519,7 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode>
 		auto nodes = FindActiveVoxels(child);
 		leafs.insert(end(leafs), begin(nodes), end(nodes));
 	}
-	if (hasLowerLod) return leafs;
+	if (hasLowerLod) return leafs;*/
 
 	for (int x = 0; x < reference->size; x += cellSize)
 		for (int y = 0; y < reference->size; y += cellSize)
@@ -688,7 +689,7 @@ bool BoxIntersectsSphere(Vector3 BminV, int size, Vector3 CV, float r) {
 	return dmin <= r2;
 }
 
-void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) {
+void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes) {
 	int i;
 	const int childLod = node->lod - 1;
 	const int size2 = node->size / 2;
@@ -706,10 +707,12 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) 
 			child->lod = childLod;
 			child->type = Node_Internal;
 			child->dirty = true;
-			child->parent = node;
+			child->setParent(node);
+			//child->parent = node;
 
 			node->dirty = false;
 			node->children[i] = child;
+			nodes.push_back(child);
 		}
 		else {
 			child = node->children[i];
@@ -719,9 +722,10 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) 
 					child->dirty = true;
 
 					node->dirty = false;
+					nodes.push_back(child);
 				}
 				else if (childLod > 0) {
-					ExpandNodes(child, center, range);
+					ExpandNodes(child, center, range, nodes);
 				}
 			}
 		}
@@ -729,26 +733,26 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range) 
 }
 
 int DeleteMesh(std::shared_ptr<OctreeNode> node) {
-	int meshInstanceId = 0;
 	std::shared_ptr<OctreeNode> current;
 	current = node;
 	
-	do {
+	while (current != NULL) {
 		if (current->meshInstanceId > 0) {
-			meshInstanceId = current->meshInstanceId;
+			int meshInstanceId = current->meshInstanceId;
 			current->meshInstanceId = 0;
 			current->meshRoot = NULL;
 			return meshInstanceId;
 		}
-		current = current->parent;
-	} while (current->parent != NULL);
+		//current = current->parent;
+		current = current->getParent();
+	}
 
-	return meshInstanceId;
+	return 0;
 }
 
 // -------------------------------------------------------------------------------
 
-void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod) {
+void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod, vector<std::shared_ptr<godot::OctreeNode>>& nodes) {
 	int i;
 	const int childLod = node->lod - 1;
 	const int childSize = node->size / 2;
@@ -761,16 +765,18 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, int lod) {
 			child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
 			child->lod = childLod;
 			child->type = Node_Internal;
-			child->parent = node;
+			child->setParent(node);
+			//child->parent = node;
 
 			node->children[i] = child;
+			nodes.push_back(child);
 		}
 		else {
 			child = node->children[i];
 		}
 
 		if (childLod != lod)
-			ExpandNodes(child, lod);
+			ExpandNodes(child, lod, nodes);
 	}
 }
 
@@ -966,7 +972,8 @@ std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seam
 				if (parent->min == parentMin) {
 					hasElement = true;
 					parent->children[index] = node;
-					node->parent = parent;
+					node->setParent(parent);
+					//node->parent = parent;
 					break;
 				}
 			}
@@ -979,7 +986,8 @@ std::shared_ptr<OctreeNode> BuildOctree(vector<std::shared_ptr<OctreeNode>> seam
 			parent->type = Node_Internal;
 			parents.push_back(parent);
 			parent->children[index] = node;
-			node->parent = parent;
+			node->setParent(parent);
+			//node->parent = parent;
 		}
 	}
 
