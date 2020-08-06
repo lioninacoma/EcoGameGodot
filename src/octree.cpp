@@ -694,9 +694,7 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range, 
 	const int childLod = node->lod - 1;
 	const int size2 = node->size / 2;
 	std::shared_ptr<OctreeNode> child;
-	Vector3 nodeCenter;
 
-	nodeCenter = node->min + Vector3(size2, size2, size2);
 	if (!BoxIntersectsSphere(node->min, node->size - 1, center, range)) return;
 
 	for (i = 0; i < 8; i++) {
@@ -730,6 +728,45 @@ void ExpandNodes(std::shared_ptr<OctreeNode> node, Vector3 center, float range, 
 			}
 		}
 	}
+}
+
+bool CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, godot::Node* scene, godot::VoxelWorld* voxelWorld) {
+	if (!node) return false;
+	
+	int i;
+	std::shared_ptr<OctreeNode> child;
+	bool isCollapsible = true;
+
+	for (i = 0; i < 8; i++) {
+		if (!node->children[i]) continue;
+		child = node->children[i];
+
+		if (BoxIntersectsSphere(child->min, child->size - 1, center, range)) {
+			isCollapsible = false;
+			break;
+		}
+	}
+
+	if (isCollapsible) {
+		for (i = 0; i < 8; i++) {
+			child = node->children[i];
+			if (!child) continue;
+
+			child->meshInstanceId = DeleteMesh(child);
+
+			if (child->meshInstanceId) {
+				cout << "delete" << endl;
+				scene->call_deferred("delete_chunk", node.get(), voxelWorld);
+			}
+
+			DestroyOctree(child);
+			node->children[i] = nullptr;
+		}
+
+		node->dirty = true;
+	}
+
+	return isCollapsible;
 }
 
 int DeleteMesh(std::shared_ptr<OctreeNode> node) {

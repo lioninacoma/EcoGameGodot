@@ -195,6 +195,7 @@ void Octree_FindNodes(std::shared_ptr<godot::OctreeNode> node, godot::FilterNode
 std::shared_ptr<godot::OctreeNode> BuildOctree(vector<std::shared_ptr<godot::OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, int lod, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
+bool CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, godot::Node* scene, godot::VoxelWorld* voxelWorld);
 vector<std::shared_ptr<godot::OctreeNode>> FindSeamNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> FindLodNodes(std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> GetAllNodes(std::shared_ptr<godot::OctreeNode> node);

@@ -23,7 +23,7 @@ func delete_chunk(node, world) -> void:
 			world.remove_child(old_mesh_instance)
 			old_mesh_instance.free()
 
-func build_chunk(mesh_data : Array, world, node) -> void:
+func build_chunk(mesh_data : Array, node, world) -> void:
 	if !mesh_data: return
 	var mesh_instance = build_mesh_instance(mesh_data, world)
 	delete_chunk(node, world)

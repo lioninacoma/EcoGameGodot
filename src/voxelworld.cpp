@@ -42,8 +42,24 @@ void VoxelWorld::build() {
 
 void VoxelWorld::update(Vector3 camera) {
 	//return;
+	Node* scene = get_parent();
 	vector<std::shared_ptr<godot::OctreeNode>> nodes;
 	ExpandNodes(root, camera, 2 * CHUNK_SIZE, nodes);
+
+	auto it = expandedNodes.begin();
+	while (it != expandedNodes.end()) {
+		auto node = *it;
+		if (node && CollapseNode(node->parent, camera, 2 * CHUNK_SIZE, scene, this)) {
+			//nodes.push_back(node->parent);
+			cout << "before: " << expandedNodes.size() << ", after: ";
+			it = expandedNodes.erase(it);
+			cout << expandedNodes.size() << endl;
+		}
+		else ++it;
+	}
+
+	expandedNodes.insert(end(expandedNodes), begin(nodes), end(nodes));
+	
 
 	for (auto node : nodes) {
 		buildTree(node);
@@ -96,8 +112,10 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	node->meshInstanceId = DeleteMesh(node);
 
 	if (counts[0] == 0 || counts[1] == 0) {
-		cout << "delete" << endl;
-		parent->call_deferred("delete_chunk", this, node.get());
+		if (node->meshInstanceId) {
+			cout << "delete" << endl;
+			parent->call_deferred("delete_chunk", node.get(), this);
+		}
 		return;
 	}
 
@@ -146,5 +164,5 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	meshData[0] = meshArrays;
 	meshData[1] = collisionArray;
 
-	parent->call_deferred("build_chunk", meshData, this, node.get());
+	parent->call_deferred("build_chunk", meshData, node.get(), this);
 }
