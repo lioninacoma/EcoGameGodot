@@ -24,14 +24,36 @@ void VoxelWorld::build() {
 	root->lod = MAX_LOD;
 
 	vector<std::shared_ptr<godot::OctreeNode>> nodes;
-	ExpandNodes(root, MAX_LOD - 1, nodes);
+	
+	ExpandNodes(root, root, nodes);
 
 	for (auto node : nodes) {
 		buildTree(node);
 	}
 
+	// #draw
 	for (auto node : nodes) {
 		buildMesh(node);
+	}
+	
+	return;
+	int buildList[] = { 1, 3, 7 };
+
+	for (int childIndex : buildList) {
+		nodes.clear();
+		ExpandNodes(root, root->children[childIndex], nodes);
+
+		sort(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
+			return a->min * a->size < b->min * b->size;
+		});
+
+		for (auto node : nodes) {
+			buildTree(node);
+		}
+
+		for (auto node : nodes) {
+			buildMesh(node);
+		}
 	}
 }
 
@@ -43,30 +65,20 @@ void VoxelWorld::build() {
 void VoxelWorld::update(Vector3 camera) {
 	//return;
 	Node* scene = get_parent();
+
 	vector<std::shared_ptr<godot::OctreeNode>> nodes;
-	ExpandNodes(root, camera, 2 * CHUNK_SIZE, nodes);
 
-	auto it = expandedNodes.begin();
-	while (it != expandedNodes.end()) {
-		auto node = *it;
-		if (node && CollapseNode(node->parent, camera, 2 * CHUNK_SIZE, scene, this)) {
-			//nodes.push_back(node->parent);
-			cout << "before: " << expandedNodes.size() << ", after: ";
-			it = expandedNodes.erase(it);
-			cout << expandedNodes.size() << endl;
-		}
-		else ++it;
-	}
+	ExpandNodes(root, root, camera, CHUNK_SIZE * 2, nodes);
 
-	expandedNodes.insert(end(expandedNodes), begin(nodes), end(nodes));
-	
+	sort(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
+		return a->min * a->size < b->min * b->size;
+	});
 
 	for (auto node : nodes) {
 		buildTree(node);
 	}
 
 	for (auto node : nodes) {
-		if (!node->meshRoot) continue;
 		buildMesh(node);
 	}
 }
@@ -108,13 +120,13 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	amountIndices = counts[1];
 	amountFaces = amountIndices / 3;
 
-	Godot::print(String("amountVertices: {0}, amountIndices: {1}, seams: {2}").format(Array::make(amountVertices, amountIndices, seams.size())));
 	node->meshInstanceId = DeleteMesh(node);
+	Godot::print(String("amountVertices: {0}, amountIndices: {1}, seams: {2}, meshId: {3}").format(Array::make(amountVertices, amountIndices, seams.size(), node->meshInstanceId)));
 
 	if (counts[0] == 0 || counts[1] == 0) {
 		if (node->meshInstanceId) {
 			cout << "delete" << endl;
-			parent->call_deferred("delete_chunk", node.get(), this);
+			parent->call("delete_chunk", node.get(), this);
 		}
 		return;
 	}
@@ -164,5 +176,5 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	meshData[0] = meshArrays;
 	meshData[1] = collisionArray;
 
-	parent->call_deferred("build_chunk", meshData, node.get(), this);
+	parent->call("build_chunk", meshData, node.get(), this);
 }

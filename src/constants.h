@@ -3,7 +3,7 @@
 
 #define WORLD_SIZE 4
 #define CHUNK_SIZE 32    // Voxels
-#define MAX_LOD 8
+#define MAX_LOD 3
 #define CHUNK_VOLUME_SIZE (CHUNK_SIZE + 1)
 #define OCTREE_LOD -1.f  // -1.f max detail, 50.f min detail
 

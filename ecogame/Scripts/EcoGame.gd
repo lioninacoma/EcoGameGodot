@@ -21,6 +21,8 @@ func _input(event):
 func _ready() -> void:
 	add_child(Lib.instance)
 	Lib.game = self
+	var vp = get_viewport()
+	vp.debug_draw = 3
 	
 #	var cubeSphere = CubeSphere.new(Vector3(8, 64, 8), 2)
 #	add_child(cubeSphere)

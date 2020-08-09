@@ -54,6 +54,16 @@ namespace godot {
 			return Vector2(chunkCoords.x, chunkCoords.z);
 		}*/
 
+		static std::size_t hash(Vector3 v, int size, int lod) {
+			std::size_t seed = 0;
+			boost::hash_combine(seed, v.x);
+			boost::hash_combine(seed, v.y);
+			boost::hash_combine(seed, v.z);
+			boost::hash_combine(seed, size);
+			boost::hash_combine(seed, lod);
+			return seed;
+		}
+
 		static std::size_t hash(Vector3 v) {
 			std::size_t seed = 0;
 			boost::hash_combine(seed, v.x);

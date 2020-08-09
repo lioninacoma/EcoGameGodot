@@ -26,7 +26,8 @@ namespace godot {
 		std::shared_ptr<VoxelWorld> self;
 		std::shared_ptr<OctreeNode> root;
 		//vector<std::shared_ptr<OctreeNode>> nodes;
-		vector<std::shared_ptr<OctreeNode>> expandedNodes;
+		//vector<std::shared_ptr<OctreeNode>> expandedNodes;
+		unordered_map<size_t, std::shared_ptr<godot::OctreeNode>> expandedNodes;
 
 		void buildTree(std::shared_ptr<OctreeNode> node);
 		void buildMesh(std::shared_ptr<OctreeNode> node);
