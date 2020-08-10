@@ -761,23 +761,23 @@ void UpdateNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center,
 }
 
 void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node, Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes) {
-	int i;
-	const int childLod = node->lod - 1;
-	const int size2 = node->size / 2;
-	std::shared_ptr<OctreeNode> child;
-
 	if (!BoxIntersectsSphere(node->min, node->size - 1, center, range)) return;
 
-	if (!node->children[0]) {
-		ExpandNodes(root, node, nodes);
-		return;
-	}
+	int i;
+	std::shared_ptr<OctreeNode> child;
+	bool childFound = false;
 
 	for (i = 0; i < 8; i++) {
 		child = node->children[i];
-		if (child && childLod > 0) {
+		if (!child) continue;
+		childFound = true;
+		if (child->lod > 0) {
 			ExpandNodes(root, child, center, range, nodes);
 		}
+	}
+
+	if (!childFound) {
+		ExpandNodes(root, node, nodes);
 	}
 }
 
@@ -828,15 +828,10 @@ void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> n
 	const int childLod = node->lod - 1;
 	const int childSize = node->size / 2;
 	std::shared_ptr<OctreeNode> child;
-	const Vector3 OFFSETS[8] =
-	{
-		Vector3(0,0,0), Vector3(1,0,0), Vector3(0,0,1), Vector3(1,0,1),
-		Vector3(0,1,0), Vector3(1,1,0), Vector3(0,1,1), Vector3(1,1,1)
-	};
-	
-	if (childLod < 0) return;
-
 	bool expanded = false;
+
+	//if (childLod < 0) cout << "!" << endl;
+	if (childLod < 0) return;
 
 	for (i = 0; i < 8; i++) {
 		if (!node->children[i]) {
@@ -847,7 +842,6 @@ void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> n
 			child->type = Node_Internal;
 			child->setParent(node);
 			child->index = i;
-			//child->parent = node;
 
 			node->dirty = false;
 			node->meshRoot = NULL;
@@ -856,14 +850,11 @@ void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> n
 
 			expanded = true;
 		}
-		/*else {
-			child = node->children[i];
-			ExpandNodes(child, nodes);
-		}*/
 	}
 
 	if (expanded && root != node) {
 		for (auto neighbour : FindSeamNeighbours(root, node)) {
+			Godot::print(String("expanded neighbour min: {0}, size: {1}").format(Array::make(neighbour->min, neighbour->size)));
 			nodes.push_back(neighbour);
 		}
 	}
@@ -918,10 +909,9 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 		auto lodNode = FindLodNodeAt(root, min, node->size);
 
 		if (lodNode) {
-			//seamNeighbours.push_back(lodNode);
 			meshRootNodes.clear();
 			FindMeshRootNodes(lodNode, meshRootNodes);
-
+			
 			for (auto meshRootNode : meshRootNodes) {
 				seamNeighbours.push_back(meshRootNode);
 			}
@@ -934,8 +924,7 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 
 // -------------------------------------------------------------------------------
 
-vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node)
-{
+vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node) {
 	const Vector3 seamValues = node->min + Vector3(node->size, node->size, node->size);
 	const Vector3 OFFSETS[8] =
 	{

@@ -37,11 +37,12 @@ void VoxelWorld::build() {
 	}
 	
 	return;
-	int buildList[] = { 1, 3, 7 };
+	int buildList[] = { 1, 3, 7, 2 };
 
 	for (int childIndex : buildList) {
 		nodes.clear();
-		ExpandNodes(root, root->children[childIndex], nodes);
+		//ExpandNodes(root, root->children[childIndex], nodes);
+		ExpandNodes(root, root, Vector3(), CHUNK_SIZE * 4, nodes);
 
 		sort(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
 			return a->min * a->size < b->min * b->size;
@@ -67,12 +68,13 @@ void VoxelWorld::update(Vector3 camera) {
 	Node* scene = get_parent();
 
 	vector<std::shared_ptr<godot::OctreeNode>> nodes;
-
-	ExpandNodes(root, root, camera, CHUNK_SIZE * 2, nodes);
+	
+	ExpandNodes(root, root, /*Vector3(256, 256, 256)*/camera, CHUNK_SIZE, nodes);
 
 	sort(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
-		return a->min * a->size < b->min * b->size;
-	});
+		return a->min * a->size < b->min * b->size; });
+	nodes.erase(unique(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
+		return fn::hash(a->min, a->size) == fn::hash(b->min, b->size); }), nodes.end());
 
 	for (auto node : nodes) {
 		buildTree(node);
