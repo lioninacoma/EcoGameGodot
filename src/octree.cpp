@@ -760,6 +760,46 @@ void UpdateNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center,
 	}
 }
 
+std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range) {
+	if (!node || !BoxIntersectsSphere(node->min, node->size - 1, center, range)) return NULL;
+
+	int i;
+	const int childLod = node->lod - 1;
+	const int childSize = node->size / 2;
+	std::shared_ptr<OctreeNode> child, ret;
+	bool expanded = false;
+
+	if (childLod < 0) return NULL;
+
+	for (i = 0; i < 8; i++) {
+		if (!node->children[i]) {
+			child = shared_ptr<OctreeNode>(OctreeNode::_new());
+			child->size = childSize;
+			child->min = node->min + (CHILD_MIN_OFFSETS[i] * childSize);
+			child->lod = childLod;
+			child->type = Node_Internal;
+			child->setParent(node);
+			child->index = i;
+
+			node->dirty = false;
+			node->meshRoot = NULL;
+			node->children[i] = child;
+
+			expanded = true;
+		}
+		else {
+			child = node->children[i];
+			if (child->lod > 0) {
+				ret = ExpandNode(child, center, range);
+				if (ret) return ret;
+			}
+		}
+	}
+
+	if (expanded) return node;
+	return NULL;
+}
+
 void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node, Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes) {
 	if (!BoxIntersectsSphere(node->min, node->size - 1, center, range)) return;
 
@@ -908,13 +948,14 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 		const Vector3 min = node->min - offsetMin;
 		auto lodNode = FindLodNodeAt(root, min, node->size);
 
-		if (lodNode) {
-			meshRootNodes.clear();
-			FindMeshRootNodes(lodNode, meshRootNodes);
-			
-			for (auto meshRootNode : meshRootNodes) {
-				seamNeighbours.push_back(meshRootNode);
-			}
+		if (lodNode && lodNode->meshRoot) {
+			seamNeighbours.push_back(lodNode);
+			//meshRootNodes.clear();
+			//FindMeshRootNodes(lodNode, meshRootNodes);
+			//
+			//for (auto meshRootNode : meshRootNodes) {
+			//	seamNeighbours.push_back(meshRootNode);
+			//}
 		}
 	}
 

@@ -67,21 +67,37 @@ void VoxelWorld::update(Vector3 camera) {
 	//return;
 	Node* scene = get_parent();
 
-	vector<std::shared_ptr<godot::OctreeNode>> nodes;
-	
-	ExpandNodes(root, root, /*Vector3(256, 256, 256)*/camera, CHUNK_SIZE, nodes);
+	if (!buildQueue.empty()) {
+		auto next = buildQueue.front();
+		buildQueue.pop_front();
 
-	sort(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
-		return a->min * a->size < b->min * b->size; });
-	nodes.erase(unique(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
-		return fn::hash(a->min, a->size) == fn::hash(b->min, b->size); }), nodes.end());
 
-	for (auto node : nodes) {
-		buildTree(node);
+		// TODO: check if seam node is correct at side x
+
+		auto neighbours = FindSeamNeighbours(root, next);
+		cout << "amount neighbours: " << neighbours.size() << endl;
+		for (auto neighbour : neighbours) {
+			buildQueue.push_back(neighbour);
+		}
+
+		buildTree(next);
+		buildMesh(next);
 	}
+	else {
+		cout << "------------- fill queue -------------" << endl;
+		auto node = ExpandNode(root, Vector3(), CHUNK_SIZE * 2);
 
-	for (auto node : nodes) {
-		buildMesh(node);
+		if (node && node != root) {
+			int i;
+			std::shared_ptr<OctreeNode> child;
+
+			for (i = 0; i < 8; i++) {
+				child = node->children[i];
+				if (!child) continue;
+				buildQueue.push_front(child);
+				child->dirty = true;
+			}
+		}
 	}
 }
 
@@ -89,6 +105,7 @@ void VoxelWorld::buildTree(std::shared_ptr<OctreeNode> node) {
 	auto leafs = FindActiveVoxels(node);
 
 	if (leafs.empty()) {
+		Godot::print(String("empty node min: {0}, size: {1}").format(Array::make(node->min, node->size)));
 		return;
 	}
 

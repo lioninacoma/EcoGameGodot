@@ -195,6 +195,7 @@ void DestroyOctree(std::shared_ptr<godot::OctreeNode> node);
 void GenerateMeshFromOctree(std::shared_ptr<godot::OctreeNode> node, godot::VertexBuffer& vertexBuffer, godot::IndexBuffer& indexBuffer, int* counts);
 void Octree_FindNodes(std::shared_ptr<godot::OctreeNode> node, godot::FilterNodesFunc& func, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 std::shared_ptr<godot::OctreeNode> BuildOctree(vector<std::shared_ptr<godot::OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
+std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode> root, godot::Vector3 center, float range);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 bool CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range);
