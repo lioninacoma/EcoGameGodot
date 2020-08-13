@@ -948,14 +948,15 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 		const Vector3 min = node->min - offsetMin;
 		auto lodNode = FindLodNodeAt(root, min, node->size);
 
-		if (lodNode && lodNode->meshRoot) {
-			seamNeighbours.push_back(lodNode);
-			//meshRootNodes.clear();
-			//FindMeshRootNodes(lodNode, meshRootNodes);
-			//
-			//for (auto meshRootNode : meshRootNodes) {
-			//	seamNeighbours.push_back(meshRootNode);
-			//}
+		if (lodNode) {
+			meshRootNodes.clear();
+			FindMeshRootNodes(lodNode, meshRootNodes);
+
+			for (auto meshRootNode : meshRootNodes) {
+				if (meshRootNode->seamNeighbourLods[i] == node->lod)
+					continue;
+				seamNeighbours.push_back(meshRootNode);
+			}
 		}
 	}
 
@@ -1026,9 +1027,20 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> ro
 			meshRootNodes.clear();
 			FindMeshRootNodes(lodNode, meshRootNodes);
 
+			if (meshRootNodes.empty()) {
+				node->seamNeighbourLods[i] = -1;
+				continue;
+			}
+			else {
+				node->seamNeighbourLods[i] = meshRootNodes.front()->lod;
+			}
+
 			for (auto meshRootNode : meshRootNodes) {
 				Octree_FindNodes(meshRootNode->meshRoot, selectionFuncs[i], seamNodes);
 			}
+		}
+		else {
+			node->seamNeighbourLods[i] = -1;
 		}
 	}
 

@@ -2,7 +2,7 @@ extends VoxelWorld
 class_name CelestialBody
 
 # config
-const TIME_PERIOD = 2.0 # 2000ms
+const TIME_PERIOD = 0.5 # 500ms
 var time = 0
 var size : int
 var noise : OpenSimplexNoise

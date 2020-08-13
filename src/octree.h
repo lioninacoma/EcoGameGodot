@@ -141,6 +141,7 @@ namespace godot {
 		
 			for (int i = 0; i < 8; i++) {
 				children[i] = nullptr;
+				seamNeighbourLods[i] = -1;
 			}
 		}
 
@@ -170,6 +171,7 @@ namespace godot {
 		std::shared_ptr<godot::OctreeNode>	meshRoot;
 		std::shared_ptr<godot::OctreeNode>	parent;
 		std::shared_ptr<godot::OctreeNode>	children[8];
+		int									seamNeighbourLods[8];
 		std::shared_ptr<OctreeDrawInfo>		drawInfo;
 		std::shared_mutex TREE_MUTEX;
 
