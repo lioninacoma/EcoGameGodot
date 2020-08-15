@@ -608,14 +608,6 @@ vector<std::shared_ptr<OctreeNode>> FindActiveVoxels(std::shared_ptr<OctreeNode>
 
 // -------------------------------------------------------------------------------
 
-bool PointInsideCube(Vector3 min, float size, Vector3 p) {
-	//return AABB(min, Vector3(size, size, size)).has_point(p);
-	Vector3 max = min + Vector3(size, size, size);
-	return min.x <= p.x && max.x >= p.x
-		&& min.y <= p.y && max.y >= p.y
-		&& min.z <= p.z && max.z >= p.z;
-}
-
 void FindLodNodes(std::shared_ptr<OctreeNode> node, vector<std::shared_ptr<godot::OctreeNode>>& nodes) {
 	if (!node) return;
 	bool childFound = false;
@@ -649,48 +641,6 @@ vector<std::shared_ptr<OctreeNode>> GetAllNodes(std::shared_ptr<OctreeNode> node
 	}
 
 	return nodes;
-}
-
-//std::shared_ptr<OctreeNode> FindMeshRootAt(std::shared_ptr<OctreeNode> node, Vector3 at) {
-//	if ((node->min == at || PointInsideCube(node->min, node->size - 1, at)) && node->meshRoot) return node;
-//	std::shared_ptr<OctreeNode> child;
-//
-//	for (int i = 0; i < 8; i++) {
-//		child = node->children[i];
-//		if (!child || child->lod < 0) continue;
-//		if (child->min == at || PointInsideCube(child->min, child->size - 1, at)) {
-//			return FindMeshRootAt(child, at);
-//		}
-//	}
-//
-//	return NULL;
-//}
-
-void FindMeshRootNodes(std::shared_ptr<OctreeNode> node, vector<std::shared_ptr<OctreeNode>>& nodes) {
-	std::shared_ptr<OctreeNode> child;
-	if (node->meshRoot) nodes.push_back(node);
-
-	for (int i = 0; i < 8; i++) {
-		child = node->children[i];
-		if (!child || child->lod < 0) continue;
-		FindMeshRootNodes(child, nodes);
-	}
-}
-
-std::shared_ptr<OctreeNode> FindLodNodeAt(std::shared_ptr<OctreeNode> node, Vector3 at, int minSize) {
-	std::shared_ptr<OctreeNode> child;
-	
-	for (int i = 0; i < 8; i++) {
-		child = node->children[i];
-		if (!child || child->lod < 0 || child->size < minSize) continue;
-		if (child->min == at || PointInsideCube(child->min, child->size - 1, at)) {
-			return FindLodNodeAt(child, at, minSize);
-		}
-	}
-
-	if (node->min == at || PointInsideCube(node->min, node->size - 1, at)) return node;
-	
-	return NULL;
 }
 
 // -------------------------------------------------------------------------------
@@ -780,9 +730,12 @@ std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode>
 			child->type = Node_Internal;
 			child->setParent(node);
 			child->index = i;
+			child->meshRoot = node->meshRoot;
+			child->meshInstanceId = node->meshInstanceId;
 
 			node->dirty = false;
 			node->meshRoot = NULL;
+			node->meshInstanceId = -1;
 			node->children[i] = child;
 
 			expanded = true;
@@ -935,6 +888,48 @@ void DestroyOctree(std::shared_ptr<OctreeNode> node)
 	node.reset();
 }
 
+bool PointInsideCube(Vector3 min, float size, Vector3 p) {
+	Vector3 max = min + Vector3(size, size, size);
+	return min.x <= p.x && max.x >= p.x
+		&& min.y <= p.y && max.y >= p.y
+		&& min.z <= p.z && max.z >= p.z;
+}
+
+bool NeighouringNodes(std::shared_ptr<OctreeNode> node, std::shared_ptr<OctreeNode> lodNode) {
+	return AABB(node->min, Vector3(node->size + 1, node->size + 1, node->size + 1))
+		.intersects(AABB(lodNode->min, Vector3(lodNode->size + 1, lodNode->size + 1, lodNode->size + 1)));
+}
+
+std::shared_ptr<OctreeNode> FindLodNodeAt(std::shared_ptr<OctreeNode> node, Vector3 at, int minSize) {
+	int i;
+	std::shared_ptr<OctreeNode> child;
+
+	for (i = 0; i < 8; i++) {
+		child = node->children[i];
+		if (!child || child->lod < 0 || child->size < minSize) continue;
+		if (child->min == at || PointInsideCube(child->min, child->size - 1, at)) {
+			return FindLodNodeAt(child, at, minSize);
+		}
+	}
+
+	if (node->min == at || PointInsideCube(node->min, node->size - 1, at)) return node;
+
+	return NULL;
+}
+
+void FindNeighbouringMeshes(std::shared_ptr<OctreeNode> node, std::shared_ptr<OctreeNode> lodNode, vector<std::shared_ptr<OctreeNode>>& nodes) {
+	if (lodNode->meshRoot && NeighouringNodes(node, lodNode)) nodes.push_back(lodNode);
+	
+	int i;
+	std::shared_ptr<OctreeNode> child;
+
+	for (i = 0; i < 8; i++) {
+		child = lodNode->children[i];
+		if (!child || child->lod < 0 || !NeighouringNodes(node, child)) continue;
+		FindNeighbouringMeshes(node, child, nodes);
+	}
+}
+
 vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node) {
 	vector<std::shared_ptr<OctreeNode>> seamNeighbours, meshRootNodes;
 	const Vector3 OFFSETS[8] =
@@ -943,18 +938,22 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 		Vector3(0,1,0), Vector3(1,1,0), Vector3(0,1,1), Vector3(1,1,1)
 	};
 
-	for (int i = 0; i < 8; i++) {
-		const Vector3 offsetMin = OFFSETS[i] * node->size;
-		const Vector3 min = node->min - offsetMin;
-		auto lodNode = FindLodNodeAt(root, min, node->size);
+	std::shared_ptr<OctreeNode> lodNode;
+	int i, neighbourLod = -1;
+	Vector3 min, offsetMin;
+
+	for (i = 0; i < 8; i++) {
+		offsetMin = OFFSETS[i] * node->size;
+		min = node->min - offsetMin;
+		lodNode = FindLodNodeAt(root, min, node->size);
 
 		if (lodNode) {
 			meshRootNodes.clear();
-			FindMeshRootNodes(lodNode, meshRootNodes);
+			FindNeighbouringMeshes(node, lodNode, meshRootNodes);
 
 			for (auto meshRootNode : meshRootNodes) {
-				if (meshRootNode->seamNeighbourLods[i] == node->lod)
-					continue;
+				neighbourLod = meshRootNode->seamNeighbourLods[i];
+				if (neighbourLod == node->lod || neighbourLod == -1) continue;
 				seamNeighbours.push_back(meshRootNode);
 			}
 		}
@@ -962,7 +961,6 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 
 	return seamNeighbours;
 }
-
 
 // -------------------------------------------------------------------------------
 
@@ -1017,15 +1015,18 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> ro
 		}
 	};
 
+	int i;
+	Vector3 offsetMin, min;
 	vector<std::shared_ptr<OctreeNode>> seamNodes, meshRootNodes;
-	for (int i = 0; i < 8; i++) {
-		const Vector3 offsetMin = OFFSETS[i] * node->size;
-		const Vector3 min = node->min + offsetMin;
+
+	for (i = 0; i < 8; i++) {
+		offsetMin = OFFSETS[i] * node->size;
+		min = node->min + offsetMin;
 		auto lodNode = FindLodNodeAt(root, min, node->size);
 		
 		if (lodNode) {
 			meshRootNodes.clear();
-			FindMeshRootNodes(lodNode, meshRootNodes);
+			FindNeighbouringMeshes(node, lodNode, meshRootNodes);
 
 			if (meshRootNodes.empty()) {
 				node->seamNeighbourLods[i] = -1;
@@ -1071,18 +1072,6 @@ void Octree_FindNodes(std::shared_ptr<OctreeNode> node, FilterNodesFunc& func, v
 		for (int i = 0; i < 8; i++)
 			Octree_FindNodes(node->children[i], func, nodes);
 	}
-}
-
-// -------------------------------------------------------------------------------
-
-void InsertTree(std::shared_ptr<godot::OctreeNode> src, std::shared_ptr<godot::OctreeNode> dest) {
-	/*if (node->type == Node_Leaf || node->type == Node_Pseudo) {
-		nodes.push_back(node->cpy());
-	}
-	else {
-		for (int i = 0; i < 8; i++)
-			InsertTree(src, dest->children[i]);
-	}*/
 }
 
 // -------------------------------------------------------------------------------

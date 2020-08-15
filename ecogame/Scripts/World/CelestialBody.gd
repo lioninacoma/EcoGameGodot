@@ -10,6 +10,7 @@ var center_of_gravity
 
 onready var eco_game = get_tree().get_root().get_node("EcoGame")
 var player
+var playerPosition
 
 func _init(position, size, name).(position, size, WorldVariables.stoneMaterial, name):
 	self.size = size
@@ -37,8 +38,8 @@ func _process(delta : float) -> void:
 	time += delta
 	if time > TIME_PERIOD:
 		if voxel_body && player:
-			pass
-			voxel_body.update(to_local(player.global_transform.origin))
-#			print (player.global_transform.origin)
-#			voxel_body.buildChunks(to_local(player.global_transform.origin), 64.0)
+			var currentPosition = to_local(player.global_transform.origin)
+			if !playerPosition || currentPosition != playerPosition:
+				playerPosition = currentPosition
+				voxel_body.update(playerPosition)
 		time = 0

@@ -31,31 +31,11 @@ void VoxelWorld::build() {
 		buildTree(node);
 	}
 
-	// #draw
 	for (auto node : nodes) {
 		buildMesh(node);
 	}
 	
-	return;
-	int buildList[] = { 1, 3, 7, 2 };
-
-	for (int childIndex : buildList) {
-		nodes.clear();
-		//ExpandNodes(root, root->children[childIndex], nodes);
-		ExpandNodes(root, root, Vector3(), CHUNK_SIZE * 4, nodes);
-
-		sort(nodes.begin(), nodes.end(), [](const std::shared_ptr<OctreeNode>& a, const std::shared_ptr<OctreeNode>& b) {
-			return a->min * a->size < b->min * b->size;
-		});
-
-		for (auto node : nodes) {
-			buildTree(node);
-		}
-
-		for (auto node : nodes) {
-			buildMesh(node);
-		}
-	}
+	queueThread = std::make_unique<boost::thread>(&VoxelWorld::updateMesh, this);
 }
 
 #define CHUNKBUILDER_VERTEX_SIZE 3
@@ -64,53 +44,61 @@ void VoxelWorld::build() {
 #define CHUNKBUILDER_MAX_FACES CHUNKBUILDER_MAX_VERTICES / 3
 
 void VoxelWorld::update(Vector3 camera) {
+	cameraPosition = camera;
+	BUILD_QUEUE_CV.notify_one();
+}
+
+void VoxelWorld::updateMesh() {
 	//return;
 	Node* scene = get_parent();
 
-	if (!buildQueue.empty()) {
-		auto next = buildQueue.front();
-		buildQueue.pop_front();
+	while (true) {
 
+		if (!buildQueue.empty()) {
+			auto next = buildQueue.front();
+			buildQueue.pop_front();
 
-		// TODO: check if seam node is correct at side x
+			auto neighbours = FindSeamNeighbours(root, next);
+			for (auto neighbour : neighbours) {
+				buildQueue.push_back(neighbour);
+			}
 
-		auto neighbours = FindSeamNeighbours(root, next);
-		cout << "amount neighbours: " << neighbours.size() << endl;
-		for (auto neighbour : neighbours) {
-			buildQueue.push_back(neighbour);
+			if (buildTree(next))
+				buildMesh(next);
 		}
+		else {
+			auto node = ExpandNode(root, cameraPosition, CHUNK_SIZE * 2);
 
-		buildTree(next);
-		buildMesh(next);
-	}
-	else {
-		cout << "------------- fill queue -------------" << endl;
-		auto node = ExpandNode(root, Vector3(), CHUNK_SIZE * 2);
+			if (node && node != root) {
+				int i;
+				std::shared_ptr<OctreeNode> child;
 
-		if (node && node != root) {
-			int i;
-			std::shared_ptr<OctreeNode> child;
-
-			for (i = 0; i < 8; i++) {
-				child = node->children[i];
-				if (!child) continue;
-				buildQueue.push_front(child);
-				child->dirty = true;
+				for (i = 0; i < 8; i++) {
+					child = node->children[i];
+					if (!child) continue;
+					buildQueue.push_front(child);
+					child->dirty = true;
+				}
+			}
+			else {
+				boost::unique_lock<boost::mutex> lock(BUILD_QUEUE_WAIT);
+				BUILD_QUEUE_CV.wait(lock);
 			}
 		}
+
 	}
 }
 
-void VoxelWorld::buildTree(std::shared_ptr<OctreeNode> node) {
+bool VoxelWorld::buildTree(std::shared_ptr<OctreeNode> node) {
 	auto leafs = FindActiveVoxels(node);
 
 	if (leafs.empty()) {
-		Godot::print(String("empty node min: {0}, size: {1}").format(Array::make(node->min, node->size)));
-		return;
+		return false;
 	}
 
 	auto meshRoot = BuildOctree(leafs, node->min, 1);
 	node->meshRoot = meshRoot;
+	return true;
 }
 
 void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
@@ -129,18 +117,23 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 
 	if (counts[0] == 0 || counts[1] == 0) return;
 
+	//counts[0] = 0; counts[1] = 0;
+
 	auto seams = FindSeamNodes(root, node);
 	if (seams.size() > 0) {
 		auto seamRoot = BuildOctree(seams, node->min, 1);
+		//int count0Before = counts[0];
 		GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
+		//int count0After = counts[0];
+		//cout << (count0After - count0Before) << endl;
 	}
 	
 	amountVertices = counts[0];
 	amountIndices = counts[1];
 	amountFaces = amountIndices / 3;
 
-	node->meshInstanceId = DeleteMesh(node);
-	Godot::print(String("amountVertices: {0}, amountIndices: {1}, seams: {2}, meshId: {3}").format(Array::make(amountVertices, amountIndices, seams.size(), node->meshInstanceId)));
+	//node->meshInstanceId = DeleteMesh(node);
+	//Godot::print(String("amountVertices: {0}, amountIndices: {1}, seams: {2}, meshId: {3}").format(Array::make(amountVertices, amountIndices, seams.size(), node->meshInstanceId)));
 
 	if (counts[0] == 0 || counts[1] == 0) {
 		if (node->meshInstanceId) {

@@ -25,12 +25,18 @@ namespace godot {
 	private:
 		std::shared_ptr<VoxelWorld> self;
 		std::shared_ptr<OctreeNode> root;
+		Vector3 cameraPosition;
 		//vector<std::shared_ptr<OctreeNode>> nodes;
 		//vector<std::shared_ptr<OctreeNode>> expandedNodes;
 		deque<std::shared_ptr<godot::OctreeNode>> buildQueue;
+		std::unique_ptr<boost::thread> queueThread;
 
-		void buildTree(std::shared_ptr<OctreeNode> node);
+		boost::mutex BUILD_QUEUE_WAIT;
+		boost::condition_variable BUILD_QUEUE_CV;
+
+		bool buildTree(std::shared_ptr<OctreeNode> node);
 		void buildMesh(std::shared_ptr<OctreeNode> node);
+		void updateMesh();
 	public:
 		static void _register_methods();
 
