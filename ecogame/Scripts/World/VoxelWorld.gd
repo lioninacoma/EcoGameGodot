@@ -14,11 +14,9 @@ func _init(position : Vector3, chunk_size : float, material : SpatialMaterial, n
 	voxel_body.set_name(name)
 	add_child(voxel_body, true)
 
-func delete_chunk(node, world) -> void:
-	var old_mesh_instance_id = node.getMeshInstanceId()
-#	print(old_mesh_instance_id)
-	if old_mesh_instance_id != 0:
-		var old_mesh_instance = instance_from_id(old_mesh_instance_id)
+func delete_chunk(path, world) -> void:
+	if !path.is_empty():
+		var old_mesh_instance = world.get_node(path)
 		if old_mesh_instance:
 			world.remove_child(old_mesh_instance)
 			old_mesh_instance.free()
@@ -26,9 +24,16 @@ func delete_chunk(node, world) -> void:
 func build_chunk(mesh_data : Array, node, world) -> void:
 	if !mesh_data: return
 	var mesh_instance = build_mesh_instance(mesh_data, world)
-	delete_chunk(node, world)
-	node.setMeshInstanceId(mesh_instance.get_instance_id())
+	delete_chunk(node.getMeshInstancePath(), world)
 	world.add_child(mesh_instance)
+	node.setMeshInstancePath(mesh_instance.get_path())
+
+func build_seams(mesh_data : Array, node, world) -> void:
+	if !mesh_data: return
+	var mesh_instance = build_mesh_instance(mesh_data, world)
+	delete_chunk(node.getSeamPath(), world)
+	world.add_child(mesh_instance)
+	node.setSeamPath(mesh_instance.get_path())
 
 func build_mesh_instance(mesh_data : Array, owner) -> MeshInstance:
 	if !mesh_data: return null

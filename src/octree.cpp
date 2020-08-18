@@ -82,8 +82,10 @@ const int edgeProcEdgeMask[3][2][5] = {
 const int processEdgeMask[3][4] = { {3,2,1,0},{7,5,6,4},{11,10,9,8} };
 
 void OctreeNode::_register_methods() {
-	register_method("getMeshInstanceId", &OctreeNode::getMeshInstanceId);
-	register_method("setMeshInstanceId", &OctreeNode::setMeshInstanceId);
+	register_method("getMeshInstancePath", &OctreeNode::getMeshInstancePath);
+	register_method("setMeshInstancePath", &OctreeNode::setMeshInstancePath);
+	register_method("getSeamPath", &OctreeNode::getSeamPath);
+	register_method("setSeamPath", &OctreeNode::setSeamPath);
 }
 
 void OctreeNode::_init() {
@@ -643,6 +645,21 @@ vector<std::shared_ptr<OctreeNode>> GetAllNodes(std::shared_ptr<OctreeNode> node
 	return nodes;
 }
 
+void HideParentMesh(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world) {
+	std::shared_ptr<godot::OctreeNode> parent = node->parent;
+
+	while (parent != NULL) {
+		if (!parent->hidden && !parent->meshInstancePath.is_empty()) {
+			auto obj = world->get_node(parent->meshInstancePath);
+			auto mesh = Object::cast_to<MeshInstance>(obj);
+			Godot::print(String("hide mesh: {0}").format(Array::make(mesh->get_path())));
+			mesh->hide();
+			parent->hidden = true;
+		}
+		parent = parent->parent;
+	}
+}
+
 // -------------------------------------------------------------------------------
 float Squared(float v) { return v * v; };
 
@@ -659,55 +676,6 @@ bool BoxIntersectsSphere(Vector3 BminV, int size, Vector3 CV, float r) {
 		else if (C[i] > Bmax[i]) dmin += Squared(C[i] - Bmax[i]);
 	}
 	return dmin <= r2;
-}
-
-void UpdateNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& expanded, vector<std::shared_ptr<godot::OctreeNode>>& deleted) {
-	int i;
-	const int childLod = node->lod - 1;
-	const int size2 = node->size / 2;
-	std::shared_ptr<OctreeNode> child;
-
-	if (!BoxIntersectsSphere(node->min, node->size - 1, center, range)) {
-		bool childFound = false;
-
-		for (i = 0; i < 8; i++) {
-			child = node->children[i];
-			if (child) {
-				childFound = true;
-				if (childLod > 0) {
-					UpdateNodes(child, center, range, expanded, deleted);
-				}
-			}
-		}
-
-		if (!childFound) {
-			deleted.push_back(node);
-		}
-	}
-	else {
-		for (i = 0; i < 8; i++) {
-			if (!node->children[i]) {
-				child = shared_ptr<OctreeNode>(OctreeNode::_new());
-				child->size = size2;
-				child->min = node->min + (CHILD_MIN_OFFSETS[i] * size2);
-				child->lod = childLod;
-				child->type = Node_Internal;
-				child->dirty = true;
-				child->setParent(node);
-				child->index = i;
-
-				node->dirty = false;
-				node->children[i] = child;
-				expanded.push_back(child);
-			}
-			else {
-				child = node->children[i];
-				if (childLod > 1) {
-					UpdateNodes(child, center, range, expanded, deleted);
-				}
-			}
-		}
-	}
 }
 
 std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range) {
@@ -730,14 +698,8 @@ std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode>
 			child->type = Node_Internal;
 			child->setParent(node);
 			child->index = i;
-			child->meshRoot = node->meshRoot;
-			child->meshInstanceId = node->meshInstanceId;
 
-			node->dirty = false;
-			node->meshRoot = NULL;
-			node->meshInstanceId = -1;
 			node->children[i] = child;
-
 			expanded = true;
 		}
 		else {
@@ -751,27 +713,6 @@ std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode>
 
 	if (expanded) return node;
 	return NULL;
-}
-
-void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node, Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes) {
-	if (!BoxIntersectsSphere(node->min, node->size - 1, center, range)) return;
-
-	int i;
-	std::shared_ptr<OctreeNode> child;
-	bool childFound = false;
-
-	for (i = 0; i < 8; i++) {
-		child = node->children[i];
-		if (!child) continue;
-		childFound = true;
-		if (child->lod > 0) {
-			ExpandNodes(root, child, center, range, nodes);
-		}
-	}
-
-	if (!childFound) {
-		ExpandNodes(root, node, nodes);
-	}
 }
 
 bool CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range) {
@@ -794,24 +735,6 @@ bool CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center
 	return isCollapsible;
 }
 
-int DeleteMesh(std::shared_ptr<OctreeNode> node) {
-	std::shared_ptr<OctreeNode> current;
-	current = node;
-	
-	while (current != NULL) {
-		if (current->meshInstanceId > 0) {
-			int meshInstanceId = current->meshInstanceId;
-			current->meshInstanceId = 0;
-			current->meshRoot = NULL;
-			return meshInstanceId;
-		}
-		//current = current->parent;
-		current = current->getParent();
-	}
-
-	return 0;
-}
-
 // -------------------------------------------------------------------------------
 
 void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> node, vector<std::shared_ptr<godot::OctreeNode>>& nodes) {
@@ -821,9 +744,7 @@ void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> n
 	const int childLod = node->lod - 1;
 	const int childSize = node->size / 2;
 	std::shared_ptr<OctreeNode> child;
-	bool expanded = false;
 
-	//if (childLod < 0) cout << "!" << endl;
 	if (childLod < 0) return;
 
 	for (i = 0; i < 8; i++) {
@@ -836,19 +757,8 @@ void ExpandNodes(std::shared_ptr<OctreeNode> root, std::shared_ptr<OctreeNode> n
 			child->setParent(node);
 			child->index = i;
 
-			node->dirty = false;
-			node->meshRoot = NULL;
 			node->children[i] = child;
 			nodes.push_back(child);
-
-			expanded = true;
-		}
-	}
-
-	if (expanded && root != node) {
-		for (auto neighbour : FindSeamNeighbours(root, node)) {
-			Godot::print(String("expanded neighbour min: {0}, size: {1}").format(Array::make(neighbour->min, neighbour->size)));
-			nodes.push_back(neighbour);
 		}
 	}
 }
@@ -918,8 +828,8 @@ std::shared_ptr<OctreeNode> FindLodNodeAt(std::shared_ptr<OctreeNode> node, Vect
 }
 
 void FindNeighbouringMeshes(std::shared_ptr<OctreeNode> node, std::shared_ptr<OctreeNode> lodNode, vector<std::shared_ptr<OctreeNode>>& nodes) {
-	if (lodNode->meshRoot && NeighouringNodes(node, lodNode)) nodes.push_back(lodNode);
-	
+	if (!lodNode->hidden && lodNode->meshRoot && NeighouringNodes(node, lodNode)) nodes.push_back(lodNode);
+	// TODO: SEAM NODE HIDDEN?
 	int i;
 	std::shared_ptr<OctreeNode> child;
 

@@ -23,7 +23,7 @@ void VoxelWorld::build() {
 	root->type = Node_Internal;
 	root->lod = MAX_LOD;
 
-	vector<std::shared_ptr<godot::OctreeNode>> nodes;
+	/*vector<std::shared_ptr<godot::OctreeNode>> nodes;
 	
 	ExpandNodes(root, root, nodes);
 
@@ -32,8 +32,9 @@ void VoxelWorld::build() {
 	}
 
 	for (auto node : nodes) {
-		buildMesh(node);
-	}
+		buildChunk(node);
+		buildSeams(node);
+	}*/
 	
 	queueThread = std::make_unique<boost::thread>(&VoxelWorld::updateMesh, this);
 }
@@ -44,7 +45,9 @@ void VoxelWorld::build() {
 #define CHUNKBUILDER_MAX_FACES CHUNKBUILDER_MAX_VERTICES / 3
 
 void VoxelWorld::update(Vector3 camera) {
+	CAMERA_POS_MUTEX.lock();
 	cameraPosition = camera;
+	CAMERA_POS_MUTEX.unlock();
 	BUILD_QUEUE_CV.notify_one();
 }
 
@@ -58,16 +61,28 @@ void VoxelWorld::updateMesh() {
 			auto next = buildQueue.front();
 			buildQueue.pop_front();
 
-			auto neighbours = FindSeamNeighbours(root, next);
-			for (auto neighbour : neighbours) {
-				buildQueue.push_back(neighbour);
+			if (next.seams) {
+				buildSeams(next.node);
 			}
+			else {
+				auto neighbours = FindSeamNeighbours(root, next.node);
+				for (auto neighbour : neighbours) {
+					buildQueue.push_back(BuildQueueEntry(neighbour, true));
+				}
 
-			if (buildTree(next))
-				buildMesh(next);
+				cout << neighbours.size() << endl;
+
+				if (buildTree(next.node)) {
+					//buildChunk(next.node);
+					//buildSeams(next.node);
+				}
+			}
 		}
 		else {
-			auto node = ExpandNode(root, cameraPosition, CHUNK_SIZE * 2);
+			CAMERA_POS_MUTEX.lock();
+			Vector3 cam = cameraPosition;
+			CAMERA_POS_MUTEX.unlock();
+			auto node = ExpandNode(root, cam, CHUNK_SIZE * 2);
 
 			if (node && node != root) {
 				int i;
@@ -76,7 +91,7 @@ void VoxelWorld::updateMesh() {
 				for (i = 0; i < 8; i++) {
 					child = node->children[i];
 					if (!child) continue;
-					buildQueue.push_front(child);
+					buildQueue.push_front(BuildQueueEntry(child, false));
 					child->dirty = true;
 				}
 			}
@@ -90,21 +105,48 @@ void VoxelWorld::updateMesh() {
 }
 
 bool VoxelWorld::buildTree(std::shared_ptr<OctreeNode> node) {
+	if (node->hidden) return false;
+
 	auto leafs = FindActiveVoxels(node);
 
-	if (leafs.empty()) {
-		return false;
-	}
+	if (leafs.empty()) return false;
 
 	auto meshRoot = BuildOctree(leafs, node->min, 1);
+
+	if (node->meshRoot) {
+		DestroyOctree(node->meshRoot);
+	}
+
 	node->meshRoot = meshRoot;
 	return true;
 }
 
-void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
+void VoxelWorld::buildSeams(std::shared_ptr<OctreeNode> node) {
 	Node* parent = get_parent();
-	int i, j, n, amountVertices, amountIndices, amountFaces;
+	VertexBuffer vertices;
+	IndexBuffer indices;
+	int* counts = new int[2]{ 0, 0 };
+	vertices.resize(CHUNKBUILDER_MAX_VERTICES);
+	indices.resize(CHUNKBUILDER_MAX_VERTICES);
 
+	auto seams = FindSeamNodes(root, node);
+	if (seams.size() > 0) {
+		auto seamRoot = BuildOctree(seams, node->min, 1);
+		GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
+	}
+
+	if (counts[0] == 0 || counts[1] == 0) {
+		return;
+	}
+
+	cout << "seams - vertices: " << counts[0] << ", indices: " << counts[1] << endl;
+
+	auto meshData = buildMesh(node, vertices, indices, counts);
+	parent->call_deferred("build_seams", meshData, node.get(), this);
+}
+
+void VoxelWorld::buildChunk(std::shared_ptr<OctreeNode> node) {
+	Node* parent = get_parent();
 	VertexBuffer vertices;
 	IndexBuffer indices;
 	int* counts = new int[2]{ 0, 0 };
@@ -112,38 +154,33 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	indices.resize(CHUNKBUILDER_MAX_VERTICES);
 
 	node->dirty = false;
-
 	GenerateMeshFromOctree(node->meshRoot, vertices, indices, counts);
 
 	if (counts[0] == 0 || counts[1] == 0) return;
+	auto meshData = buildMesh(node, vertices, indices, counts);
+	parent->call_deferred("build_chunk", meshData, node.get(), this);
+}
 
-	//counts[0] = 0; counts[1] = 0;
+Array VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node, VertexBuffer vertices, IndexBuffer indices, int* counts) {
+	Node* parent = get_parent();
+	int i, j, n, amountVertices, amountIndices, amountFaces;
+	Array meshData;
 
-	auto seams = FindSeamNodes(root, node);
-	if (seams.size() > 0) {
-		auto seamRoot = BuildOctree(seams, node->min, 1);
-		//int count0Before = counts[0];
-		GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
-		//int count0After = counts[0];
-		//cout << (count0After - count0Before) << endl;
-	}
-	
 	amountVertices = counts[0];
 	amountIndices = counts[1];
 	amountFaces = amountIndices / 3;
 
-	//node->meshInstanceId = DeleteMesh(node);
-	//Godot::print(String("amountVertices: {0}, amountIndices: {1}, seams: {2}, meshId: {3}").format(Array::make(amountVertices, amountIndices, seams.size(), node->meshInstanceId)));
+	HideParentMesh(node, this);
 
 	if (counts[0] == 0 || counts[1] == 0) {
-		if (node->meshInstanceId) {
+		if (!node->meshInstancePath.is_empty()) {
 			cout << "delete" << endl;
 			parent->call("delete_chunk", node.get(), this);
 		}
-		return;
+		return meshData;
 	}
 
-	Array meshData;
+	
 	Array meshArrays;
 
 	PoolVector3Array vertexArray;
@@ -188,5 +225,5 @@ void VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node) {
 	meshData[0] = meshArrays;
 	meshData[1] = collisionArray;
 
-	parent->call("build_chunk", meshData, node.get(), this);
+	return meshData;
 }

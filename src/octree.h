@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <Godot.hpp>
 #include <Spatial.hpp>
 #include <Vector3.hpp>
+#include <MeshInstance.hpp>
+#include <gdnative\gdnative.h>
 #include <AABB.hpp>
 
 #include <vector>
@@ -131,12 +133,14 @@ namespace godot {
 			, min(0, 0, 0)
 			, size(0)
 			, drawInfo(nullptr)
-			, meshInstanceId(0)
+			, meshInstancePath("")
+			, seamPath("")
 			, dirty(true)
 			, parent(nullptr)
 			, lod(-1)
 			, meshRoot(nullptr)
 			, index(-1)
+			, hidden(false)
 		{
 		
 			for (int i = 0; i < 8; i++) {
@@ -153,7 +157,9 @@ namespace godot {
 			auto c = make_shared<godot::OctreeNode>();
 			c->size = size;
 			c->lod = lod;
-			c->meshInstanceId = meshInstanceId;
+			c->meshInstancePath = meshInstancePath;
+			c->seamPath = seamPath;
+			c->hidden = hidden;
 			c->dirty = dirty;
 			c->type = type;
 			c->min = min;
@@ -163,9 +169,11 @@ namespace godot {
 
 		int									size;
 		int									lod;
-		int									meshInstanceId;
+		NodePath							meshInstancePath;
+		NodePath							seamPath;
 		int									index;
 		bool								dirty;
+		bool								hidden;
 		OctreeNodeType						type;
 		godot::Vector3						min;
 		std::shared_ptr<godot::OctreeNode>	meshRoot;
@@ -175,8 +183,10 @@ namespace godot {
 		std::shared_ptr<OctreeDrawInfo>		drawInfo;
 		std::shared_mutex TREE_MUTEX;
 
-		int getMeshInstanceId() { return meshInstanceId; }
-		void setMeshInstanceId(int meshInstanceId) { OctreeNode::meshInstanceId = meshInstanceId; }
+		NodePath getMeshInstancePath() { return meshInstancePath; }
+		void setMeshInstancePath(NodePath meshInstancePath) { OctreeNode::meshInstancePath = meshInstancePath; }
+		NodePath getSeamPath() { return seamPath; }
+		void setSeamPath(NodePath seamPath) { OctreeNode::seamPath = seamPath; }
 
 		void setParent(std::shared_ptr<godot::OctreeNode> parent) {
 			boost::unique_lock<std::shared_mutex> lock(TREE_MUTEX);
@@ -199,16 +209,14 @@ void Octree_FindNodes(std::shared_ptr<godot::OctreeNode> node, godot::FilterNode
 std::shared_ptr<godot::OctreeNode> BuildOctree(vector<std::shared_ptr<godot::OctreeNode>> seams, godot::Vector3 chunkMin, int parentSize);
 std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode> root, godot::Vector3 center, float range);
 void ExpandNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
-void ExpandNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 bool CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range);
 vector<std::shared_ptr<godot::OctreeNode>> FindSeamNodes(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node);
 void FindLodNodes(std::shared_ptr<godot::OctreeNode> node, vector<std::shared_ptr<godot::OctreeNode>>& nodes);
 vector<std::shared_ptr<godot::OctreeNode>> GetAllNodes(std::shared_ptr<godot::OctreeNode> node);
 vector<std::shared_ptr<godot::OctreeNode>> FindActiveVoxels(std::shared_ptr<godot::OctreeNode> node);
-int DeleteMesh(std::shared_ptr<godot::OctreeNode> node);
 void PrintOctree(std::shared_ptr<godot::OctreeNode> node);
-void UpdateNodes(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, vector<std::shared_ptr<godot::OctreeNode>>& expanded, vector<std::shared_ptr<godot::OctreeNode>>& deleted);
 vector<std::shared_ptr<godot::OctreeNode>> FindSeamNeighbours(std::shared_ptr<godot::OctreeNode> root, std::shared_ptr<godot::OctreeNode> node);
+void HideParentMesh(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world);
 
 // ----------------------------------------------------------------------------
 
