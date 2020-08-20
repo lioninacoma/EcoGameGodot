@@ -23,7 +23,7 @@ void VoxelWorld::build() {
 	root->type = Node_Internal;
 	root->lod = MAX_LOD;
 
-	/*vector<std::shared_ptr<godot::OctreeNode>> nodes;
+	vector<std::shared_ptr<godot::OctreeNode>> nodes;
 	
 	ExpandNodes(root, root, nodes);
 
@@ -34,7 +34,7 @@ void VoxelWorld::build() {
 	for (auto node : nodes) {
 		buildChunk(node);
 		buildSeams(node);
-	}*/
+	}
 	
 	queueThread = std::make_unique<boost::thread>(&VoxelWorld::updateMesh, this);
 }
@@ -62,20 +62,17 @@ void VoxelWorld::updateMesh() {
 			buildQueue.pop_front();
 
 			if (next.seams) {
-				buildSeams(next.node);
+				//buildSeams(next.node);
 			}
-			else {
+			else if (buildTree(next.node)) {
+				buildQueue.push_back(BuildQueueEntry(next.node, true));
+
 				auto neighbours = FindSeamNeighbours(root, next.node);
 				for (auto neighbour : neighbours) {
 					buildQueue.push_back(BuildQueueEntry(neighbour, true));
 				}
 
-				cout << neighbours.size() << endl;
-
-				if (buildTree(next.node)) {
-					//buildChunk(next.node);
-					//buildSeams(next.node);
-				}
+				buildChunk(next.node);
 			}
 		}
 		else {
@@ -108,7 +105,6 @@ bool VoxelWorld::buildTree(std::shared_ptr<OctreeNode> node) {
 	if (node->hidden) return false;
 
 	auto leafs = FindActiveVoxels(node);
-
 	if (leafs.empty()) return false;
 
 	auto meshRoot = BuildOctree(leafs, node->min, 1);
@@ -135,14 +131,10 @@ void VoxelWorld::buildSeams(std::shared_ptr<OctreeNode> node) {
 		GenerateMeshFromOctree(seamRoot, vertices, indices, counts);
 	}
 
-	if (counts[0] == 0 || counts[1] == 0) {
-		return;
-	}
-
-	cout << "seams - vertices: " << counts[0] << ", indices: " << counts[1] << endl;
-
+	if (counts[0] == 0 || counts[1] == 0) return;
+	//cout << "seams - vertices: " << counts[0] << ", indices: " << counts[1] << endl;
 	auto meshData = buildMesh(node, vertices, indices, counts);
-	parent->call_deferred("build_seams", meshData, node.get(), this);
+	parent->call("build_seams", meshData, node.get(), this);
 }
 
 void VoxelWorld::buildChunk(std::shared_ptr<OctreeNode> node) {
@@ -158,7 +150,7 @@ void VoxelWorld::buildChunk(std::shared_ptr<OctreeNode> node) {
 
 	if (counts[0] == 0 || counts[1] == 0) return;
 	auto meshData = buildMesh(node, vertices, indices, counts);
-	parent->call_deferred("build_chunk", meshData, node.get(), this);
+	parent->call("build_chunk", meshData, node.get(), this);
 }
 
 Array VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node, VertexBuffer vertices, IndexBuffer indices, int* counts) {

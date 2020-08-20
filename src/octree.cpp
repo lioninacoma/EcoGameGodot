@@ -652,7 +652,7 @@ void HideParentMesh(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* 
 		if (!parent->hidden && !parent->meshInstancePath.is_empty()) {
 			auto obj = world->get_node(parent->meshInstancePath);
 			auto mesh = Object::cast_to<MeshInstance>(obj);
-			Godot::print(String("hide mesh: {0}").format(Array::make(mesh->get_path())));
+			//Godot::print(String("hide mesh: {0}").format(Array::make(mesh->get_path())));
 			mesh->hide();
 			parent->hidden = true;
 		}
@@ -829,7 +829,6 @@ std::shared_ptr<OctreeNode> FindLodNodeAt(std::shared_ptr<OctreeNode> node, Vect
 
 void FindNeighbouringMeshes(std::shared_ptr<OctreeNode> node, std::shared_ptr<OctreeNode> lodNode, vector<std::shared_ptr<OctreeNode>>& nodes) {
 	if (!lodNode->hidden && lodNode->meshRoot && NeighouringNodes(node, lodNode)) nodes.push_back(lodNode);
-	// TODO: SEAM NODE HIDDEN?
 	int i;
 	std::shared_ptr<OctreeNode> child;
 
@@ -856,13 +855,14 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 		offsetMin = OFFSETS[i] * node->size;
 		min = node->min - offsetMin;
 		lodNode = FindLodNodeAt(root, min, node->size);
-
+		
 		if (lodNode) {
 			meshRootNodes.clear();
 			FindNeighbouringMeshes(node, lodNode, meshRootNodes);
-
+			//cout << meshRootNodes.size() << endl;
 			for (auto meshRootNode : meshRootNodes) {
 				neighbourLod = meshRootNode->seamNeighbourLods[i];
+				//cout << neighbourLod << endl;
 				if (neighbourLod == node->lod || neighbourLod == -1) continue;
 				seamNeighbours.push_back(meshRootNode);
 			}
