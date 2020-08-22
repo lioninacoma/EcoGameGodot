@@ -650,10 +650,13 @@ void HideParentMesh(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* 
 
 	while (parent != NULL) {
 		if (!parent->hidden && !parent->meshInstancePath.is_empty()) {
-			auto obj = world->get_node(parent->meshInstancePath);
-			auto mesh = Object::cast_to<MeshInstance>(obj);
+			auto meshObj = world->get_node(parent->meshInstancePath);
+			auto mesh = Object::cast_to<MeshInstance>(meshObj);
+			auto seamObj = world->get_node(parent->seamPath);
+			auto seam = Object::cast_to<MeshInstance>(seamObj);
 			//Godot::print(String("hide mesh: {0}").format(Array::make(mesh->get_path())));
 			mesh->hide();
+			seam->hide();
 			parent->hidden = true;
 		}
 		parent = parent->parent;

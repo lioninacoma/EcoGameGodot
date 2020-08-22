@@ -33,6 +33,9 @@ void VoxelWorld::build() {
 
 	for (auto node : nodes) {
 		buildChunk(node);
+	}
+
+	for (auto node : nodes) {
 		buildSeams(node);
 	}
 	
@@ -62,7 +65,7 @@ void VoxelWorld::updateMesh() {
 			buildQueue.pop_front();
 
 			if (next.seams) {
-				//buildSeams(next.node);
+				buildSeams(next.node);
 			}
 			else if (buildTree(next.node)) {
 				buildQueue.push_back(BuildQueueEntry(next.node, true));
@@ -134,7 +137,7 @@ void VoxelWorld::buildSeams(std::shared_ptr<OctreeNode> node) {
 	if (counts[0] == 0 || counts[1] == 0) return;
 	//cout << "seams - vertices: " << counts[0] << ", indices: " << counts[1] << endl;
 	auto meshData = buildMesh(node, vertices, indices, counts);
-	parent->call("build_seams", meshData, node.get(), this);
+	parent->call_deferred("build_seams", meshData, node.get(), this);
 }
 
 void VoxelWorld::buildChunk(std::shared_ptr<OctreeNode> node) {
@@ -150,7 +153,7 @@ void VoxelWorld::buildChunk(std::shared_ptr<OctreeNode> node) {
 
 	if (counts[0] == 0 || counts[1] == 0) return;
 	auto meshData = buildMesh(node, vertices, indices, counts);
-	parent->call("build_chunk", meshData, node.get(), this);
+	parent->call_deferred("build_chunk", meshData, node.get(), this);
 }
 
 Array VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node, VertexBuffer vertices, IndexBuffer indices, int* counts) {
@@ -167,12 +170,11 @@ Array VoxelWorld::buildMesh(std::shared_ptr<OctreeNode> node, VertexBuffer verti
 	if (counts[0] == 0 || counts[1] == 0) {
 		if (!node->meshInstancePath.is_empty()) {
 			cout << "delete" << endl;
-			parent->call("delete_chunk", node.get(), this);
+			parent->call_deferred("delete_chunk", node.get(), this);
 		}
 		return meshData;
 	}
 
-	
 	Array meshArrays;
 
 	PoolVector3Array vertexArray;
