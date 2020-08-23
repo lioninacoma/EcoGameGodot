@@ -645,24 +645,28 @@ vector<std::shared_ptr<OctreeNode>> GetAllNodes(std::shared_ptr<OctreeNode> node
 	return nodes;
 }
 
+void HideNode(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world) {
+	if (!node->meshInstancePath.is_empty()) {
+		auto meshObj = world->get_node(node->meshInstancePath);
+		auto mesh = Object::cast_to<MeshInstance>(meshObj);
+		mesh->hide();
+		node->hidden = true;
+	}
+
+	if (!node->seamPath.is_empty()) {
+		auto seamObj = world->get_node(node->seamPath);
+		auto seam = Object::cast_to<MeshInstance>(seamObj);
+		seam->hide();
+		node->hidden = true;
+	}
+}
+
 void HideParentMesh(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world) {
 	std::shared_ptr<godot::OctreeNode> parent = node->parent;
 
 	while (parent != NULL) {
 		if (!parent->hidden) {
-			if (!parent->meshInstancePath.is_empty()) {
-				auto meshObj = world->get_node(parent->meshInstancePath);
-				auto mesh = Object::cast_to<MeshInstance>(meshObj);
-				mesh->hide();
-				parent->hidden = true;
-			}
-
-			if (!parent->seamPath.is_empty()) {
-				auto seamObj = world->get_node(parent->seamPath);
-				auto seam = Object::cast_to<MeshInstance>(seamObj);
-				seam->hide();
-				parent->hidden = true;
-			}
+			HideNode(parent, world);
 		}
 		parent = parent->parent;
 	}
@@ -723,24 +727,32 @@ std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode>
 	return NULL;
 }
 
-bool CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range) {
-	if (!node) return false;
-	
+std::shared_ptr<godot::OctreeNode> CollapseNode(std::shared_ptr<godot::OctreeNode> node, godot::Vector3 center, float range, godot::VoxelWorld* world) {
+	if (!node || BoxIntersectsSphere(node->min, node->size - 1, center, range)) return NULL;
+
 	int i;
-	std::shared_ptr<OctreeNode> child;
-	bool isCollapsible = true;
+	const int childLod = node->lod - 1;
+	std::shared_ptr<OctreeNode> child, ret;
+	bool collapsed = false;
+
+	if (childLod < 0) return NULL;
 
 	for (i = 0; i < 8; i++) {
-		if (!node->children[i]) continue;
 		child = node->children[i];
-
-		if (BoxIntersectsSphere(child->min, child->size - 1, center, range)) {
-			isCollapsible = false;
-			break;
+		if (!child) continue;
+		if (child->meshRoot && !child->hidden) {
+			collapsed = true;
+			cout << "hide" << endl;
+			HideNode(child, world);
+		}
+		else if (child->lod > 0) {
+			ret = CollapseNode(child, center, range, world);
+			if (ret) return ret;
 		}
 	}
 
-	return isCollapsible;
+	if (collapsed) return node;
+	return NULL;
 }
 
 // -------------------------------------------------------------------------------
