@@ -468,8 +468,8 @@ void ContourCellProc(std::shared_ptr<OctreeNode> node, IndexBuffer& indexBuffer,
 float Density_Func(Vector3 v) {
 	float size2 = pow(2, MAX_LOD) * CHUNK_SIZE / 2;
 	Vector3 origin(size2, size2, size2);
-	//return Sphere(v, origin, size2);
-	return Cuboid(v, origin, Vector3(size2, size2, size2));
+	//return Sphere(v, origin, size2 - 2);
+	return Cuboid(v, origin, Vector3(size2 - 2, size2 - 2, size2 - 2));
 }
 
 // ----------------------------------------------------------------------------
@@ -649,15 +649,20 @@ void HideParentMesh(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* 
 	std::shared_ptr<godot::OctreeNode> parent = node->parent;
 
 	while (parent != NULL) {
-		if (!parent->hidden && !parent->meshInstancePath.is_empty()) {
-			auto meshObj = world->get_node(parent->meshInstancePath);
-			auto mesh = Object::cast_to<MeshInstance>(meshObj);
-			auto seamObj = world->get_node(parent->seamPath);
-			auto seam = Object::cast_to<MeshInstance>(seamObj);
-			//Godot::print(String("hide mesh: {0}").format(Array::make(mesh->get_path())));
-			mesh->hide();
-			seam->hide();
-			parent->hidden = true;
+		if (!parent->hidden) {
+			if (!parent->meshInstancePath.is_empty()) {
+				auto meshObj = world->get_node(parent->meshInstancePath);
+				auto mesh = Object::cast_to<MeshInstance>(meshObj);
+				mesh->hide();
+				parent->hidden = true;
+			}
+
+			if (!parent->seamPath.is_empty()) {
+				auto seamObj = world->get_node(parent->seamPath);
+				auto seam = Object::cast_to<MeshInstance>(seamObj);
+				seam->hide();
+				parent->hidden = true;
+			}
 		}
 		parent = parent->parent;
 	}
@@ -802,10 +807,11 @@ void DestroyOctree(std::shared_ptr<OctreeNode> node)
 }
 
 bool PointInsideCube(Vector3 min, float size, Vector3 p) {
-	Vector3 max = min + Vector3(size, size, size);
+	return  AABB(min, Vector3(size, size, size)).has_point(p);
+	/*Vector3 max = min + Vector3(size, size, size);
 	return min.x <= p.x && max.x >= p.x
 		&& min.y <= p.y && max.y >= p.y
-		&& min.z <= p.z && max.z >= p.z;
+		&& min.z <= p.z && max.z >= p.z;*/
 }
 
 bool NeighouringNodes(std::shared_ptr<OctreeNode> node, std::shared_ptr<OctreeNode> lodNode) {
@@ -826,7 +832,6 @@ std::shared_ptr<OctreeNode> FindLodNodeAt(std::shared_ptr<OctreeNode> node, Vect
 	}
 
 	if (node->min == at || PointInsideCube(node->min, node->size - 1, at)) return node;
-
 	return NULL;
 }
 

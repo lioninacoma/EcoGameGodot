@@ -33,9 +33,6 @@ void VoxelWorld::build() {
 
 	for (auto node : nodes) {
 		buildChunk(node);
-	}
-
-	for (auto node : nodes) {
 		buildSeams(node);
 	}
 	
@@ -135,7 +132,7 @@ void VoxelWorld::buildSeams(std::shared_ptr<OctreeNode> node) {
 	}
 
 	if (counts[0] == 0 || counts[1] == 0) return;
-	//cout << "seams - vertices: " << counts[0] << ", indices: " << counts[1] << endl;
+	cout << "seams - vertices: " << counts[0] << ", indices: " << counts[1] << endl;
 	auto meshData = buildMesh(node, vertices, indices, counts);
 	parent->call_deferred("build_seams", meshData, node.get(), this);
 }
@@ -152,6 +149,7 @@ void VoxelWorld::buildChunk(std::shared_ptr<OctreeNode> node) {
 	GenerateMeshFromOctree(node->meshRoot, vertices, indices, counts);
 
 	if (counts[0] == 0 || counts[1] == 0) return;
+	cout << "chunk - vertices: " << counts[0] << ", indices: " << counts[1] << endl;
 	auto meshData = buildMesh(node, vertices, indices, counts);
 	parent->call_deferred("build_chunk", meshData, node.get(), this);
 }
