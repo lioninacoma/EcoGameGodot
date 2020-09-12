@@ -52,10 +52,98 @@ void VoxelWorld::update(Vector3 camera) {
 }
 
 void VoxelWorld::updateMesh() {
+	while (true) {
+		CAMERA_POS_MUTEX.lock();
+		Vector3 cam = cameraPosition;
+		CAMERA_POS_MUTEX.unlock();
+
+		if (!buildQueue.empty()) {
+			auto next = buildQueue.front();
+			buildQueue.pop_front();
+
+			if (next.seams) {
+				buildSeams(next.node);
+			}
+			else if (next.node->meshRoot/* && next.node->hidden*/) {
+				buildQueue.emplace_back(next.node, true);
+				if (!next.node->seamPath.is_empty()) {
+					auto seamObj = get_node(next.node->seamPath);
+					auto seam = Object::cast_to<MeshInstance>(seamObj);
+					seam->call_deferred("free");
+					next.node->setSeamPath("");
+				}
+				auto neighbours = FindSeamNeighbours(root, next.node);
+				//cout << neighbours.size() << endl;
+				for (auto neighbour : neighbours) {
+					buildQueue.emplace_back(neighbour, true);
+					if (!neighbour->seamPath.is_empty()) {
+						auto seamObj = get_node(neighbour->seamPath);
+						auto seam = Object::cast_to<MeshInstance>(seamObj);
+						seam->call_deferred("free");
+						neighbour->setSeamPath("");
+					}
+				}
+
+				expandedNodes.push_back(next.node);
+				ShowNode(next.node, this);
+			}
+			else if (buildTree(next.node)) {
+				buildQueue.emplace_back(next.node, true);
+				auto neighbours = FindSeamNeighbours(root, next.node);
+				for (auto neighbour : neighbours) {
+					buildQueue.emplace_back(neighbour, true);
+				}
+
+				expandedNodes.push_back(next.node);
+				buildChunk(next.node);
+			}
+		}
+		else {
+			auto node = ExpandNode(root, cam, CHUNK_SIZE * 4);
+
+			if (node && node != root) {
+				int i, j;
+				std::shared_ptr<OctreeNode> child;
+
+				for (i = 0; i < 8; i++) {
+					child = node->children[i];
+					if (!child) continue;
+					buildQueue.emplace_front(child, false);
+				}
+			}
+			else {
+				boost::unique_lock<boost::mutex> lock(BUILD_QUEUE_WAIT);
+				BUILD_QUEUE_CV.wait(lock);
+
+				int i, j, expandedNodesSize = expandedNodes.size();
+				std::shared_ptr<OctreeNode> expandedNode, collapsed;
+
+				for (i = 0; i < expandedNodesSize; i++) {
+					expandedNode = expandedNodes.front();
+					expandedNodes.pop_front();
+
+					collapsed = CollapseNode(expandedNode, cam, CHUNK_SIZE * 4, this);
+					if (collapsed && collapsed != root) {
+						buildQueue.emplace_front(collapsed, false);
+						//ShowNode(collapsed, this);
+					}
+					else {
+						expandedNodes.push_back(expandedNode);
+					}
+				}
+			}
+		}
+	}
+}
+
+/*void VoxelWorld::updateMesh() {
 	//return;
 	Node* scene = get_parent();
 
 	while (true) {
+		CAMERA_POS_MUTEX.lock();
+		Vector3 cam = cameraPosition;
+		CAMERA_POS_MUTEX.unlock();
 
 		if (!buildQueue.empty()) {
 			auto next = buildQueue.front();
@@ -72,20 +160,48 @@ void VoxelWorld::updateMesh() {
 					buildQueue.push_back(BuildQueueEntry(neighbour, true));
 				}
 
+				expandedNodes.push_back(next.node);
 				buildChunk(next.node);
 			}
 		}
 		else {
-			CAMERA_POS_MUTEX.lock();
-			Vector3 cam = cameraPosition;
-			CAMERA_POS_MUTEX.unlock();
+			bool isCollapsed = false;
 
-			auto collapsed = CollapseNode(root, cam, CHUNK_SIZE * 4, this);
-			auto node = ExpandNode(root, cam, CHUNK_SIZE * 4);
+			for (int i = 0; i < expandedNodes.size(); i++) {
+				auto expandedNode = expandedNodes.front();
+				expandedNodes.pop_front();
 
-			if (collapsed && collapsed != root) {
-				buildQueue.push_front(BuildQueueEntry(collapsed, false));
+				auto collapsed = CollapseNode(expandedNode, cam, CHUNK_SIZE * 4, this);
+				if (collapsed && collapsed != root) {
+					//ShowNode(collapsed, this);
+					//buildQueue.push_back(BuildQueueEntry(collapsed, true));
+					//auto neighbours = FindSeamNeighbours(root, collapsed);
+					//for (auto neighbour : neighbours) {
+					//	buildQueue.push_back(BuildQueueEntry(neighbour, true));
+					//}
+					//isCollapsed = true;
+					//expandedNodes.push_back(collapsed);
+					//buildChunk(collapsed);
+
+					for (int j = 0; j < 8; j++) {
+						collapsed->seamNeighbourLods[j] = -1;
+						collapsed->children[j] = NULL;
+					}
+					collapsed->meshRoot = NULL;
+					collapsed->hidden = false;
+					collapsed->dirty = true;
+					buildQueue.push_front(BuildQueueEntry(collapsed, false));
+
+					//break; // ?
+				}
+				else {
+					expandedNodes.push_back(expandedNode);
+				}
 			}
+
+			if (isCollapsed) continue;
+
+			auto node = ExpandNode(root, cam, CHUNK_SIZE * 4);
 
 			if (node && node != root) {
 				int i;
@@ -94,8 +210,8 @@ void VoxelWorld::updateMesh() {
 				for (i = 0; i < 8; i++) {
 					child = node->children[i];
 					if (!child) continue;
-					buildQueue.push_front(BuildQueueEntry(child, false));
 					child->dirty = true;
+					buildQueue.push_front(BuildQueueEntry(child, false));
 				}
 			}
 			else {
@@ -105,7 +221,7 @@ void VoxelWorld::updateMesh() {
 		}
 
 	}
-}
+}*/
 
 bool VoxelWorld::buildTree(std::shared_ptr<OctreeNode> node) {
 	if (node->hidden) return false;

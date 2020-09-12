@@ -35,7 +35,7 @@ namespace godot {
 		std::shared_ptr<OctreeNode> root;
 		Vector3 cameraPosition;
 		//vector<std::shared_ptr<OctreeNode>> nodes;
-		//vector<std::shared_ptr<OctreeNode>> expandedNodes;
+		deque<std::shared_ptr<OctreeNode>> expandedNodes;
 		deque<BuildQueueEntry> buildQueue;
 		std::unique_ptr<boost::thread> queueThread;
 

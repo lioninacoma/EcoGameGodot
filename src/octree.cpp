@@ -469,7 +469,8 @@ float Density_Func(Vector3 v) {
 	float size2 = pow(2, MAX_LOD) * CHUNK_SIZE / 2;
 	Vector3 origin(size2, size2, size2);
 	//return Sphere(v, origin, size2 - 2);
-	return Cuboid(v, origin, Vector3(size2 - 2, size2 - 2, size2 - 2));
+	//return Cuboid(v, origin, Vector3(size2 - 2, size2 - 2, size2 - 2));
+	return v.y - CHUNK_SIZE / 2;
 }
 
 // ----------------------------------------------------------------------------
@@ -645,6 +646,22 @@ vector<std::shared_ptr<OctreeNode>> GetAllNodes(std::shared_ptr<OctreeNode> node
 	return nodes;
 }
 
+void ShowNode(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world) {
+	if (!node->meshInstancePath.is_empty()) {
+		auto meshObj = world->get_node(node->meshInstancePath);
+		auto mesh = Object::cast_to<MeshInstance>(meshObj);
+		mesh->show();
+		node->hidden = false;
+	}
+
+	if (!node->seamPath.is_empty()) {
+		auto seamObj = world->get_node(node->seamPath);
+		auto seam = Object::cast_to<MeshInstance>(seamObj);
+		seam->show();
+		node->hidden = false;
+	}
+}
+
 void HideNode(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world) {
 	if (!node->meshInstancePath.is_empty()) {
 		auto meshObj = world->get_node(node->meshInstancePath);
@@ -658,6 +675,20 @@ void HideNode(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world)
 		auto seam = Object::cast_to<MeshInstance>(seamObj);
 		seam->hide();
 		node->hidden = true;
+	}
+}
+
+void FreeNode(std::shared_ptr<godot::OctreeNode> node, godot::VoxelWorld* world) {
+	if (!node->meshInstancePath.is_empty()) {
+		auto meshObj = world->get_node(node->meshInstancePath);
+		auto mesh = Object::cast_to<MeshInstance>(meshObj);
+		mesh->call_deferred("free");
+	}
+
+	if (!node->seamPath.is_empty()) {
+		auto seamObj = world->get_node(node->seamPath);
+		auto seam = Object::cast_to<MeshInstance>(seamObj);
+		seam->call_deferred("free");
 	}
 }
 
@@ -716,7 +747,11 @@ std::shared_ptr<godot::OctreeNode> ExpandNode(std::shared_ptr<godot::OctreeNode>
 		}
 		else {
 			child = node->children[i];
-			if (child->lod > 0) {
+
+			if (child->hidden && child->meshRoot && !node->hidden && node->meshRoot) {
+				expanded = true;
+			}
+			else if (child->lod > 0) {
 				ret = ExpandNode(child, center, range);
 				if (ret) return ret;
 			}
@@ -733,7 +768,7 @@ std::shared_ptr<godot::OctreeNode> CollapseNode(std::shared_ptr<godot::OctreeNod
 	int i;
 	const int childLod = node->lod - 1;
 	std::shared_ptr<OctreeNode> child, ret;
-	bool collapsed = false;
+	bool iSCollapsed = false;
 
 	if (childLod < 0) return NULL;
 
@@ -741,17 +776,22 @@ std::shared_ptr<godot::OctreeNode> CollapseNode(std::shared_ptr<godot::OctreeNod
 		child = node->children[i];
 		if (!child) continue;
 		if (child->meshRoot && !child->hidden) {
-			collapsed = true;
-			cout << "hide" << endl;
+			iSCollapsed = true;
 			HideNode(child, world);
+
+			//FreeNode(child, world);
+			//DestroyOctree(child->meshRoot);
+			//DestroyOctree(child);
+			//node->children[i] = NULL;
+			//node->seamNeighbourLods[i] = -1;
 		}
-		else if (child->lod > 0) {
+		/*else if (child->lod > 0) {
 			ret = CollapseNode(child, center, range, world);
 			if (ret) return ret;
-		}
+		}*/
 	}
 
-	if (collapsed) return node;
+	if (iSCollapsed) return node;
 	return NULL;
 }
 
@@ -868,23 +908,24 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNeighbours(std::shared_ptr<OctreeNod
 	};
 
 	std::shared_ptr<OctreeNode> lodNode;
-	int i, neighbourLod = -1;
+	int i, j, neighbourLod = -1;
 	Vector3 min, offsetMin;
 
 	for (i = 0; i < 8; i++) {
-		offsetMin = OFFSETS[i] * node->size;
-		min = node->min - offsetMin;
-		lodNode = FindLodNodeAt(root, min, node->size);
-		
-		if (lodNode) {
-			meshRootNodes.clear();
-			FindNeighbouringMeshes(node, lodNode, meshRootNodes);
-			//cout << meshRootNodes.size() << endl;
-			for (auto meshRootNode : meshRootNodes) {
-				neighbourLod = meshRootNode->seamNeighbourLods[i];
-				//cout << neighbourLod << endl;
-				if (neighbourLod == node->lod || neighbourLod == -1) continue;
-				seamNeighbours.push_back(meshRootNode);
+		for (j = 0; j < 2; j++) {
+			offsetMin = OFFSETS[i] * node->size;
+			min = node->min + ((j % 2 == 0) ? -offsetMin : offsetMin);
+			lodNode = FindLodNodeAt(root, min, node->size);
+
+			if (lodNode) {
+				meshRootNodes.clear();
+				FindNeighbouringMeshes(node, lodNode, meshRootNodes);
+				//cout << meshRootNodes.size() << endl;
+				for (auto meshRootNode : meshRootNodes) {
+					//neighbourLod = meshRootNode->seamNeighbourLods[i];
+					//if (neighbourLod == node->lod || neighbourLod == -1) continue;
+					seamNeighbours.push_back(meshRootNode);
+				}
 			}
 		}
 	}
@@ -907,6 +948,7 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> ro
 		[&](const Vector3& min, const Vector3& max)
 		{
 			return max.x == seamValues.x || max.y == seamValues.y || max.z == seamValues.z;
+			//return true;
 		},
 
 		[&](const Vector3& min, const Vector3& max)
@@ -958,21 +1000,21 @@ vector<std::shared_ptr<OctreeNode>> FindSeamNodes(std::shared_ptr<OctreeNode> ro
 			meshRootNodes.clear();
 			FindNeighbouringMeshes(node, lodNode, meshRootNodes);
 
-			if (meshRootNodes.empty()) {
+			/*if (meshRootNodes.empty()) {
 				node->seamNeighbourLods[i] = -1;
 				continue;
 			}
 			else {
 				node->seamNeighbourLods[i] = meshRootNodes.front()->lod;
-			}
+			}*/
 
 			for (auto meshRootNode : meshRootNodes) {
 				Octree_FindNodes(meshRootNode->meshRoot, selectionFuncs[i], seamNodes);
 			}
 		}
-		else {
+		/*else {
 			node->seamNeighbourLods[i] = -1;
-		}
+		}*/
 	}
 
 	return seamNodes;
